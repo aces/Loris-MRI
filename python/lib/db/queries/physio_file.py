@@ -8,6 +8,16 @@ from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_file_parameter import DbPhysioFileParameter
 
 
+def try_get_physio_file_with_id(db: Database, physio_file_id: int) -> DbPhysioFile | None:
+    """
+    Get a physiological file from the database using its ID, or return `None` if no file was found.
+    """
+
+    return db.execute(select(DbPhysioFile)
+        .where(DbPhysioFile.id == physio_file_id)
+    ).scalar_one_or_none()
+
+
 def try_get_physio_file_with_path(db: Database, path: Path) -> DbPhysioFile | None:
     """
     Get a physiological file from the database using its path, or return `None` if no file was

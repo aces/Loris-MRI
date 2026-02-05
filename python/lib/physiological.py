@@ -5,7 +5,6 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from functools import reduce
-from pathlib import Path
 
 from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
@@ -13,18 +12,17 @@ from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvF
 import lib.exitcode
 from lib.config import get_eeg_chunks_dir_path_config
 from lib.database_lib.bids_event_mapping import BidsEventMapping
-from lib.database_lib.parameter_type import ParameterType
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
-from lib.database_lib.physiological_file import PhysiologicalFile
-from lib.database_lib.physiological_parameter_file import PhysiologicalParameterFile
 from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
 from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
+from lib.db.models.physio_file import DbPhysioFile
 from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
 from lib.logging import log_error_exit
+from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
 from lib.point_3d import Point3D
 
 
@@ -77,145 +75,8 @@ class Physiological:
         self.physiological_task_event_opt                   = PhysiologicalTaskEventOpt(self.db, self.verbose)
         self.physiological_task_event_hed_rel               = PhysiologicalTaskEventHEDRel(self.db, self.verbose)
         self.bids_event_mapping_obj                         = BidsEventMapping(self.db, self.verbose)
-        self.physiological_physiological_file_obj           = PhysiologicalFile(self.db, self.verbose)
-        self.physiological_physiological_parameter_file     = PhysiologicalParameterFile(self.db, self.verbose)
-        self.parameter_type_obj                             = ParameterType(self.db, self.verbose)
         self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
         self.point_3d_db = Point3DDB(self.db, self.verbose)
-
-    def insert_physiological_file(self, eeg_file_info, eeg_file_data):
-        """
-        Inserts the physiological file and its information into the
-        physiological_file and physiological_parameter_file tables.
-
-        :param eeg_file_info: dictionary with values to insert into
-                              physiological_file's table
-         :type eeg_file_info: dict
-        :param eeg_file_data: dictionary with values to insert into
-                              physiological_parameter_file's table
-         :type eeg_file_data: dict
-
-        :return: physiological file ID
-         :rtype: int
-        """
-
-        physiological_file_id = self.physiological_physiological_file_obj.insert(
-            physiological_modality_id=eeg_file_info['PhysiologicalModalityID'],
-            physiological_output_type_id=eeg_file_info['PhysiologicalOutputTypeID'],
-            session_id=eeg_file_info['SessionID'],
-            file_type=eeg_file_info['FileType'],
-            acquisition_time=eeg_file_info['AcquisitionTime'],
-            inserted_by_user=eeg_file_info['InsertedByUser'],
-            file_path=eeg_file_info['FilePath']
-        )
-
-        for key, value in eeg_file_data.items():
-            self.insert_physio_parameter_file(
-                physiological_file_id, key, value
-            )
-
-        return physiological_file_id
-
-    def insert_physio_parameter_file(self, physiological_file_id,
-                                     parameter_name, value, project_id=None):
-        """
-        Insert a row into the physiological_parameter_file table for the
-        provided PhysiologicalFileID, parameter Name and Value
-
-        :param physiological_file_id: PhysiologicalFileID
-         :type physiological_file_id: int
-        :param parameter_name       : Name of the parameter from parameter_type
-         :type parameter_name       : str
-        :param value                : Value to insert into
-                                      physiological_parameter_file
-         :type value                : str
-        :param project_id           : ProjectID
-         :type project_id           : int
-        """
-        # Gather column name & values to insert into
-        # physiological_parameter_file
-        parameter_type_id = self.get_parameter_type_id(parameter_name)
-
-        if project_id is None:
-            project_id = self.get_project_id(physiological_file_id)
-        else:
-            physiological_file_id = None
-
-        self.physiological_physiological_parameter_file.insert(
-            physiological_file_id=physiological_file_id,
-            project_id=project_id,
-            parameter_type_id=parameter_type_id,
-            value=value
-        )
-
-    def get_project_id(self, physiological_file_id):
-        """
-        Ultimately obtains ProjectID from Project table using PhysiologicalFileID
-
-        :param physiological_file_id    : PhysiologicalFileID
-         :type physiological_file_id    : int
-
-        :return: ProjectID
-         :rtype: int
-        """
-        results = self.db.pselect(
-            query="SELECT ProjectID "
-                  "FROM session AS s "
-                  "WHERE s.ID = ("
-                  "SELECT SessionID FROM physiological_file "
-                  "WHERE PhysiologicalFileID = %s"
-                  ")",
-            args=(physiological_file_id,)
-        )
-        return int(results[0]['ProjectID'])
-
-    def get_parameter_type_id(self, parameter_name):
-        """
-        Greps ParameterTypeID from parameter_type table using parameter_name.
-        If no ParameterTypeID were found, will create it in parameter_type.
-
-        :param parameter_name: name of the parameter to look in parameter_type
-         :type parameter_name: str
-
-        :return: ParameterTypeID
-         :rtype: int
-        """
-
-        results = self.db.pselect(
-            query="SELECT ParameterTypeID "
-                  "FROM parameter_type "
-                  "WHERE Name = %s "
-                  "AND SourceFrom='physiological_parameter_file'",
-            args=(parameter_name,)
-        )
-
-        if results:
-            # if results, grep the parameter_type_id
-            parameter_type_id = results[0]['ParameterTypeID']
-        else:
-            # if no results, create an entry in parameter_type
-            col_names = [
-                'Name', 'Type', 'Description', 'SourceFrom', 'Queryable'
-            ]
-            parameter_desc = parameter_name + " magically created by lib.physiological python class"
-            source_from    = 'physiological_parameter_file'
-            values = [
-                parameter_name, 'text', parameter_desc, source_from, 0
-            ]
-            parameter_type_id = self.parameter_type_obj.insert_parameter_type(
-                dict(zip(col_names, values))
-            )
-
-            # link the parameter_type_id to a parameter type category
-            category_id = self.parameter_type_obj.get_parameter_type_category_id(
-                'Electrophysiology Variables'
-            )
-            self.parameter_type_obj.insert_into_parameter_type_category_rel(
-                category_id,
-                parameter_type_id
-            )
-
-        return parameter_type_id
 
     def grep_electrode_from_physiological_file_id(self, physiological_file_id):
         """
@@ -286,7 +147,7 @@ class Physiological:
         event_paths = [event_path['FilePath'] for event_path in event_paths]
 
     def insert_electrode_file(self, electrode_data, electrode_file,
-                              physiological_file_id, blake2):
+                              physiological_file: DbPhysioFile, blake2):
         """
         Inserts the electrode information read from the file *electrode.tsv
         into the physiological_electrode table, linking it to the
@@ -298,9 +159,8 @@ class Physiological:
          :type electrode_data       : list
         :param electrode_file       : name of the electrode file
          :type electrode_file       : str
-        :param physiological_file_id: PhysiologicalFileID to link the
+        :param physiological_file   : Physiological file object to link the
                                       electrode information to
-         :type physiological_file_id: int
         :param blake2               : blake2b hash of the electrode file
          :type blake2               : str
         """
@@ -364,13 +224,11 @@ class Physiological:
             electrode_ids.append(inserted_electrode_id)
 
         # insert blake2b hash of electrode file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'electrode_file_blake2b_hash', blake2
-        )
+        insert_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
         return electrode_ids
 
     def insert_channel_file(self, channels_file: BidsEegChannelsTsvFile, channel_file,
-                            physiological_file_id, blake2):
+                            physiological_file: DbPhysioFile, blake2):
         """
         Inserts the channel information read from the file *channels.tsv
         into the physiological_channel table, linking it to the
@@ -382,8 +240,7 @@ class Physiological:
          :type channels_file        : list
         :param channel_file         : name of the channel file
          :type channel_file         : str
-        :param physiological_file_id: PhysiologicalFileID to link the channel info to
-         :type physiological_file_id: int
+        :param physiological_file   : Physiological file object to link the channel info to
         :param blake2               : blake2b hash of the channel file
          :type blake2               : str
         """
@@ -416,7 +273,7 @@ class Physiological:
                     )
 
             values_tuple = (
-                str(physiological_file_id),
+                str(physiological_file.id),
                 physio_channel_type.id,
                 physio_status_type.id if physio_status_type is not None else None,
                 row.data['name'],
@@ -440,12 +297,10 @@ class Physiological:
         )
 
         # insert blake2b hash of channel file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'channel_file_blake2b_hash', blake2
-        )
+        insert_physio_file_parameter(self.env, physiological_file, 'channel_file_blake2b_hash', blake2)
 
     def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
-                                  physiological_file_id, blake2, electrode_ids):
+                                  physiological_file: DbPhysioFile, blake2, electrode_ids):
         """
         Inserts the electrode metadata information read from the file *coordsystem.json
         into the physiological_coord_system, physiological_coord_system_point_3d_rel
@@ -456,8 +311,7 @@ class Physiological:
          :type electrode_metadata       : dict
         :param electrode_metadata_file  : PhysiologicalFileID to link the electrode info to
          :type electrode_metadata_file  : int
-        :param physiological_file_id    : PhysiologicalFileID to link the electrode info to
-         :type physiological_file_id    : int
+        :param physiological_file       : Physiological file object to link the electrode info to
         :param blake2                   : blake2b hash of the event file
          :type blake2                   : str
         :param electrode_ids            : blake2b hash of the event file
@@ -549,20 +403,16 @@ class Physiological:
 
         # insert the relation between coordinate file electrode and physio file
         self.physiological_coord_system_db.insert_coord_system_electrodes_relation(
-            physiological_file_id,
+            physiological_file.id,
             coord_system_id,
             electrode_ids
         )
 
         if blake2:
             # insert blake2b hash of task event file into physiological_parameter_file
-            self.insert_physio_parameter_file(
-                physiological_file_id,
-                'coordsystem_file_json_blake2b_hash',
-                blake2
-            )
+            insert_physio_file_parameter(self.env, physiological_file, 'coordsystem_file_json_blake2b_hash', blake2)
 
-    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file_id,
+    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file: DbPhysioFile | None,
                               project_id, blake2, project_wide, hed_union):
         """
         Inserts the events metadata information read from the file *events.json
@@ -575,8 +425,7 @@ class Physiological:
          :type event_metadata           : list
         :param event_metadata_file      : name of the event metadata file
          :type event_file               : str
-        :param physiological_file_id    : PhysiologicalFileID to link the event info to
-         :type physiological_file_id    : int | None
+        :param physiological_file       : Physiological file object to link the event info to
         :param project_id               : ProjectID
          :type project_id               : int
         :param blake2                   : blake2b hash of the event file
@@ -591,7 +440,7 @@ class Physiological:
         """
 
         event_file_id = self.physiological_event_file_obj.insert(
-            physiological_file_id,
+            physiological_file.id if not project_wide else None,
             project_id,
             'json',
             event_metadata_file
@@ -599,18 +448,16 @@ class Physiological:
 
         tag_dict = self.parse_and_insert_event_metadata(
             event_metadata=event_metadata,
-            target_id=project_id if project_wide else physiological_file_id,
+            target_id=project_id if project_wide else physiological_file.id,
             project_wide=project_wide,
             hed_union=hed_union
         )
 
         # insert blake2b hash of task event file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id,
-            'event_file_json_blake2b_hash',
-            blake2,
-            project_id
-        )
+        if project_wide:
+            insert_physio_project_parameter(self.env, project_id, 'event_file_json_blake2b_hash', blake2)
+        else:
+            insert_physio_file_parameter(self.env, physiological_file, 'event_file_json_blake2b_hash', blake2)
 
         return event_file_id, tag_dict
 
@@ -888,7 +735,7 @@ class Physiological:
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
 
-    def insert_event_file(self, events_file: BidsEventsTsvFile, event_file, physiological_file_id,
+    def insert_event_file(self, events_file: BidsEventsTsvFile, event_file, physiological_file: DbPhysioFile,
                           project_id, blake2, dataset_tag_dict, file_tag_dict,
                           hed_union):
         """
@@ -903,8 +750,7 @@ class Physiological:
          :type event_data           : list
         :param event_file           : name of the event file
          :type event_file           : str
-        :param physiological_file_id: PhysiologicalFileID to link the event info to
-         :type physiological_file_id: int
+        :param physiological_file   : Physiological file object to link the event info to
         :param project_id           : ProjectID to link the event info to
          :type project_id           : int
         :param blake2               : blake2b hash of the task event file
@@ -918,7 +764,7 @@ class Physiological:
         """
 
         event_file_id = self.physiological_event_file_obj.insert(
-            physiological_file_id,
+            physiological_file.id,
             project_id,
             'tsv',
             event_file
@@ -941,7 +787,7 @@ class Physiological:
 
             # insert one event and get its db id
             last_task_id = self.physiological_task_event.insert(
-                physiological_file_id = physiological_file_id,
+                physiological_file_id = physiological_file.id,
                 event_file_id         = event_file_id,
                 onset                 = row.onset,
                 duration              = row.duration,
@@ -974,9 +820,7 @@ class Physiological:
                         get_last_id=False
                     )
         # insert blake2b hash of task event file into physiological_parameter_file
-        self.insert_physio_parameter_file(
-            physiological_file_id, 'event_file_blake2b_hash', blake2
-        )
+        insert_physio_file_parameter(self.env, physiological_file, 'event_file_blake2b_hash', blake2)
 
     def grep_archive_info_from_file_id(self, physiological_file_id):
         """
@@ -1048,74 +892,29 @@ class Physiological:
         # return the result
         return results[0] if results else None
 
-    def grep_file_type_from_file_id(self, physiological_file_id):
-        """
-        Greps the file type stored in the physiological_file table using its
-        PhysiologicalFileID.
-
-        :param physiological_file_id: PhysiologicalFileID associated with the file
-         :type physiological_file_id: int
-
-        :return: file type of the file with PhysiologicalFileID
-         :rtype: str
-        """
-
-        query = "SELECT FileType " \
-                "FROM physiological_file " \
-                "WHERE PhysiologicalFileID = %s"
-
-        results = self.db.pselect(query=query, args=(physiological_file_id,))
-
-        # return the result
-        return results[0]['FileType'] if results else None
-
-    def grep_file_path_from_file_id(self, physiological_file_id):
-        """
-        Greps the file path stored in the physiological_file table using its
-        PhysiologicalFileID.
-
-        :param physiological_file_id: PhysiologicalFileID associated with the file
-         :type physiological_file_id: int
-
-        :return: file type of the file with PhysiologicalFileID
-         :rtype: str
-        """
-
-        query = "SELECT FilePath " \
-                "FROM physiological_file " \
-                "WHERE PhysiologicalFileID = %s"
-
-        results = self.db.pselect(query=query, args=(physiological_file_id,))
-
-        # return the result
-        return results[0]['FilePath'] if results else None
-
-    def create_chunks_for_visualization(self, physio_file_id, data_dir):
+    def create_chunks_for_visualization(self, physio_file: DbPhysioFile, data_dir):
         """
         Calls chunking scripts if no chunk datasets yet available for
         PhysiologicalFileID based on the file type of the original
         electrophysiology dataset.
 
-        :param physio_file_id: PhysiologicalFileID of the dataset to chunk
-         :type physio_file_id: int
+        :param physio_file: Physiological file object of the dataset to chunk
         :param data_dir      : LORIS data directory (/data/%PROJECT%/data)
          :type data_dir      : str
         """
 
         # check if chunks already exists for this PhysiologicalFileID
         results    = self.grep_parameter_value_from_file_id(
-            physio_file_id, 'electrophysiology_chunked_dataset_path'
+            physio_file.id, 'electrophysiology_chunked_dataset_path'
         )
         chunk_path = results['Value'] if results else None
 
         # No chunks found
         if not chunk_path:
             script    = None
-            file_path = self.grep_file_path_from_file_id(physio_file_id)
-
             chunk_root_dir_config = get_eeg_chunks_dir_path_config(self.env)
             chunk_root_dir = chunk_root_dir_config
-            file_path_parts = Path(file_path).parts
+            file_path_parts = physio_file.path.parts
             if chunk_root_dir_config:
                 chunk_root_dir = chunk_root_dir_config
             else:
@@ -1123,11 +922,10 @@ class Physiological:
 
             chunk_root_dir = os.path.join(chunk_root_dir, f'{file_path_parts[1]}_chunks')
 
-            full_file_path = os.path.join(data_dir, file_path)
+            full_file_path = os.path.join(data_dir, physio_file.path)
 
             # determine which script to run based on the file type
-            file_type = self.grep_file_type_from_file_id(physio_file_id)
-            match file_type:
+            match physio_file.type:
                 case 'set':
                     script = 'eeglab-to-chunks'
                 case 'edf':
@@ -1149,10 +947,11 @@ class Physiological:
                 print('ERROR: ' + script + ' not found')
                 sys.exit(lib.exitcode.CHUNK_CREATION_FAILURE)
 
-            chunk_path = os.path.join(chunk_root_dir, os.path.splitext(os.path.basename(file_path))[0] + '.chunks')
+            chunk_path = os.path.join(chunk_root_dir, os.path.splitext(physio_file.path.name)[0] + '.chunks')
             if os.path.isdir(chunk_path):
-                self.insert_physio_parameter_file(
-                    physiological_file_id = physio_file_id,
-                    parameter_name = 'electrophysiology_chunked_dataset_path',
-                    value = os.path.relpath(chunk_path, data_dir)
+                insert_physio_file_parameter(
+                    self.env,
+                    physio_file,
+                    'electrophysiology_chunked_dataset_path',
+                    os.path.relpath(chunk_path, data_dir),
                 )

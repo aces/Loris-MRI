@@ -10,6 +10,7 @@ import lib.utilities
 from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
 from lib.database import Database
+from lib.db.queries.physio_file import try_get_physio_file_with_id
 from lib.env import Env
 from lib.make_env import make_env
 from lib.physiological import Physiological
@@ -129,9 +130,10 @@ def make_chunks(env: Env, physiological_file_id, config_file, verbose):
     physiological = Physiological(env, db, verbose)
 
     # create the chunked dataset
-    if physiological.grep_file_path_from_file_id(physiological_file_id):
-        print('Chunking physiological file ID ' + str(physiological_file_id))
-        physiological.create_chunks_for_visualization(physiological_file_id, data_dir)
+    physio_file = try_get_physio_file_with_id(env.db, physiological_file_id)
+    if physio_file is not None:
+        print(f"Chunking physiological file ID {physio_file.id}")
+        physiological.create_chunks_for_visualization(physio_file, data_dir)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 """Deals with EEG BIDS datasets and register them into the database."""
 
-import getpass
 import json
 import os
 import sys
@@ -18,7 +17,9 @@ from lib.candidate import Candidate
 from lib.config import get_eeg_pre_package_download_dir_path_config, get_eeg_viz_enabled_config
 from lib.database_lib.physiological_event_archive import PhysiologicalEventArchive
 from lib.database_lib.physiological_event_file import PhysiologicalEventFile
+from lib.db.models.physio_file import DbPhysioFile
 from lib.db.queries.physio_file import try_get_physio_file_with_path
+from lib.db.queries.session import try_get_session_with_id
 from lib.env import Env
 from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
@@ -28,6 +29,8 @@ from lib.import_bids_dataset.physio import (
     get_check_bids_physio_output_type,
 )
 from lib.logging import log
+from lib.physio.file import insert_physio_file
+from lib.physio.parameters import insert_physio_file_parameters
 from lib.physiological import Physiological
 from lib.session import Session
 
@@ -184,6 +187,8 @@ class Eeg:
             self.register_data()
             self.register_data(derivatives=True)
 
+        env.db.commit()
+
     def get_loris_cand_info(self):
         """
         Gets the LORIS Candidate info for the BIDS subject.
@@ -295,7 +300,7 @@ class Eeg:
         physiological = Physiological(self.env, self.db, self.verbose)
 
         for inserted_eeg in inserted_eegs:
-            eeg_file_id        = inserted_eeg['file_id']
+            eeg_file           = inserted_eeg['file']
             eeg_file_path      = inserted_eeg['file_path']
             eegjson_file_path  = inserted_eeg['eegjson_file_path']
             fdt_file_path      = inserted_eeg['fdt_file_path']
@@ -303,19 +308,19 @@ class Eeg:
 
             # insert related electrode, channel and event information
             electrode_file_path = self.fetch_and_insert_electrode_file(
-                eeg_file_id,
+                eeg_file,
                 original_file_data.path,
                 derivatives
             )
 
             channel_file_path = self.fetch_and_insert_channel_file(
-                eeg_file_id,
+                eeg_file,
                 original_file_data.path,
                 derivatives
             )
 
             event_file_paths = self.fetch_and_insert_event_files(
-                eeg_file_id,
+                eeg_file,
                 original_file_data.path,
                 derivatives
             )
@@ -339,7 +344,7 @@ class Eeg:
 
                 event_archive_rel_name = os.path.splitext(event_file_paths[0])[0] + ".tgz"
                 self.create_and_insert_event_archive(
-                    event_files_to_archive, event_archive_rel_name, eeg_file_id
+                    event_files_to_archive, event_archive_rel_name, eeg_file.id
                 )
 
             if channel_file_path:
@@ -347,13 +352,13 @@ class Eeg:
 
             archive_rel_name = os.path.splitext(eeg_file_path)[0] + ".tgz"
             self.create_and_insert_archive(
-                files_to_archive, archive_rel_name, eeg_file_id
+                files_to_archive, archive_rel_name, eeg_file.id
             )
 
             # create data chunks for React visualization
             eeg_viz_enabled = get_eeg_viz_enabled_config(self.env)
             if eeg_viz_enabled:
-                physiological.create_chunks_for_visualization(eeg_file_id, self.data_dir)
+                physiological.create_chunks_for_visualization(eeg_file, self.data_dir)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """
@@ -375,9 +380,6 @@ class Eeg:
         """
 
         inserted_eegs = []
-        # load the Physiological object that will be used to insert the
-        # physiological data into the database
-        physiological = Physiological(self.env, self.db, self.verbose)
 
         if detect:
             # TODO if derivatives, grep the source file as well as the input file ID???
@@ -508,18 +510,20 @@ class Eeg:
 
             # insert the file along with its information into
             # physiological_file and physiological_parameter_file tables
-            eeg_file_info = {
-                'FileType': file_type.name,
-                'FilePath': eeg_path,
-                'SessionID': self.session_id,
-                'AcquisitionTime': eeg_acq_time,
-                'InsertedByUser': getpass.getuser(),
-                'PhysiologicalOutputTypeID': output_type.id,
-                'PhysiologicalModalityID': modality.id
-            }
-            physio_file_id = physiological.insert_physiological_file(
-                eeg_file_info, eeg_file_data
+            session = try_get_session_with_id(self.env.db, self.session_id)
+
+            physio_file = insert_physio_file(
+                self.env,
+                session,
+                Path(eeg_path),
+                file_type,
+                modality,
+                output_type,
+                eeg_acq_time
             )
+
+            insert_physio_file_parameters(self.env, physio_file, eeg_file_data)
+            self.env.db.commit()
 
             if self.loris_bids_root_dir:
                 # If we copy the file in assembly_bids and
@@ -536,7 +540,7 @@ class Eeg:
                         print(message)
 
             inserted_eegs.append({
-                'file_id': physio_file_id,
+                'file': physio_file,
                 'file_path': eeg_path,
                 'eegjson_file_path': sidecar_json_path,
                 'fdt_file_path': fdt_file_path,
@@ -546,7 +550,7 @@ class Eeg:
         return inserted_eegs
 
     def fetch_and_insert_electrode_file(
-            self, physiological_file_id, original_physiological_file_path, derivatives=False):
+            self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False):
         """
         Gather electrode file information to insert into
         physiological_electrode. Once all the information has been gathered,
@@ -554,10 +558,9 @@ class Eeg:
         insertion into physiological_electrode, linking it to the
         PhysiologicalFileID already registered.
 
-        :param physiological_file_id: PhysiologicalFileID of the associated
+        :param physiological_file: Physiological file object of the associated
                                       physiological file already inserted into
                                       the physiological_file table
-         :type physiological_file_id: int
         :param derivatives: True if the electrode file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
@@ -582,14 +585,14 @@ class Eeg:
 
         if not electrode_files:
             message = "WARNING: no electrode file associated with " \
-                      "physiological file ID " + str(physiological_file_id)
+                      "physiological file ID " + str(physiological_file.id)
             print(message)
             return None
         else:
             # maybe several electrode files
             for electrode_file in electrode_files:
                 result = physiological.grep_electrode_from_physiological_file_id(
-                    physiological_file_id
+                    physiological_file.id
                 )
                 if not result:
                     electrode_data = utilities.read_tsv_file(electrode_file.path)
@@ -604,7 +607,7 @@ class Eeg:
 
                     # insert the electrode data in the database
                     electrode_ids = physiological.insert_electrode_file(
-                        electrode_data, electrode_path, physiological_file_id, blake2
+                        electrode_data, electrode_path, physiological_file, blake2
                     )
 
                     # get coordsystem.json file
@@ -621,14 +624,14 @@ class Eeg:
                     )
                     if not coordsystem_metadata_file:
                         message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
-                                  f'associated with physiological file ID {physiological_file_id}'
+                                  f'associated with physiological file ID {physiological_file.id}'
                         print(message)
 
                         # insert default (not registered) coordsystem in the database
                         physiological.insert_electrode_metadata(
                             None,
                             None,
-                            physiological_file_id,
+                            physiological_file,
                             None,
                             electrode_ids
                         )
@@ -648,13 +651,13 @@ class Eeg:
                         physiological.insert_electrode_metadata(
                             electrode_metadata,
                             electrode_metadata_path,
-                            physiological_file_id,
+                            physiological_file,
                             blake2,
                             electrode_ids
                         )
 
     def fetch_and_insert_channel_file(
-            self, physiological_file_id, original_physiological_file_path, derivatives=False):
+            self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False):
         """
         Gather channel file information to insert into physiological_channel.
         Once all the information has been gathered, it will call
@@ -662,10 +665,9 @@ class Eeg:
         physiological_channel, linking it to the PhysiologicalFileID already
         registered.
 
-        :param physiological_file_id:            PhysiologicalFileID of the associated
+        :param physiological_file:               Physiological file object of the associated
                                                  physiological file already inserted into
                                                  the physiological_file table
-         :type physiological_file_id:            int
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
         :param derivatives:                      True if the channel file to insert is a derivative file.
@@ -693,12 +695,12 @@ class Eeg:
 
         if channels_file is None:
             message = "WARNING: no channel file associated with " \
-                      "physiological file ID " + str(physiological_file_id)
+                      "physiological file ID " + str(physiological_file.id)
             print(message)
             return None
         else:
             result = physiological.grep_channel_from_physiological_file_id(
-                physiological_file_id
+                physiological_file.id
             )
             channel_path = result[0]['FilePath'] if result else None
             if not result:
@@ -712,13 +714,13 @@ class Eeg:
                 blake2 = compute_file_blake2b_hash(channels_file.path)
                 # insert the channel data in the database
                 physiological.insert_channel_file(
-                    channels_file, channel_path, physiological_file_id, blake2
+                    channels_file, channel_path, physiological_file, blake2
                 )
 
         return channel_path
 
     def fetch_and_insert_event_files(
-            self, physiological_file_id, original_physiological_file_path, derivatives=False):
+            self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False):
         """
         Gather raw channel file information to insert into
         physiological_task_event. Once all the information has been gathered,
@@ -726,10 +728,9 @@ class Eeg:
         insertion into physiological_task_event, linking it to the
         PhysiologicalFileID already registered.
 
-        :param physiological_file_id:            PhysiologicalFileID of the associated
+        :param physiological_file:               Physiological file object of the associated
                                                  physiological file already inserted into
                                                  the physiological_file table
-         :type physiological_file_id:            int
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
         :param derivatives:                      True if the event file to insert is a derivative file.
@@ -757,13 +758,13 @@ class Eeg:
 
         if events_data_file is None:
             message = "WARNING: no events file associated with " \
-                      "physiological file ID " + str(physiological_file_id)
+                      "physiological file ID " + str(physiological_file.id)
             print(message)
             return None
         else:
             physiological_event_file_obj = PhysiologicalEventFile(self.db, self.verbose)
             event_paths = physiological_event_file_obj.grep_event_paths_from_physiological_file_id(
-                physiological_file_id
+                physiological_file.id
             )
 
             file_tag_dict = {}
@@ -785,7 +786,7 @@ class Eeg:
 
                 if not event_metadata_file:
                     message = '\nWARNING: no events metadata files (events.json) associated ' \
-                              'with physiological file ID ' + str(physiological_file_id)
+                              'with physiological file ID ' + str(physiological_file.id)
                     print(message)
                 else:
                     event_metadata_path = os.path.relpath(event_metadata_file.path, self.data_dir)
@@ -803,7 +804,7 @@ class Eeg:
                     _, file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
                         event_metadata_file=event_metadata_path,
-                        physiological_file_id=physiological_file_id,
+                        physiological_file=physiological_file,
                         project_id=self.project_id,
                         blake2=blake2,
                         project_wide=False,
@@ -825,7 +826,7 @@ class Eeg:
             physiological.insert_event_file(
                 events_file=events_data_file,
                 event_file=event_path,
-                physiological_file_id=physiological_file_id,
+                physiological_file=physiological_file,
                 project_id=self.project_id,
                 blake2=blake2,
                 dataset_tag_dict=self.dataset_tag_dict,

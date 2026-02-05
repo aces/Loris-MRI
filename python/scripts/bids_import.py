@@ -302,7 +302,7 @@ def read_and_insert_bids(
         _, dataset_tag_dict = physio.insert_event_metadata(
             event_metadata=event_metadata,
             event_metadata_file=event_metadata_path,
-            physiological_file_id=None,
+            physiological_file=None,
             project_id=single_project_id,
             blake2=blake2,
             project_wide=True,

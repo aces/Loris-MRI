@@ -1,6 +1,9 @@
 """This class performs database queries for the physiological_parameter_file table"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.physio_file_parameter.DbPhysioFileParameter` instead')
 class PhysiologicalParameterFile:
 
     def __init__(self, db, verbose):
