@@ -18,7 +18,6 @@ from lib.database_lib.mri_protocol import MriProtocol
 from lib.database_lib.mri_protocol_checks import MriProtocolChecks
 from lib.database_lib.mri_protocol_violated_scans import MriProtocolViolatedScans
 from lib.database_lib.mri_scan_type import MriScanType
-from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
@@ -71,7 +70,6 @@ class Imaging:
         self.mri_prot_check_db_obj = MriProtocolChecks(db, verbose)
         self.mri_prot_viol_scan_db_obj = MriProtocolViolatedScans(db, verbose)
         self.mri_scan_type_db_obj = MriScanType(db, verbose)
-        self.mri_scanner_db_obj = MriScanner(db, verbose)
         self.mri_viol_log_db_obj = MriViolationsLog(db, verbose)
         self.param_type_db_obj = ParameterType(db, verbose)
         self.param_file_db_obj = ParameterFile(db, verbose)
@@ -787,46 +785,6 @@ class Imaging:
                 'ValidRegex': ','.join(valid_regexs) if valid_regexs else None,
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
-
-    @deprecated('Use `lib.imaging_lib.mri_scanner.get_or_create_scanner` instead')
-    def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
-        """
-        Get the scanner ID based on the scanner information provided as input.
-
-        :param manufacturer: Scanner manufacturer
-         :type manufacturer: str
-        :param software_version: Scanner software version
-         :type software_version: str
-        :param serial_nb: Scanner serial number
-         :type serial_nb: str
-        :param model_name: Scanner model name
-         :type model_name: str
-        :param center_id: ID of the scanner's center
-         :type center_id: int
-        :param project_id: ID of the scanner's project
-         :type project_id: int
-        """
-        return self.mri_scanner_db_obj.determine_scanner_information(
-            manufacturer,
-            software_version,
-            serial_nb,
-            model_name,
-            center_id,
-            project_id
-        )
-
-    @deprecated('Use `lib.db.models.DbScanner.candidate` instead')
-    def get_scanner_candid(self, scanner_id):
-        """
-        Select a ScannerID CandID based on the scanner ID in mri_scanner.
-
-        :param scanner_id: scanner ID in the mri_scanner table
-         :type scanner_id: int
-
-        :return: scanner CandID
-         :rtype: int
-        """
-        return self.mri_scanner_db_obj.get_scanner_candid(scanner_id)
 
     def determine_intended_for_field_for_fmap_json_files(self, tarchive_id):
         """
