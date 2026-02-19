@@ -27,6 +27,7 @@ from lib.eeg import Eeg
 from lib.env import Env
 from lib.import_bids_dataset.check_sessions import check_or_create_bids_sessions
 from lib.import_bids_dataset.check_subjects import check_or_create_bids_subjects
+from lib.import_bids_dataset.env import BidsImportEnv
 from lib.make_env import make_env
 from lib.mri import Mri
 
@@ -291,6 +292,12 @@ def read_and_insert_bids(
             hed_union=hed_union
         )
 
+    import_env = BidsImportEnv(
+        data_dir_path    = Path(data_dir),
+        source_bids_path = Path(bids_dir),
+        loris_bids_path  = Path(loris_bids_root_dir).relative_to(data_dir) if loris_bids_root_dir is not None else None,
+    )
+
     # read list of modalities per session / candidate and register data
     for data_type_reader in bids_reader.data_types:
         bids_info = data_type_reader.info
@@ -314,15 +321,13 @@ def read_and_insert_bids(
             case 'eeg' | 'ieeg':
                 Eeg(
                     env,
-                    bids_layout   = bids_reader.layout,
-                    session       = session,
-                    bids_info     = bids_info,
-                    db            = db,
-                    data_dir      = data_dir,
-                    loris_bids_eeg_rel_dir = loris_bids_data_type_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir,
-                    dataset_tag_dict       = dataset_tag_dict,
-                    dataset_type           = type
+                    import_env,
+                    bids_layout      = bids_reader.layout,
+                    session          = session,
+                    bids_info        = bids_info,
+                    db               = db,
+                    dataset_tag_dict = dataset_tag_dict,
+                    dataset_type     = type
                 )
             case 'anat' | 'dwi' | 'fmap' | 'func':
                 Mri(
