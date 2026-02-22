@@ -3,7 +3,8 @@
 
 class MriProtocolViolatedScans:
     """
-    This class performs database queries for imaging dataset stored in the mri_protocol_violated_scans table.
+    This class performs database queries for imaging dataset stored in the
+    mri_protocol_violated_scans table.
 
     :Example:
 
@@ -34,7 +35,8 @@ class MriProtocolViolatedScans:
 
     def insert_protocol_violated_scans(self, field_value_dict):
         """
-        Inserts a row into the mri_protocol_violated_scans table with information present in the field_value_dict.
+        Inserts a row into the mri_protocol_violated_scans table with information present in the
+        field_value_dict.
 
         :param field_value_dict: dictionary with table field as keys and values to insert as values
          :type field_value_dict: dict
@@ -68,9 +70,11 @@ class MriProtocolViolatedScans:
 
         :param file_id: ID of the file to update in the `mri_protocol_violated_scans` table
          :type file_id: int
-        :param fields: tuple with the list of fields to update in the `mri_protocol_violated_scans` table
+        :param fields: tuple with the list of fields to update in the `mri_protocol_violated_scans`
+                       table
          :type fields: tuple
-        :param values: tuple with the list of values to use to update the `mri_protocol_violated_scans` table
+        :param values: tuple with the list of values to use to update the
+                       `mri_protocol_violated_scans` table
          :type values: tuple
         """
 

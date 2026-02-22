@@ -48,8 +48,8 @@ class DicomArchive:
     @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_with_archive_location` instead')
     def populate_tarchive_info_dict_from_archive_location(self, archive_location):
         """
-        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
-        the tarchive table for a given archive location.
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information
+        found in the tarchive table for a given archive location.
 
         :param archive_location: location of the DICOM archive (relative path)
          :type archive_location: str
@@ -59,8 +59,8 @@ class DicomArchive:
     @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_with_id` instead')
     def populate_tarchive_info_dict_from_tarchive_id(self, tarchive_id):
         """
-        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
-        the tarchive table for a given TarchiveID.
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information
+        found in the tarchive table for a given TarchiveID.
 
         :param tarchive_id: TarchiveID of the DICOM archive
          :type tarchive_id: int
@@ -70,8 +70,8 @@ class DicomArchive:
     @deprecated('Use `lib.db.queries.dicom_archive.try_get_dicom_archive_series_with_series_uid_echo_time` instead')
     def populate_tarchive_info_dict_from_series_uid_and_echo_time(self, series_uid, echo_time):
         """
-        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information found in
-        the tarchive table for a given TarchiveID.
+        Populate the DICOM archive information dictionary (self.tarchive_info_dict) with information
+        found in the tarchive table for a given TarchiveID.
 
         :param series_uid: SeriesUID to use to find entries in the tarchive_series table
          :type series_uid: str

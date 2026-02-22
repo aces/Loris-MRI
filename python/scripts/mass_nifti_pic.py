@@ -120,8 +120,8 @@ def make_pic(env: Env, file_id, config_file, force, verbose):
      :type file_id    : int
     :param config_file: path to the config file with database connection information
      :type config_file: str
-    :param force      : if a pic is already present for the FileID, overwrite the pic in the filesystem with newly
-                        generated pic
+    :param force      : if a pic is already present for the FileID, overwrite the pic in the
+                        filesystem with newly generated pic
      :type force      : bool
     :param verbose    : flag for more printing if set
      :type verbose    : bool

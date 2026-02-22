@@ -195,7 +195,8 @@ def test_invalid_tarchive_path():
 
 def test_tarchive_path_and_upload_id_provided():
     """
-    Test that tarchive path and upload ID are not provided to the script as argument. Only one of them must be set.
+    Test that tarchive path and upload ID are not provided to the script as argument. Only one of
+    them must be set.
     """
 
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t1_valid.nii.gz'
@@ -223,7 +224,8 @@ def test_tarchive_path_and_upload_id_provided():
 
 def test_nifti_and_tarchive_patient_name_differ():
     """
-    Test a NIfTI file where the patient name is not matching the patient name stored in the associated DICOM headers.
+    Test a NIfTI file where the patient name is not matching the patient name stored in the
+    associated DICOM headers.
     """
 
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_t2_invalid_pname.nii.gz'
@@ -275,10 +277,13 @@ def test_nifti_already_inserted():
 def test_nifti_mri_protocol_violated_scans_features():
     """
     Test the following NIfTI protocol violated scan features:
-    - provide a scan with no matching protocol and check that it gets inserted in the violated scan table
-    - re-run the script on the same scan and check that no duplicated entries has been saved in the violated scan table
-    - re-run the script on the same scan with specification of the scan type as an argument to the script and check
-      that it got inserted into the files table (in addition, test not creating the pic for the scan and make sure
+    - provide a scan with no matching protocol and check that it gets inserted in the violated scan
+      table
+    - re-run the script on the same scan and check that no duplicated entries has been saved in the
+      violated scan table
+    - re-run the script on the same scan with specification of the scan type as an argument to the
+      script and check that it got inserted into the files table (in addition, test not creating the
+    pic for the scan and make sure
       it is not generated)
     """
     db = get_integration_database_session()
@@ -406,11 +411,13 @@ def test_nifti_mri_protocol_violated_scans_features():
 def test_nifti_mri_violations_log_exclude_features():
     """
     Test the following NIfTI violations exclusion features:
-    - provide a scan with exclusionary violation checks and check that it gets inserted in the violations log table
-    - re-run the script on the same scan and check that no duplicated entries has been saved in the violations log table
-    - re-run the script on the same scan with option to bypass the extra checks and check that the file got inserted
-      in the files table (in addition, test not creating the pic for the scan and make sure
-      it is not generated)
+    - provide a scan with exclusionary violation checks and check that it gets inserted in the
+      violations log table
+    - re-run the script on the same scan and check that no duplicated entries has been saved in the
+      violations log table
+    - re-run the script on the same scan with option to bypass the extra checks and check that the
+      file got inserted in the files table (in addition, test not creating the pic for the scan and
+      make sure it is not generated)
     """
     db = get_integration_database_session()
 
@@ -458,10 +465,11 @@ def test_nifti_mri_violations_log_exclude_features():
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file was not inserted in files table (original file + violated scan force-inserted above)
+    # Check that the NIfTI file was not inserted in files table (original file + violated scan
+    # force-inserted above)
     assert mri_upload.session and len(mri_upload.session.files) == 2
-    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the attached file
-    # can be found on the disk
+    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the
+    # attached file can be found on the disk
     assert len(violations) == 1
     violation_entry = violations[0]
     assert violation_entry.file_path is not None

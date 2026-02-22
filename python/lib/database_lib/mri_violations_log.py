@@ -34,7 +34,8 @@ class MriViolationsLog:
 
     def insert_violations_log(self, field_value_dict):
         """
-        Inserts a row into the `mri_violations_log` table with information present in the field_value_dict.
+        Inserts a row into the `mri_violations_log` table with information present in the
+        field_value_dict.
 
         :param field_value_dict: dictionary with table field as keys and values to insert as values
          :type field_value_dict: dict
@@ -49,7 +50,8 @@ class MriViolationsLog:
 
     def get_violations_for_tarchive_id(self, tarchive_id, severity=None):
         """
-        Get the list of violations logged in `mri_violations_log` with excluded severity for a given `TarchiveID`.
+        Get the list of violations logged in `mri_violations_log` with excluded severity for a given
+        `TarchiveID`.
 
         :param tarchive_id: `TarchiveID` to restrict the query on
          :type tarchive_id: int

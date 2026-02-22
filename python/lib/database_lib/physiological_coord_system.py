@@ -254,7 +254,8 @@ class PhysiologicalCoordSystem:
         Insert new entries in the physiological_coord_system_point_3d_rel table.
         :param coord_system_id : coordinate system ID
          :type coord_system_id : int
-        :param point_ids       : dict of (point name,point_3d id) associated with the coordinate system ID
+        :param point_ids       : dict of (point name,point_3d id) associated with the coordinate
+                                 system ID
          :type point_ids       : Dict[str, int]
         """
         values_to_insert = []

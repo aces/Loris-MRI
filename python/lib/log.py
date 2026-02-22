@@ -41,8 +41,8 @@ class Log:
             os.makedirs(self.log_dir)
         self.log_file = os.path.join(self.log_dir, f"{log_file_basename}.log")
 
-        # set notification_db_obj to None until we get a confirmed UploadID to insert proper notification into the
-        # database related to the UploadID
+        # set notification_db_obj to None until we get a confirmed UploadID to insert proper
+        # notification into the database related to the UploadID
         self.notification_db_obj = None
 
         self.create_log_header()
@@ -50,8 +50,9 @@ class Log:
     @deprecated('Use `lib.env.Env.init_notifier` instead')
     def initiate_notification_db_obj(self, upload_id):
         """
-        Instantiate the notification_db_obj to be able to write in the notification table. This can only be done
-        once we know the upload_id, hence the separate function to initiate the database object.
+        Instantiate the notification_db_obj to be able to write in the notification table. This can
+        only be done once we know the upload_id, hence the separate function to initiate the
+        database object.
 
         :param upload_id: UploadID that will be used as the ProcessID for the notification table
          :type upload_id: int

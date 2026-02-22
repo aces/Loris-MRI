@@ -38,8 +38,8 @@ class SessionDB:
     @deprecated('Use `lib.db.queries.try_get_candidate_with_cand_id_visit_label` instead')
     def create_session_dict(self, cand_id, visit_label):
         """
-        Queries the session table for a particular candidate ID and visit label and returns a dictionary
-        with the session information.
+        Queries the session table for a particular candidate ID and visit label and returns a
+        dictionary with the session information.
 
         :param cand_id: CandID
          :type cand_id: int
@@ -83,7 +83,8 @@ class SessionDB:
     @deprecated('Use `lib.get_subject_session.get_candidate_next_visit_number` instead')
     def determine_next_session_site_id_and_visit_number(self, cand_id):
         """
-        Determines the next session site and visit number based on the last session inserted for a given candidate.
+        Determines the next session site and visit number based on the last session inserted for a
+        given candidate.
 
         :param cand_id: candidate ID
          :type cand_id: int
@@ -106,7 +107,8 @@ class SessionDB:
     @deprecated('Use `lib.db.models.session.DbSession` instead')
     def insert_into_session(self, fields, values):
         """
-        Insert a new row in the session table using fields list as column names and values as values.
+        Insert a new row in the session table using fields list as column names and values as
+        values.
 
         :param fields: column names of the fields to use for insertion
          :type fields: list

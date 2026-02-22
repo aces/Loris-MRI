@@ -84,7 +84,8 @@ class Session:
         :return: dictionary with session info from the session's table
          :rtype: dict
         """
-        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
+        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in
+        # different PR though
         if self.verbose:
             print("Creating visit " + self.visit_label
                   + " for CandID "  + self.cand_id)
@@ -123,7 +124,8 @@ class Session:
         :return: dictionary with session info from the session's table
          :rtype: dict
         """
-        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in different PR though
+        # TODO refactor bids_import pipeline to use same functions as dcm2bids below. To be done in
+        # different PR though
         loris_session_info = self.db.pselect(
             """
             SELECT PSCID, CandID, session.*
@@ -154,8 +156,8 @@ class Session:
     @deprecated('Use `lib.db.queries.try_get_candidate_with_cand_id_visit_label` instead')
     def create_session_dict(self, cand_id, visit_label):
         """
-        Creates the session information dictionary based on a candidate ID and visit label. This will populate
-        self.session_info_dict based on the result returned from the database query.
+        Creates the session information dictionary based on a candidate ID and visit label. This
+        will populate self.session_info_dict based on the result returned from the database query.
 
         :param cand_id: CandID
          :type cand_id: int
@@ -174,9 +176,11 @@ class Session:
     @deprecated('Use `lib.db.models.session.DbSession` instead')
     def insert_into_session(self, session_info_to_insert_dict):
         """
-        Insert a new row in the session table using fields list as column names and values as values.
+        Insert a new row in the session table using fields list as column names and values as
+        values.
 
-        :param session_info_to_insert_dict: dictionary with the column names and values to use for insertion
+        :param session_info_to_insert_dict: dictionary with the column names and values to use for
+                                            insertion
          :type session_info_to_insert_dict: dict
 
         :return: ID of the new session registered
@@ -192,7 +196,8 @@ class Session:
     @deprecated('Use `lib.get_subject_session.get_candidate_next_visit_number` instead')
     def get_next_session_site_id_and_visit_number(self, cand_id):
         """
-        Determines the next session site and visit number based on the last session inserted for a given candidate.
+        Determines the next session site and visit number based on the last session inserted for a
+        given candidate.
 
         :param cand_id: candidate ID
          :type cand_id: int
@@ -216,8 +221,8 @@ class Session:
     @deprecated('Use `lib.db.models.project_cohort.DbProjectCohort` instead')
     def create_proj_cohort_rel_info_dict(self, project_id, cohort_id):
         """
-        Populate self.proj_cohort_rel_info_dict with the content returned from the database for the ProjectID and
-        CohortID.
+        Populate self.proj_cohort_rel_info_dict with the content returned from the database for the
+        ProjectID and CohortID.
 
         :param project_id: ID of the Project
          :type project_id: int

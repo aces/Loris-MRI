@@ -33,9 +33,9 @@ class DicomValidationPipeline(BasePipeline):
         self.init_session_info()
         self._validate_dicom_archive_md5sum()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         log_verbose(self.env, f"DICOM archive {self.options_dict['tarchive_path']['value']} is valid!")
 
         # Update the MRI upload.

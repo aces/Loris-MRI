@@ -96,7 +96,8 @@ class AwsS3:
 
         :param file_name: Full path to the file to upload
          :type file_name: str
-        :param s3_object_name: S3 object name. It should be identical to the LORIS relative path to data_dir
+        :param s3_object_name: S3 object name. It should be identical to the LORIS relative path to
+                               data_dir
          :type s3_object_name: str
         """
 
@@ -120,7 +121,8 @@ class AwsS3:
 
         :param dir_name: Full path to the dir to upload
          :type dir_name: str
-        :param s3_object_name: S3 object name. It should be identical to the LORIS relative path to data_dir
+        :param s3_object_name: S3 object name. It should be identical to the LORIS relative path to
+                               data_dir
          :type s3_object_name: str
         :param force: Whether to force upload if the file aready exists on the bucket.
          :type force: bool
@@ -157,7 +159,8 @@ class AwsS3:
 
     def check_if_file_key_exists_in_bucket(self, file_key):
         """
-        Checks whether a file (key) exists in the bucket. Return True if file found, False otherwise.
+        Checks whether a file (key) exists in the bucket. Return True if file found, False
+        otherwise.
 
         :param file_key: file (or key) to look for in the bucket
          :type file_key: str

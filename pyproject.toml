@@ -59,6 +59,9 @@ preview = true
 ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
 select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
 
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 100
+
 [tool.ruff.lint.per-file-ignores]
 # ORM models often have very long lines.
 "python/lib/db/models/*.py" = ["E501"]

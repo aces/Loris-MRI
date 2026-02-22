@@ -34,7 +34,8 @@ class MriCandidateErrors:
 
     def insert_mri_candidate_errors(self, field_value_dict):
         """
-        Inserts a row into the MRICandidateErrors table with information present in the field_value_dict.
+        Inserts a row into the MRICandidateErrors table with information present in the
+        field_value_dict.
 
         :param field_value_dict: dictionary with table field as keys and values to insert as values
          :type field_value_dict: dict
@@ -49,7 +50,8 @@ class MriCandidateErrors:
 
     def get_candidate_errors_for_tarchive_id(self, tarchive_id):
         """
-        Get the list of MRI candidate errors logged in `MRICandidateErrors` for a given `TarchiveID`.
+        Get the list of MRI candidate errors logged in `MRICandidateErrors` for a given
+        `TarchiveID`.
 
         :param tarchive_id: `TarchiveID` to restrict the query on
          :type tarchive_id: int

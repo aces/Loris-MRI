@@ -66,7 +66,8 @@ def append_to_tsv_file(new_tsv_file, old_tsv_file, key_value_check, verbose):
         print(f"ERROR: {tsv_basename} columns differ between {new_tsv_file} and {old_tsv_file}")
         sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-    # loop through the rows of the new TSV file and check whether it is already present in the old TSV file
+    # loop through the rows of the new TSV file and check whether it is already present in the old
+    # TSV file
     for new_tsv_entry in new_tsv_content:
         if any(x[key_value_check] == new_tsv_entry[key_value_check] for x in old_tsv_content):
             if verbose:

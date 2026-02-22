@@ -45,7 +45,8 @@ class ImagingUpload:
     @deprecated('Use `lib.db.queries.mri_upload.try_get_mri_upload_with_id` instead')
     def create_imaging_upload_dict_from_upload_id(self, upload_id):
         """
-        Fill in the imaging upload dictionary with the information found for a given upload ID in the mri_upload table.
+        Fill in the imaging upload dictionary with the information found for a given upload ID in
+        the mri_upload table.
 
         :param upload_id: UploadID to use to query mri_upload
          :type upload_id: str
@@ -57,12 +58,14 @@ class ImagingUpload:
     @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive.mri_uploads` instead')
     def create_imaging_upload_dict_from_tarchive_id(self, tarchive_id):
         """
-        Fill in the imaging upload dictionary with information found for a given TarchiveID in the mri_upload table.
+        Fill in the imaging upload dictionary with information found for a given TarchiveID in the
+        mri_upload table.
 
         :param tarchive_id: TarchiveID to use to query mri_upload
          :type tarchive_id: str
 
-        :return: message if 0 row or more than one row were found in the mri_upload table for the given Tarchive
+        :return: message if 0 row or more than one row were found in the mri_upload table for the
+                 given Tarchive
          :rtype: bool, str
         """
 
@@ -85,7 +88,8 @@ class ImagingUpload:
          :type upload_id: int
         :param fields: Fields that need to be updated in the mri_upload table
          :type fields: tuple
-        :param fields: Values to use to update the fields that need to be updated in the mri_upload table
+        :param fields: Values to use to update the fields that need to be updated in the mri_upload
+                       table
          :type fields: tuple
         """
 

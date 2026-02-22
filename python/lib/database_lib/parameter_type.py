@@ -80,10 +80,11 @@ class ParameterType:
 
     def insert_parameter_type(self, field_value_dict):
         """
-        Inserts a row into the parameter_type table based on fields/values dictionary provided to the function.
+        Inserts a row into the parameter_type table based on fields/values dictionary provided to
+        the function.
 
-        :param field_value_dict: dictionary where the parameter_type field name are keys and values to insert
-                                 are in the dictionary values
+        :param field_value_dict: dictionary where the parameter_type field name are keys and values
+                                 to insert are in the dictionary values
          :type field_value_dict: dict
         """
 

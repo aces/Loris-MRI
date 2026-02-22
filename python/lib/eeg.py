@@ -154,8 +154,8 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
-        :param detect:      True if we want to perform a automatic detections of the derivatives files
-                            in case of mixed dataset.
+        :param detect:      True if we want to perform a automatic detections of the derivatives
+                            files in case of mixed dataset.
                             Set by default to True.
          :type detect:      boolean
         """
@@ -237,8 +237,8 @@ class Eeg:
         :param derivatives: True if the EEG file to insert is a derivative file.
                             Set by default to False when inserting raw file.
          :type derivatives: boolean
-        :param detect:      True if we want to perform a automatic detections of the derivatives files
-                            in case of mixed dataset.
+        :param detect:      True if we want to perform a automatic detections of the derivatives
+                            files in case of mixed dataset.
                             Set by default to True.
          :type detect:      boolean
         :return: dictionary with registered file ID and path to its file
@@ -532,7 +532,8 @@ class Eeg:
                                                  the physiological_file table
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
-        :param derivatives:                      True if the channel file to insert is a derivative file.
+        :param derivatives:                      True if the channel file to insert is a derivative
+                                                 file.
                                                  Set by default to False when inserting raw file.
          :type derivatives:                      boolean
 
@@ -591,7 +592,8 @@ class Eeg:
                                                  the physiological_file table
         :param original_physiological_file_path: path of the original physiological file
          :type original_file_data:               string
-        :param derivatives:                      True if the event file to insert is a derivative file.
+        :param derivatives:                      True if the event file to insert is a derivative
+                                                 file.
                                                  Set by default to False when inserting raw file.
          :type derivatives:                      boolean
 
