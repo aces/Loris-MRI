@@ -7,14 +7,15 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
-from loris_bids_reader.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
+from loris_bids_reader.files.participants import BidsParticipantsTsvFile
+from loris_bids_reader.reader import BidsDatasetReader
 from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
 import lib.physiological
 import lib.utilities
-from lib.bidsreader import BidsReader
 from lib.candidate import Candidate
 from lib.config import get_default_bids_visit_label_config
 from lib.config_file import load_config
@@ -199,15 +200,22 @@ def read_and_insert_bids(
         validateids(bids_dir, db, verbose)
 
     # load the BIDS directory
-    if nobidsvalidation:
-        bids_reader = BidsReader(bids_dir, verbose, False)
-    else:
-        bids_reader = BidsReader(bids_dir, verbose)
-    if not bids_reader.cand_sessions_list or not bids_reader.cand_session_modalities_list:
-        message = '\n\tERROR: could not properly parse the following' \
-                  'BIDS directory:' + bids_dir + '\n'
-        print(message)
+    bids_reader = BidsDatasetReader(Path(bids_dir), not nobidsvalidation)
+
+    if bids_reader.data_types == []:
+        print(f"Could not read the BIDS directory '{bids_dir}'.")
         sys.exit(lib.exitcode.UNREADABLE_FILE)
+
+    print("List of subjects found in the BIDS dataset:")
+    for subject_label in bids_reader.subject_labels:
+        print(f"- {subject_label}")
+
+    print("List of sessions found in the BIDS dataset:")
+    for session_label in bids_reader.session_labels:
+        print(f"- {session_label}")
+
+    if bids_reader.participants_file is not None:
+        validate_participants(bids_reader, bids_reader.participants_file)
 
     loris_bids_root_dir = None
     if not nocopy:
@@ -216,30 +224,15 @@ def read_and_insert_bids(
             bids_reader, data_dir, verbose
         )
 
-    # loop through subjects
-    subject_infos: list[BidsSubjectInfo] = []
-    session_infos: list[BidsSessionInfo] = []
-    for subject, sessions in bids_reader.cand_sessions_list.items():
-        participant_row = (
-            bids_reader.participants_info.get_row(subject)
-            if bids_reader.participants_info is not None
-            else None
-        )
-
-        subject_infos.append(BidsSubjectInfo(subject, participant_row))
-
-        for session in sessions:
-            session_infos.append(BidsSessionInfo(subject, participant_row, session))
-
     check_or_create_bids_subjects(
         env,
-        subject_infos,
+        [subject.info for subject in bids_reader.subjects],
         createcand,
     )
 
     sessions = check_or_create_bids_sessions(
         env,
-        session_infos,
+        [session.info for session in bids_reader.sessions],
         createvisit,
     )
 
@@ -250,7 +243,7 @@ def read_and_insert_bids(
 
     # Import root-level (dataset-wide) events.json
     # Assumption: Single project for project-wide tags
-    bids_layout = bids_reader.bids_layout
+    bids_layout = bids_reader.layout
     root_event_metadata_file = bids_layout.get_nearest(
         bids_dir,
         return_type='tuple',
@@ -299,51 +292,55 @@ def read_and_insert_bids(
         )
 
     # read list of modalities per session / candidate and register data
-    for row in bids_reader.cand_session_modalities_list:
-        bids_session = row['bids_ses_id']
-        visit_label  = bids_session if bids_session else default_bids_vl
-        loris_bids_visit_rel_dir    = 'sub-' + row['bids_sub_id'] + '/' + 'ses-' + visit_label
+    for data_type_reader in bids_reader.data_types:
+        bids_info = data_type_reader.info
+        visit_label = bids_info.session if bids_info.session is not None else default_bids_vl
+        loris_bids_data_type_rel_dir = os.path.join(
+            f'sub-{bids_info.subject}',
+            f'ses-{visit_label}',
+            bids_info.data_type,
+        )
 
-        for modality in row['modalities']:
-            loris_bids_modality_rel_dir = loris_bids_visit_rel_dir + '/' + modality + '/'
-            if not nocopy:
-                lib.utilities.create_dir(loris_bids_root_dir + loris_bids_modality_rel_dir, verbose)
+        if not nocopy:
+            lib.utilities.create_dir(os.path.join(loris_bids_root_dir, loris_bids_data_type_rel_dir), verbose)
 
-            candidate = try_get_candidate_with_cand_id(env.db, row['bids_sub_id'])
-            if candidate is None:
-                candidate = try_get_candidate_with_psc_id(env.db, row['bids_sub_id'])
+        candidate = try_get_candidate_with_cand_id(env.db, bids_info.subject)
+        if candidate is None:
+            candidate = try_get_candidate_with_psc_id(env.db, bids_info.subject)
 
-            session = try_get_session_with_cand_id_visit_label(env.db, candidate.cand_id, visit_label)
+        session = try_get_session_with_cand_id_visit_label(env.db, candidate.cand_id, visit_label)
 
-            if modality == 'eeg' or modality == 'ieeg':
+        match bids_info.data_type:
+            case 'eeg' | 'ieeg':
                 Eeg(
                     env,
-                    bids_reader   = bids_reader,
+                    bids_layout   = bids_reader.layout,
                     session       = session,
-                    bids_info     = BidsDataTypeInfo(row['bids_sub_id'], None, row['bids_ses_id'], modality),
+                    bids_info     = bids_info,
                     db            = db,
                     data_dir      = data_dir,
-                    loris_bids_eeg_rel_dir = loris_bids_modality_rel_dir,
+                    loris_bids_eeg_rel_dir = loris_bids_data_type_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir,
                     dataset_tag_dict       = dataset_tag_dict,
                     dataset_type           = type
                 )
-
-            elif modality in ['anat', 'dwi', 'fmap', 'func']:
+            case 'anat' | 'dwi' | 'fmap' | 'func':
                 Mri(
                     env,
-                    bids_reader   = bids_reader,
+                    bids_layout   = bids_reader.layout,
                     session       = session,
-                    bids_sub_id   = row['bids_sub_id'],
-                    bids_ses_id   = row['bids_ses_id'],
-                    bids_modality = modality,
+                    bids_sub_id   = bids_info.subject,
+                    bids_ses_id   = bids_info.session,
+                    bids_modality = bids_info.data_type,
                     db            = db,
                     verbose       = verbose,
                     data_dir      = data_dir,
                     default_visit_label    = default_bids_vl,
-                    loris_bids_mri_rel_dir = loris_bids_modality_rel_dir,
+                    loris_bids_mri_rel_dir = loris_bids_data_type_rel_dir,
                     loris_bids_root_dir    = loris_bids_root_dir
                 )
+            case _:
+                print(f"Data type {bids_info.data_type} is not supported. Skipping.")
 
     # disconnect from the database
     db.disconnect()
@@ -377,7 +374,7 @@ def validateids(bids_dir, db, verbose):
         sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
 
-def create_loris_bids_directory(bids_reader, data_dir, verbose):
+def create_loris_bids_directory(bids_reader: BidsDatasetReader, data_dir, verbose):
     """
     Creates the LORIS BIDS import root directory (with name and BIDS version)
     and copy over the dataset_description.json, README and participants.tsv
@@ -394,52 +391,81 @@ def create_loris_bids_directory(bids_reader, data_dir, verbose):
      :rtype: str
     """
 
-    # making sure that there is a final / in bids_dir
-    bids_dir = bids_reader.bids_dir
-    bids_dir = bids_dir if bids_dir.endswith('/') else bids_dir + "/"
+    if bids_reader.dataset_description_file is None:
+        print("ERROR: Could not read BIDS dataset description.")
+        sys.exit(lib.exitcode.UNREADABLE_FILE)
 
     # determine the root directory of the LORIS BIDS and create it if does not exist
-    name = re.sub(r"[^0-9a-zA-Z]+", "_", bids_reader.dataset_name)  # get name of the dataset
-    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.bids_version)  # get BIDSVersion of the dataset
+    name = re.sub(r"[^0-9a-zA-Z]+", "_", bids_reader.dataset_description_file.data['Name'])
+    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.dataset_description_file.data['BIDSVersion'])
 
     # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
     # concatenation of the dataset name and the BIDS version
     loris_bids_dirname = lib.utilities.create_dir(
-        data_dir + "bids_imports/" + name + "_BIDSVersion_" + version + "/",
+        os.path.join(data_dir, 'bids_imports', f'{name}_BIDSVersion_{version}'),
         verbose
     )
 
     # copy the dataset JSON file to the new directory
     lib.utilities.copy_file(
-        bids_dir + "dataset_description.json",
-        loris_bids_dirname + "dataset_description.json",
+        bids_reader.path / "dataset_description.json",
+        os.path.join(loris_bids_dirname, "dataset_description.json"),
         verbose
     )
 
     # copy the README file to the new directory
-    if os.path.isfile(bids_dir + "README"):
+    if os.path.isfile(bids_reader.path / "README"):
         lib.utilities.copy_file(
-            bids_dir + "README",
-            loris_bids_dirname + "README",
+            bids_reader.path / "README",
+            os.path.join(loris_bids_dirname, "README"),
             verbose
         )
 
     # copy the participant.tsv file to the new directory
-    if os.path.exists(loris_bids_dirname + "participants.tsv"):
+    if os.path.exists(os.path.join(loris_bids_dirname, "participants.tsv")):
         lib.utilities.append_to_tsv_file(
-            bids_dir + "participants.tsv",
-            loris_bids_dirname + "participants.tsv",
+            bids_reader.path / "participants.tsv",
+            os.path.join(loris_bids_dirname, "participants.tsv"),
             "participant_id",
             verbose
         )
     else:
         lib.utilities.copy_file(
-            bids_dir + "participants.tsv",
-            loris_bids_dirname + "participants.tsv",
+            bids_reader.path / "participants.tsv",
+            os.path.join(loris_bids_dirname, "participants.tsv"),
             verbose
         )
 
     return loris_bids_dirname
+
+
+def validate_participants(bids_reader: BidsDatasetReader, participants_file: BidsParticipantsTsvFile):
+    """
+    Validates whether the subjects listed in participants.tsv match the
+    list of participant directory. If there is a mismatch, will exit with
+    error code from lib.exitcode.
+    """
+
+    subjects = bids_reader.subject_labels.copy()
+
+    mismatch_message = ("\nERROR: Participant ID mismatch between "
+                        "participants.tsv and raw data found in the BIDS "
+                        "directory")
+
+    # check that all subjects listed in participants_info are also in
+    # subjects array and vice versa
+    for row in participants_file.rows:
+        if row.participant_id not in subjects:
+            print(mismatch_message)
+            print(row.participant_id + 'is missing from the BIDS Layout')
+            print('List of subjects parsed by the BIDS layout: ' + ', '.join(subjects))
+            sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
+        # remove the subject from the list of subjects
+        subjects.remove(row.participant_id)
+    # check that no subjects are left in subjects array
+    if subjects:
+        print(mismatch_message)
+        sys.exit(lib.exitcode.BIDS_CANDIDATE_MISMATCH)
 
 
 if __name__ == "__main__":
