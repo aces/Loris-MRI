@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from loris_bids_reader.files.participants import BidsParticipantTsvRow
+from loris_bids_reader.files.scans import BidsScansTsvFile, BidsScanTsvRow
 
 
 @dataclass
@@ -31,6 +32,11 @@ class BidsSessionInfo(BidsSubjectInfo):
     The BIDS session label.
     """
 
+    scans_file: BidsScansTsvFile | None
+    """
+    The BIDS `scans.tsv` file of this session, if any.
+    """
+
 
 @dataclass
 class BidsDataTypeInfo(BidsSessionInfo):
@@ -41,4 +47,26 @@ class BidsDataTypeInfo(BidsSessionInfo):
     data_type: str
     """
     The BIDS data type name.
+    """
+
+
+@dataclass
+class BidsAcquisitionInfo(BidsDataTypeInfo):
+    """
+    Information about a BIDS acquisition.
+    """
+
+    name: str
+    """
+    The name of this acquisition (usually the file name without the extension).
+    """
+
+    suffix: str | None
+    """
+    The BIDS suffix of this acquisition, if any.
+    """
+
+    scan_row: BidsScanTsvRow | None
+    """
+    The BIDS `scans.tsv` row of this acquisition, if any.
     """
