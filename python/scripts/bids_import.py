@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from loris_bids_reader.files.participants import BidsParticipantsTsvFile
+from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 from loris_bids_reader.reader import BidsDatasetReader
 from loris_utils.crypto import compute_file_blake2b_hash
 
@@ -28,8 +29,8 @@ from lib.env import Env
 from lib.import_bids_dataset.check_sessions import check_or_create_bids_sessions
 from lib.import_bids_dataset.check_subjects import check_or_create_bids_subjects
 from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.mri import import_bids_mri_data_type
 from lib.make_env import make_env
-from lib.mri import Mri
 
 
 def main():
@@ -317,8 +318,8 @@ def read_and_insert_bids(
 
         session = try_get_session_with_cand_id_visit_label(env.db, candidate.cand_id, visit_label)
 
-        match bids_info.data_type:
-            case 'eeg' | 'ieeg':
+        match (data_type_reader, bids_info.data_type):
+            case (_, 'eeg' | 'ieeg'):
                 Eeg(
                     env,
                     import_env,
@@ -329,21 +330,8 @@ def read_and_insert_bids(
                     dataset_tag_dict = dataset_tag_dict,
                     dataset_type     = type
                 )
-            case 'anat' | 'dwi' | 'fmap' | 'func':
-                Mri(
-                    env,
-                    bids_layout   = bids_reader.layout,
-                    session       = session,
-                    bids_sub_id   = bids_info.subject,
-                    bids_ses_id   = bids_info.session,
-                    bids_modality = bids_info.data_type,
-                    db            = db,
-                    verbose       = verbose,
-                    data_dir      = data_dir,
-                    default_visit_label    = default_bids_vl,
-                    loris_bids_mri_rel_dir = loris_bids_data_type_rel_dir,
-                    loris_bids_root_dir    = loris_bids_root_dir
-                )
+            case (BidsMriDataTypeReader(), _):
+                import_bids_mri_data_type(env, import_env, session, data_type_reader)
             case _:
                 print(f"Data type {bids_info.data_type} is not supported. Skipping.")
 
