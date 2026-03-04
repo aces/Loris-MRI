@@ -1,13 +1,21 @@
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bids import BIDSLayout, BIDSLayoutIndexer
 
 from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
 from loris_bids_reader.files.participants import BidsParticipantsTsvFile, BidsParticipantTsvRow
+from loris_bids_reader.files.scans import BidsScansTsvFile
 from loris_bids_reader.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
+from loris_bids_reader.json import BidsJsonFile
+
+# Circular imports
+if TYPE_CHECKING:
+    from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 
 PYBIDS_IGNORE = ['.git', 'code/', 'log/', 'sourcedata/']
 PYBIDS_FORCE_INDEX = [re.compile(r"_annotations\.(tsv|json)$")]
@@ -65,6 +73,14 @@ class BidsDatasetReader:
             return None
 
         return BidsParticipantsTsvFile(participants_path)
+
+    @cached_property
+    def events_dict_file(self) -> BidsJsonFile | None:
+        events_dict_path = self.path / 'events.json'
+        if not events_dict_path.exists():
+            return None
+
+        return BidsJsonFile(events_dict_path)
 
     @cached_property
     def subject_labels(self) -> list[str]:
@@ -208,9 +224,42 @@ class BidsSessionReader:
     """
 
     @cached_property
-    def data_types(self) -> list['BidsDataTypeReader']:
+    def scans_file(self) -> BidsScansTsvFile | None:
+        scans_paths: list[str] = self.subject.dataset.layout.get(  # type: ignore
+            subject=self.subject.label,
+            session=self.label,
+            suffix='scans',
+            return_type='filename',
+        )
+
+        if scans_paths == []:
+            return None
+
+        return BidsScansTsvFile(Path(scans_paths[0]))
+
+    @cached_property
+    def mri_data_types(self) -> list['BidsMriDataTypeReader']:
         """
-        Get the data type directory readers of this session.
+        Get the MRI data type directory readers of this session.
+        """
+
+        from loris_bids_reader.mri.reader import BidsMriDataTypeReader
+
+        return [
+            BidsMriDataTypeReader(
+                session=self,
+                name=data_type,  # type: ignore
+            ) for data_type in self.subject.dataset.layout.get_datatypes(  # type: ignore
+                subject=self.subject.label,
+                session=self.label,
+                datatype=['anat', 'dwi', 'fmap', 'func'],
+            )
+        ]
+
+    @cached_property
+    def eeg_data_types(self) -> list['BidsDataTypeReader']:
+        """
+        Get the EEG data type directory readers of this session.
         """
 
         return [
@@ -220,8 +269,17 @@ class BidsSessionReader:
             ) for data_type in self.subject.dataset.layout.get_datatypes(  # type: ignore
                 subject=self.subject.label,
                 session=self.label,
+                datatype=['eeg', 'ieeg'],
             )
         ]
+
+    @cached_property
+    def data_types(self) -> Sequence['BidsDataTypeReader']:
+        """
+        Get all the data type directory readers of this session.
+        """
+
+        return self.eeg_data_types + self.mri_data_types
 
     @cached_property
     def info(self) -> BidsSessionInfo:
@@ -233,6 +291,7 @@ class BidsSessionReader:
             subject         = self.subject.label,
             participant_row = self.subject.participant_row,
             session         = self.label,
+            scans_file      = self.scans_file,
         )
 
 
@@ -262,5 +321,6 @@ class BidsDataTypeReader:
             subject         = self.session.subject.label,
             participant_row = self.session.subject.participant_row,
             session         = self.session.label,
+            scans_file      = self.session.scans_file,
             data_type       = self.name,
         )
