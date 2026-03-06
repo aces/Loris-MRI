@@ -40,7 +40,7 @@ class Eeg:
     into the database by calling the lib.physiological class.
     """
 
-    def __init__(self, env: Env, bids_reader, bids_info: BidsDataTypeInfo, session: DbSession, db,
+    def __init__(self, env: Env, bids_layout, bids_info: BidsDataTypeInfo, session: DbSession, db,
                  data_dir, loris_bids_eeg_rel_dir,
                  loris_bids_root_dir, dataset_tag_dict, dataset_type):
         """
@@ -67,8 +67,7 @@ class Eeg:
         self.env = env
 
         # load bids objects
-        self.bids_reader   = bids_reader
-        self.bids_layout   = bids_reader.bids_layout
+        self.bids_layout = bids_layout
 
         # load the LORIS BIDS import root directory where the eeg files will
         # be copied

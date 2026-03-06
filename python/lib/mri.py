@@ -26,7 +26,6 @@ class Mri:
 
     :Example:
 
-        from lib.bidsreader import BidsReader
         from lib.mri        import Mri
         from lib.database   import Database
 
@@ -38,9 +37,6 @@ class Mri:
         config_obj      = Config(db, verbose)
         default_bids_vl = config_obj.get_config('default_bids_vl')
         data_dir        = config_obj.get_config('dataDirBasepath')
-
-        # load the BIDS directory
-        bids_reader = BidsReader(bids_dir)
 
         # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
         loris_bids_root_dir = create_loris_bids_directory(
@@ -56,8 +52,10 @@ class Mri:
                     lib.utilities.create_dir(
                         loris_bids_root_dir + loris_bids_mri_rel_dir, verbose
                     )
-                    Eeg(
-                        bids_reader   = bids_reader,
+                    Mri(
+                        env           = env,
+                        bids_layout   = bids_layout,
+                        session       = session,
                         bids_sub_id   = row['bids_sub_id'],
                         bids_ses_id   = row['bids_ses_id'],
                         bids_modality = modality,
@@ -73,7 +71,7 @@ class Mri:
         db.disconnect()
     """
 
-    def __init__(self, env: Env, bids_reader, session: DbSession, bids_sub_id, bids_ses_id, bids_modality, db,
+    def __init__(self, env: Env, bids_layout, session: DbSession, bids_sub_id, bids_ses_id, bids_modality, db,
                  verbose, data_dir, default_visit_label,
                  loris_bids_mri_rel_dir, loris_bids_root_dir):
 
@@ -98,8 +96,7 @@ class Mri:
         self.env = env
 
         # load bids objects
-        self.bids_reader = bids_reader
-        self.bids_layout = bids_reader.bids_layout
+        self.bids_layout = bids_layout
 
         # load the LORIS BIDS import root directory where the files will be copied
         self.loris_bids_mri_rel_dir = loris_bids_mri_rel_dir
