@@ -6,6 +6,14 @@
 - changed-files:
   - any-glob-to-any-file: '**/*.py'
 
+"Package: BIDS reader":
+- changed-files:
+  - any-glob-to-any-file: 'python/loris_bids_reader/**'
+
 "Package: EEG chunker":
 - changed-files:
   - any-glob-to-any-file: 'python/loris_eeg_chunker/**'
+
+"Package: Utilities":
+- changed-files:
+  - any-glob-to-any-file: 'python/loris_utils/**'

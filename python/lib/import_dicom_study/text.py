@@ -6,7 +6,7 @@ different types of values.
 from datetime import date, datetime
 from pathlib import Path
 
-from lib.util.crypto import compute_file_md5_hash
+from loris_utils.crypto import compute_file_md5_hash
 
 
 def write_value(value: str | int | float | None):

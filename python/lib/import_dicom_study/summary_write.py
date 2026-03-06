@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 from functools import cmp_to_key
 from pathlib import Path
 
+from loris_utils.iter import count, flatten
+
 from lib.import_dicom_study.summary_type import (
     DicomStudyDicomFile,
     DicomStudyDicomSeries,
@@ -12,7 +14,6 @@ from lib.import_dicom_study.summary_type import (
 from lib.import_dicom_study.text import write_date_none
 from lib.import_dicom_study.text_dict import DictWriter
 from lib.import_dicom_study.text_table import TableWriter
-from lib.util.iter import count, flatten
 
 
 def write_dicom_study_summary_to_file(dicom_summary: DicomStudySummary, file_path: Path):

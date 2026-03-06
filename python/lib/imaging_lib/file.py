@@ -4,6 +4,7 @@ from pathlib import Path
 
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.file import DbFile
+from lib.db.models.imaging_file_type import DbImagingFileType
 from lib.db.models.mri_scan_type import DbMriScanType
 from lib.db.models.mri_scanner import DbMriScanner
 from lib.db.models.session import DbSession
@@ -12,8 +13,8 @@ from lib.env import Env
 
 def register_mri_file(
     env: Env,
-    file_type: str,
     file_path: Path,
+    file_type: DbImagingFileType,
     session: DbSession,
     scan_type: DbMriScanType | None,
     scanner: DbMriScanner | None,
@@ -33,8 +34,8 @@ def register_mri_file(
     time = datetime.now()
 
     file = DbFile(
-        file_type                = file_type,
         path                     = file_path,
+        file_type                = file_type.name,
         session_id               = session.id,
         inserted_by_user_id      = user,
         insert_time              = time,

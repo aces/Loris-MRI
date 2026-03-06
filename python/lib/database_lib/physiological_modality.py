@@ -1,6 +1,9 @@
 """This class performs database queries for the physiological_modality table"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.models.physio_modality.DbPhysioModality` instead')
 class PhysiologicalModality:
 
     def __init__(self, db, verbose):

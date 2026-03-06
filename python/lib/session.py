@@ -73,6 +73,7 @@ class Session:
         self.session_info_dict = dict()
         self.session_id = None
 
+    @deprecated('Use `lib.db.models.session.DbSession instead`')
     def create_session(self):
         """
         Creates a session using BIDS information.

@@ -25,7 +25,7 @@ def count(iterable: Iterable[T]) -> int:
 T = TypeVar('T')  # type: ignore
 
 
-def find(predicate: Callable[[T], bool], iterable: Iterable[T]) -> T | None:
+def find(iterable: Iterable[T], predicate: Callable[[T], bool]) -> T | None:
     """
     Find the first element in an iterable that satisfies a predicate, or return `None` if no match
     is found.
@@ -42,7 +42,7 @@ T = TypeVar('T')  # type: ignore
 U = TypeVar('U')
 
 
-def filter_map(function: Callable[[T], U | None], iterable: Iterable[T]) -> Iterator[U]:
+def filter_map(iterable: Iterable[T], function: Callable[[T], U | None]) -> Iterator[U]:
     """
     Apply a function to each element of an iterator and yields the results that are not `None`.
     """
@@ -63,3 +63,17 @@ def flatten(iterables: Iterable[Iterable[T]]) -> Iterator[T]:
 
     for iterable in iterables:
         yield from iterable
+
+
+def replace_or_append(elements: list[T], value: T, predicate: Callable[[T], bool]) -> None:
+    """
+    Replace the first element of a list that satisfies a predicate with a value, or append that
+    value to the list.
+    """
+
+    for i, element in enumerate(elements):
+        if predicate(element):
+            elements[i] = value
+            return
+
+    elements.append(value)

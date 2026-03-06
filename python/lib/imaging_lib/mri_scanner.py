@@ -1,12 +1,9 @@
-import random
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy.orm import Session as Database
-
+from lib.candidate import generate_new_cand_id
 from lib.db.models.candidate import DbCandidate
 from lib.db.models.mri_scanner import DbMriScanner
-from lib.db.queries.candidate import try_get_candidate_with_cand_id
 from lib.db.queries.mri_scanner import try_get_scanner_with_info
 from lib.env import Env
 
@@ -45,7 +42,7 @@ def get_or_create_scanner(
     if mri_scanner is not None:
         return mri_scanner
 
-    cand_id = generate_new_cand_id(env.db)
+    cand_id = generate_new_cand_id(env)
     now = datetime.now()
 
     candidate = DbCandidate(
@@ -75,16 +72,3 @@ def get_or_create_scanner(
     env.db.commit()
 
     return mri_scanner
-
-
-# TODO: Move this function to a more appropriate place.
-def generate_new_cand_id(db: Database) -> int:
-    """
-    Generate a new random CandID that is not already in the database.
-    """
-
-    while True:
-        cand_id = random.randint(100000, 999999)
-        candidate = try_get_candidate_with_cand_id(db, cand_id)
-        if candidate is None:
-            return cand_id

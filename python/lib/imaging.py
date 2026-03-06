@@ -7,6 +7,7 @@ import re
 import tarfile
 
 import nibabel as nib
+from loris_utils.crypto import compute_file_blake2b_hash
 from nilearn import image, plotting
 from typing_extensions import deprecated
 
@@ -22,7 +23,6 @@ from lib.database_lib.mri_scanner import MriScanner
 from lib.database_lib.mri_violations_log import MriViolationsLog
 from lib.database_lib.parameter_file import ParameterFile
 from lib.database_lib.parameter_type import ParameterType
-from lib.util.crypto import compute_file_blake2b_hash
 
 
 class Imaging:
@@ -76,6 +76,7 @@ class Imaging:
         self.param_type_db_obj = ParameterType(db, verbose)
         self.param_file_db_obj = ParameterFile(db, verbose)
 
+    @deprecated('Use `lib.import_bids_dataset.file_type.get_check_bids_imaging_file_type_from_extension` instead.')
     def determine_file_type(self, file):
         """
         Greps all file types defined in the ImagingFileTypes table and checks
@@ -396,6 +397,7 @@ class Imaging:
         """
         return self.mri_scan_type_db_obj.get_scan_type_id_from_name(scan_type_name)
 
+    @deprecated('Use `lib.imaging_lib.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
     def get_bids_to_minc_terms_mapping(self):
         """
         Returns the BIDS to MINC terms mapping queried from parameter_type table.

@@ -6,10 +6,13 @@ import getopt
 import sys
 
 import lib.exitcode
+import lib.utilities
+from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
-from lib.database import Database
-from lib.database_lib.config import Config
-from lib.physiological import Physiological
+from lib.db.queries.physio_file import try_get_physio_file_with_id
+from lib.env import Env
+from lib.make_env import make_env
+from lib.physio.chunking import create_physio_channels_chunks
 
 
 def main():
@@ -56,14 +59,16 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(smallest_id, largest_id, usage)
+    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
+    env = make_env('mass_nifti_pic', {}, config_file, tmp_dir_path, verbose)
 
     # run chunking script on electrophysiology datasets with a PhysiologicalFileID
     # between smallest_id and largest_id
     if (smallest_id == largest_id):
-        make_chunks(smallest_id, config_file, verbose)
+        make_chunks(env, smallest_id, config_file, verbose)
     else:
         for file_id in range(smallest_id, largest_id + 1):
-            make_chunks(file_id, config_file, verbose)
+            make_chunks(env, file_id)
 
 
 def input_error_checking(smallest_id, largest_id, usage):
@@ -100,37 +105,19 @@ def input_error_checking(smallest_id, largest_id, usage):
         sys.exit(lib.exitcode.INVALID_ARG)
 
 
-def make_chunks(physiological_file_id, config_file, verbose):
+def make_chunks(env: Env, physio_file_id: int):
     """
-    Call the function create_chunks_for_visualization of the Physiology class on
-    the PhysiologicalFileID provided as argument to this function.
-
-    :param physiological_file_id: PhysiologicalFileID of the file to chunk
-     :type physiological_file_id: int
-    :param config_file: path to the config file with database connection information
-     :type config_file: str
-    :param verbose    : flag for more printing if set
-     :type verbose    : bool
+    Call the channel signal chunking script on the provided physiological file.
     """
-
-    # database connection
-    db = Database(config_file.mysql, verbose)
-    db.connect()
 
     # grep config settings from the Config module
-    config_obj = Config(db, verbose)
-    data_dir   = config_obj.get_config('dataDirBasepath')
-
-    # making sure that there is a final / in data_dir
-    data_dir = data_dir if data_dir.endswith('/') else data_dir + "/"
-
-    # load the Physiological object
-    physiological = Physiological(db, verbose)
+    data_dir = get_data_dir_path_config(env)
 
     # create the chunked dataset
-    if physiological.grep_file_path_from_file_id(physiological_file_id):
-        print('Chunking physiological file ID ' + str(physiological_file_id))
-        physiological.create_chunks_for_visualization(physiological_file_id, data_dir)
+    physio_file = try_get_physio_file_with_id(env.db, physio_file_id)
+    if physio_file is not None:
+        print(f"Chunking physiological file ID {physio_file.id}")
+        create_physio_channels_chunks(env, physio_file, data_dir / physio_file.path)
 
 
 if __name__ == "__main__":

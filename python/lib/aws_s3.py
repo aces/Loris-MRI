@@ -4,8 +4,7 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError, EndpointConnectionError
-
-from lib.util.crypto import compute_file_md5_hash
+from loris_utils.crypto import compute_file_md5_hash
 
 
 class AwsS3:
