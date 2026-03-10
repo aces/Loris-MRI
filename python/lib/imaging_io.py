@@ -67,8 +67,8 @@ class ImagingIO:
     @deprecated('Use `lib.logging.log_*` instead')
     def log_info(self, message, is_error=False, is_verbose=True, to_file=True, to_table=True):
         """
-        Function to log information that need to be logged in the notification_spool table and in the log
-        file produced by the script executed.
+        Function to log information that need to be logged in the notification_spool table and in
+        the log file produced by the script executed.
 
         :param message: message to log
             :type message: str

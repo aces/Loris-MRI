@@ -12,6 +12,7 @@ from lib.database_lib.config import Config
 
 
 class LorisGetOpt:
+    # ruff: noqa
     """
     This class will handle GetOpt functions for scripts to be run.
 
@@ -83,22 +84,22 @@ class LorisGetOpt:
         self.load_config_file()
         self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Establish database connection
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.config_file = self.config_info
         self.verbose = self.options_dict["verbose"]["value"]
         self.db = Database(self.config_file.mysql, self.verbose)
         self.db.connect()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Load the Config, MRI Upload, Parameter Type and Parameter File database classes
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.config_db_obj = Config(self.db, self.verbose)
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Get Bucket information from Config and connect to bucket
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         s3_endpoint = self.config_db_obj.get_config("AWS_S3_Endpoint")
         s3_bucket_name = self.config_db_obj.get_config("AWS_S3_Default_Bucket")
         self.s3_obj = None

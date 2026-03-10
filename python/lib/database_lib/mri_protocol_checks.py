@@ -3,7 +3,8 @@
 
 class MriProtocolChecks:
     """
-    This class performs database queries for imaging dataset stored in the mri_protocol_checks table.
+    This class performs database queries for imaging dataset stored in the mri_protocol_checks
+    table.
 
     :Example:
 

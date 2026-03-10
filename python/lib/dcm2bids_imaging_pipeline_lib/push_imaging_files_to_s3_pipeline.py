@@ -11,16 +11,16 @@ from lib.logging import log_error_exit
 
 class PushImagingFilesToS3Pipeline(BasePipeline):
     """
-    Pipeline that extends the BasePipeline class and pushes the data onto an S3 bucket, change the path locations
-    to the S3 URLs and remove the files on the filesystem once done.
+    Pipeline that extends the BasePipeline class and pushes the data onto an S3 bucket, change the
+    path locations to the S3 URLs and remove the files on the filesystem once done.
 
     Functions that starts with _ are functions specific to the PushToS3Pipeline class.
     """
 
     def __init__(self, loris_getopt_obj, script_name):
         """
-        Initiate the PushImagingFilesToS3Pipeline class and runs the different steps required to push the data to S3 and
-        update the file paths in the database.
+        Initiate the PushImagingFilesToS3Pipeline class and runs the different steps required to
+        push the data to S3 and update the file paths in the database.
 
         :param loris_getopt_obj: the LorisGetOpt object with getopt values provided to the pipeline
          :type loris_getopt_obj: LorisGetOpt obj
@@ -31,33 +31,33 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         super().__init__(loris_getopt_obj, script_name)
         self.init_session_info()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.mri_upload.inserting = True
         self.env.db.commit()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
         if not self.s3_obj.s3:
             log_error_exit(self.env, "S3 configs not configured properly", lib.exitcode.S3_SETTINGS_FAILURE)
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Get all the files from files, parameter_file and violation tables
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.files_to_push_list = []
         self._get_files_to_push_list()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Upload files to S3
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self._upload_files_to_s3()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Update table file paths and delete file from file system
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         for file_info in self.files_to_push_list:
             rel_path = file_info["original_file_path_field_value"]
             full_path = os.path.join(self.data_dir, rel_path)
@@ -141,8 +141,9 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
     def _get_list_of_files_from_mri_protocol_violated_scans(self):
         """
-        Get the list of files associated to the TarchiveID present in the mri_protocol_violated_scans table.
-        Will also return the JSON, BVAL and BVEC files associated to protocol violated scan.
+        Get the list of files associated to the TarchiveID present in the
+        mri_protocol_violated_scans table. Will also return the JSON, BVAL and BVEC files associated
+        to protocol violated scan.
         """
 
         entries = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
@@ -233,7 +234,8 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
     def _update_database_tables_with_s3_path(self, file_info):
         """
-        Update the database tables with the new S3 path for the files that were pushed to the bucket.
+        Update the database tables with the new S3 path for the files that were pushed to the
+        bucket.
 
         :param file_info: dictionary with the table row information for the file to update
          :type file_info: dict
@@ -245,7 +247,8 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         field_to_update = file_info["file_path_field_name"] if "file_path_field_name" in file_info.keys() else None
 
         if not table_name:
-            # for extra JSON, BVAL and BVEC files in violation tables that are not registered in DB for now
+            # for extra JSON, BVAL and BVEC files in violation tables that are not registered in DB
+            # for now
             return
         elif table_name == "parameter_file":
             print(f"UPDATING TABLE {table_name} with link {s3_link}")

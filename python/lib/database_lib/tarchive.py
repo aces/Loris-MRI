@@ -40,7 +40,8 @@ class Tarchive:
         """
         Create dictionary with DICOM archive information selected from the tarchive table.
 
-        :param archive_location: relative location of the DICOM archive (without data directory path)
+        :param archive_location: relative location of the DICOM archive (without data directory
+                                 path)
          :type archive_location: str
         :param tarchive_id     : TarchiveID of the DICOM archive in the tarchive table
          :type tarchive_id     : int

@@ -140,7 +140,8 @@ class Imaging:
 
         :param file_info_dict: dictionary with values to insert into files' table
          :type file_info_dict: dict
-        :param parameter_file_data_dict: dictionary with values to insert into parameter_file's table
+        :param parameter_file_data_dict: dictionary with values to insert into parameter_file's
+                                         table
          :type parameter_file_data_dict: dict
 
         :return: file ID
@@ -258,7 +259,8 @@ class Imaging:
         phase_encoding_dir = scan_param["PhaseEncodingDirection"] \
             if "PhaseEncodingDirection" in scan_param.keys() else None
 
-        # if there is already an entry for this violation in mri_protocol_violated_scans, do not insert anything
+        # if there is already an entry for this violation in mri_protocol_violated_scans, do not
+        # insert anything
         existing_prot_viol_scans = self.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(tarchive_id)
         for row in existing_prot_viol_scans:
             if row['SeriesUID'] == series_uid \
@@ -299,9 +301,11 @@ class Imaging:
 
     def insert_mri_violations_log(self, info_to_insert_dict):
         """
-        Inserts into mri_violations_log table the entry determined by the information stored in info_to_insert_dict.
+        Inserts into mri_violations_log table the entry determined by the information stored in
+        info_to_insert_dict.
 
-        :param info_to_insert_dict: dictionary with the information to be inserted in mri_violations_log
+        :param info_to_insert_dict: dictionary with the information to be inserted in
+                                    mri_violations_log
          :type info_to_insert_dict: dict
         """
 
@@ -316,7 +320,8 @@ class Imaging:
         valid_regex = info_to_insert_dict['ValidRegex']
         valid_range = info_to_insert_dict['ValidRange']
 
-        # if there is already an entry for this violation in mri_violations_log, do not insert anything
+        # if there is already an entry for this violation in mri_violations_log, do not insert
+        # anything
         existing_viol_logs = self.mri_viol_log_db_obj.get_violations_for_tarchive_id(
             info_to_insert_dict['TarchiveID']
         )
@@ -546,17 +551,19 @@ class Imaging:
     def get_acquisition_protocol_info(self, protocols_list, nifti_name, scan_param, scan_type=None):
         """
         Get acquisition protocol information (scan_type_id or message to be printed in the log).
-        - If the protocols list provided as input is empty, the scan_type_id will be set to None and proper message
-        will be returned
-        - If no protocol listed in protocols_list matches the parameters of the scan, then the scan_type_id will be set
-        to None and proper message will be returned
-        - If more than one protocol matches, the scan_type_id will be set to None and proper message will be returned
+        - If the protocols list provided as input is empty, the scan_type_id will be set to None and
+          proper message will be returned
+        - If no protocol listed in protocols_list matches the parameters of the scan, then the
+          scan_type_id will be set to None and proper message will be returned
+        - If more than one protocol matches, the scan_type_id will be set to None and proper message
+          will be returned
 
         :param protocols_list: list of protocols to loop through to find a matching protocol
          :type protocols_list: list
         :param nifti_name: name of the NIfTI file to print in the returned message
          :type nifti_name: str
-        :param scan_param: dictionary with the scan parameters to use to determine acquisition protocol
+        :param scan_param: dictionary with the scan parameters to use to determine acquisition
+                           protocol
          :type scan_param: dict
 
         :return: dictionary with 'scan_type_id' and 'message' keys.
@@ -612,13 +619,14 @@ class Imaging:
 
     def get_bids_categories_mapping_for_scan_type_id(self, scan_type_id):
         """
-        Function that get the BIDS information for a given scan type ID from the database and returns a
-        dictionary with this information
+        Function that get the BIDS information for a given scan type ID from the database and
+        returns a dictionary with this information
 
         :param scan_type_id: scan type ID to use to query the BIDS information for that scan type
          :type scan_type_id: int
 
-        :return: dictionary with the BIDS entities to be associated with that scan type in the future NIfTI file name
+        :return: dictionary with the BIDS entities to be associated with that scan type in the
+                 future NIfTI file name
          :rtype: dict
         """
 
@@ -655,7 +663,8 @@ class Imaging:
 
     def is_scan_protocol_matching_db_protocol(self, db_prot, scan_param):
         """
-        Determines if a scan protocol matches a protocol previously taken from the mri_protocol table.
+        Determines if a scan protocol matches a protocol previously taken from the mri_protocol
+        table.
 
         :param db_prot: database protocol to compare the scan parameters to
          :type db_prot: dict
@@ -692,7 +701,8 @@ class Imaging:
 
     def run_extra_file_checks(self, project_id, cohort_id, visit_label, scan_type_id, scan_param_dict):
         """
-        Runs the extra file checks for a given scan type to determine if there are any violations to protocol.
+        Runs the extra file checks for a given scan type to determine if there are any violations to
+        protocol.
 
         :param project_id: Project ID associated with the image to be inserted
          :type project_id: int
@@ -705,11 +715,13 @@ class Imaging:
         :param scan_param_dict: scan parameters (from the JSON file)
          :type scan_param_dict: dict
 
-        :return: dictionary with two list: one for the 'warning' violations and one for the 'exclude' violations
+        :return: dictionary with two list: one for the 'warning' violations and one for the
+                 'exclude' violations
          :rtype: dict
         """
 
-        # get list of lines in mri_protocol_checks that apply to the given scan based on the protocol group
+        # get list of lines in mri_protocol_checks that apply to the given scan based on the
+        # protocol group
         checks_list = self.mri_prot_check_db_obj.get_list_of_possible_protocols_based_on_session_info(
             project_id, cohort_id, visit_label, scan_type_id
         )
@@ -738,12 +750,14 @@ class Imaging:
          :type checks_list: list
         :param header: name of the header to use to check if there is a violation
          :type header: str
-        :param severity: severity of the violation (one of 'warning' or 'exclude') in mri_protocol_checks
+        :param severity: severity of the violation (one of 'warning' or 'exclude') in
+                         mri_protocol_checks
          :type severity: str
         :param scan_param_dict: image parameters
          :type scan_param_dict: dict
 
-        :return: dictionary with the details regarding the violation (to be inserted in mri_violations_log eventually)
+        :return: dictionary with the details regarding the violation (to be inserted in
+                 mri_violations_log eventually)
          :rtype: dict
         """
 
@@ -837,7 +851,8 @@ class Imaging:
         :param tarchive_id: the Tarchive ID to process
          :type tarchive_id: int
 
-        :return: a dictionary with the fieldmap scans dictionary containing JSON file path and intendedFor information
+        :return: a dictionary with the fieldmap scans dictionary containing JSON file path and
+                 intendedFor information
          :rtype: dict
         """
 
@@ -851,8 +866,8 @@ class Imaging:
         sorted_new_files_list = self.get_list_of_files_sorted_by_acq_time(files_list)
 
         if not sorted_new_files_list or not sorted_fmap_files_dict:
-            # if got empty lists, then there are no files to determine IntendedFor either because acq_time
-            # was not set or because there are no fieldmap data
+            # if got empty lists, then there are no files to determine IntendedFor either because
+            # acq_time was not set or because there are no fieldmap data
             return None
 
         for key in sorted_fmap_files_dict.keys():
@@ -914,17 +929,19 @@ class Imaging:
 
     def get_list_of_fmap_files_sorted_by_acq_time(self, files_list):
         """
-        Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON file.
-        The following BIDS suffix will need that field according to BIDS standards:
+        Get the list of fieldmap acquisitions that requires the IntendedFor field in their JSON
+        file. The following BIDS suffix will need that field according to BIDS standards:
           - magnitude, magnitude1, magnitude2
           - phasediff, phase1, phase2
           - fieldmap
           - epi
 
-        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive
+                           ID
          :type files_list: list
 
-        :return: a dictionary with the dir-AP, dir-PA and no-dir keys listing the different NIfTI files for the tarchive
+        :return: a dictionary with the dir-AP, dir-PA and no-dir keys listing the different NIfTI
+                 files for the tarchive
          :rtype: dict
         """
 
@@ -979,13 +996,15 @@ class Imaging:
 
     def get_list_of_files_sorted_by_acq_time(self, files_list):
         """
-        Get a sorted list of the NIfTI files that might need fmap correction. That includes files with
+        Get a sorted list of the NIfTI files that might need fmap correction. That includes files
+        with
           - dwi BIDS subcategory: dwi, sbref
           - func BIDS subcategory: bold, sbref
           - perf BIDS subcategory: asl, sbref
         The returned list will be sorted by acquisition time.
 
-        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive ID
+        :param files_list: a list of dictionaries with all NIfTI files produced for a given tarchive
+                           ID
          :type files_list: list
 
         :return: the list of files that might need fmap correction sorted by acquisition time.
@@ -1040,7 +1059,8 @@ class Imaging:
         """
         Function that reads the JSON file and modifies it to add the BIDS IntendedFor field to it.
 
-        :param sorted_fmap_files_list: list of dictionary that contains JSON file path info and IntendedFor content
+        :param sorted_fmap_files_list: list of dictionary that contains JSON file path info and
+                                       IntendedFor content
          :type sorted_fmap_files_list: list
         :param s3_obj: S3 object for downloading and uploading of S3 files
          :type s3_obj: AWS object
@@ -1087,13 +1107,14 @@ class Imaging:
     def get_intended_for_list_of_scans_after_fieldmap_acquisition_based_on_acq_time(files_list, current_fmap_acq_time,
                                                                                     next_fmap_acq_time):
         """
-        Determine the list files to add to the IntendedFor field of the current JSON fieldmap examined.
-        The matching files will be the ones acquired after the current fieldmap examined and before the next
-        fieldmap examined.
+        Determine the list files to add to the IntendedFor field of the current JSON fieldmap
+        examined. The matching files will be the ones acquired after the current fieldmap examined
+        and before the next fieldmap examined.
 
         :param files_list: list of files to loop through
          :type files_list: list
-        :param current_fmap_acq_time: the acquisition time of the fieldmap for which IntendedFor is generated
+        :param current_fmap_acq_time: the acquisition time of the fieldmap for which IntendedFor is
+                                      generated
          :type current_fmap_acq_time: str
         :param next_fmap_acq_time: the acquisition of the next fieldmap
          :type next_fmap_acq_time: str
@@ -1246,12 +1267,13 @@ class Imaging:
          :rtype: bool
         """
 
-        # return True when parameter min and max values are not defined (a.k.a. no restrictions in mri_protocol)
+        # return True when parameter min and max values are not defined (a.k.a. no restrictions in
+        # mri_protocol)
         if not field_min and not field_max:
             return True
 
-        # return False if value is not defined since this field is listed as a restriction in mri_protocol
-        # (a.k.a. passed the first if)
+        # return False if value is not defined since this field is listed as a restriction in
+        # mri_protocol (a.k.a. passed the first if)
         if not value:
             return False
 

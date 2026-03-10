@@ -85,8 +85,8 @@ def get_dataset_chunks_dir_path(env: Env, physio_file: DbPhysioFile):
     if it does not exist.
     """
 
-    # The first part of the physiological file path is assumed to be the BIDS imports directory name.
-    # The second part of the physiological file path is assumed to be the dataset name.
+    # The first part of the physiological file path is assumed to be the BIDS imports directory
+    # name. The second part of the physiological file path is assumed to be the dataset name.
     eeg_chunks_dir_path = get_eeg_chunks_dir_path_config(env)
     if eeg_chunks_dir_path is None:
         data_dir = get_data_dir_path_config(env)

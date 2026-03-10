@@ -35,9 +35,9 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Initiate the NiftiInsertionPipeline class and runs the different steps required to insert a
         NIfTI file with BIDS associated files into the imaging tables.
-        It will run the protocol identification and inserts the NIfTI file into the files tables if the
-        protocol was identified. Otherwise, scan will be recorded in mri_protocol_violated_scans or
-        mri_violations_log table depending on the violation.
+        It will run the protocol identification and inserts the NIfTI file into the files tables if
+        the protocol was identified. Otherwise, scan will be recorded in mri_protocol_violated_scans
+        or mri_violations_log table depending on the violation.
 
         :param loris_getopt_obj: the LorisGetOpt object with getopt values provided to the pipeline
          :type loris_getopt_obj: LorisGetOpt obj
@@ -65,25 +65,25 @@ class NiftiInsertionPipeline(BasePipeline):
         self.bypass_extra_checks = self.options_dict["bypass_extra_checks"]["value"]
         self.create_pic_bool = self.options_dict["create_pic"]["value"]
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Set 'Inserting' flag to 1 in mri_upload
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.mri_upload.inserting = True
         self.env.db.commit()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Get S3 object from loris_getopt object
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.s3_obj = self.loris_getopt_obj.s3_obj
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Check the mri_upload table to see if the DICOM archive has been validated
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.check_if_tarchive_validated_in_db()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Load the JSON file object with scan parameters if a JSON file was provided
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.json_file_dict = dict()
         if self.sidecar_json is not None:
             add_bids_mri_sidecar_file_parameters(self.env, self.sidecar_json, self.json_file_dict)
@@ -97,14 +97,14 @@ class NiftiInsertionPipeline(BasePipeline):
         # ---------------------------------------------------------------------------------
         self.init_session_info()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Verify if the image/NIfTI file was not already registered into the database
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self._check_if_nifti_file_was_already_inserted()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Determine acquisition protocol (or register into mri_protocol_violated_scans and exits)
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         scan_type_id, self.mri_protocol_group_id = self._determine_acquisition_protocol()
         self.scan_type = try_get_mri_scan_type_with_id(self.env.db, scan_type_id)
         if not self.loris_scan_type:
@@ -134,9 +134,9 @@ class NiftiInsertionPipeline(BasePipeline):
                     lib.exitcode.UNKNOWN_PROTOCOL,
                 )
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Determine BIDS scan type info based on scan_type_id
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.bids_categories_dict = self.imaging_obj.get_bids_categories_mapping_for_scan_type_id(self.scan_type.id)
         if not self.bids_categories_dict:
             self._move_to_trashbin()
@@ -149,9 +149,9 @@ class NiftiInsertionPipeline(BasePipeline):
                 lib.exitcode.UNKNOWN_PROTOCOL,
             )
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Run extra file checks to determine possible protocol violations
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.warning_violations_list = []
         self.exclude_violations_list = []
         if not self.bypass_extra_checks:
@@ -165,9 +165,9 @@ class NiftiInsertionPipeline(BasePipeline):
             self.warning_violations_list = self.violations_summary['warning']
             self.exclude_violations_list = self.violations_summary['exclude']
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Register files in the proper tables
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         if self.exclude_violations_list:
             self._move_to_trashbin()
             self._register_violations_log(self.exclude_violations_list, self.trashbin_nifti_rel_path)
@@ -185,26 +185,26 @@ class NiftiInsertionPipeline(BasePipeline):
         else:
             self._move_to_assembly_and_insert_file_info()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Create the pic images
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         if self.create_pic_bool:
             self._create_pic_image()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Remove the tmp directory from the file system
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.remove_tmp_dir()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # Push inserted images to S3 if they were downloaded from S3
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         if self.nifti_s3_url:
             self._run_push_to_s3_pipeline()
 
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         # If we get there, the insertion was complete and successful
-        # ---------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------
         self.mri_upload.inserting = False
         self.env.db.commit()
 
@@ -255,8 +255,9 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Loads the JSON file content into a dictionary.
 
-        Note: if no JSON file was provided to the pipeline, the function will return an empty dictionary so that
-         information to be stored in <parameter_file> will be added to the JSON dictionary later on.
+        Note: if no JSON file was provided to the pipeline, the function will return an empty
+        dictionary so that information to be stored in <parameter_file> will be added to the JSON
+        dictionary later on.
 
         :return: dictionary with the information present in the JSON file
          :rtype: dict
@@ -270,11 +271,11 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _validate_nifti_patient_name_with_dicom_patient_name(self):
         """
-        This function will validate that the PatientName present in the JSON side car file is the same as the
-        one present in the <tarchive> table.
+        This function will validate that the PatientName present in the JSON side car file is the
+        same as the one present in the <tarchive> table.
 
-        Note: if no JSON file was provided to the script or if no "PatientName" was provided in the JSON file,
-        the scripts will rely solely on the PatientName present in the <tarchive> table.
+        Note: if no JSON file was provided to the script or if no "PatientName" was provided in the
+        JSON file, the scripts will rely solely on the PatientName present in the <tarchive> table.
         """
         if "PatientName" not in self.json_file_dict:
             log_verbose(self.env, (
@@ -299,9 +300,9 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _check_if_nifti_file_was_already_inserted(self):
         """
-        Ensures that the NIfTI file was not already inserted. It checks whether there is already a file inserted into
-        the files table with the same SeriesUID/EchoTime, as well as whether there is a file inserted with the same
-        md5 or blake2b hash.
+        Ensures that the NIfTI file was not already inserted. It checks whether there is already a
+        file inserted into the files table with the same SeriesUID/EchoTime, as well as whether
+        there is a file inserted with the same md5 or blake2b hash.
 
         Proper information will be logged into the log file, notification table and terminal.
         """
@@ -309,8 +310,8 @@ class NiftiInsertionPipeline(BasePipeline):
         error_msg = None
         json_keys = self.json_file_dict.keys()
         if self.json_file_dict and "SeriesInstanceUID" in json_keys and "EchoTime" in json_keys:
-            # verify that a file has not already be inserted with the same SeriesUID/EchoTime combination if
-            # SeriesInstanceUID and EchoTime have been set in the JSON side car file
+            # verify that a file has not already be inserted with the same SeriesUID/EchoTime
+            # combination if SeriesInstanceUID and EchoTime have been set in the JSON side car file
             echo_time = self.json_file_dict["EchoTime"]
             series_uid = self.json_file_dict["SeriesInstanceUID"]
             echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
@@ -324,7 +325,8 @@ class NiftiInsertionPipeline(BasePipeline):
                             f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
                             f" The already registered file is {match['File']}"
 
-            # If force option has been used, check that there is no matching SeriesUID/EchoTime entry in tarchive_series
+            # If force option has been used, check that there is no matching SeriesUID/EchoTime
+            # entry in tarchive_series
             if self.force:
                 tar_echo_time = echo_time * 1000
                 dicom_archive_series = try_get_dicom_archive_series_with_series_uid_echo_time(
@@ -365,7 +367,8 @@ class NiftiInsertionPipeline(BasePipeline):
         nifti_name = os.path.basename(self.nifti_path)
         scan_param = self.json_file_dict
 
-        # get the list of lines in the mri_protocol table that apply to the given scan based on the protocol group
+        # get the list of lines in the mri_protocol table that apply to the given scan based on the
+        # protocol group
         protocols_list = self.imaging_obj.get_list_of_eligible_protocols_based_on_session_info(
             self.session.project_id,
             self.session.cohort_id,
@@ -384,10 +387,11 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _move_to_assembly_and_insert_file_info(self):
         """
-        Determines where the NIfTI file and its associated files (.json, .bval, .bvec...) will go in the assembly_bids
-        directory, move the files and inserts the NIfTI file information into the files/parameter_file tables.
-        If the image has 'warning' violations the violations will be inserted into the mri_violations_table as
-        well and the Caveat will be set to True in the files table.
+        Determines where the NIfTI file and its associated files (.json, .bval, .bvec...) will go in
+        the assembly_bids directory, move the files and inserts the NIfTI file information into the
+        files/parameter_file tables.
+        If the image has 'warning' violations the violations will be inserted into the
+        mri_violations_table as well and the Caveat will be set to True in the files table.
         """
 
         # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
@@ -409,7 +413,8 @@ class NiftiInsertionPipeline(BasePipeline):
             f"Registered file {self.assembly_nifti_rel_path} into the files table with FileID {self.file.id}"
         )
 
-        # add an entry in the violations log table if there is a warning violation associated to the file
+        # add an entry in the violations log table if there is a warning violation associated to the
+        # file
         if self.warning_violations_list:
             log_verbose(self.env, (
                 f"Inserting warning violations related to {self.assembly_nifti_rel_path}."
@@ -420,7 +425,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _determine_new_nifti_assembly_rel_path(self):
         """
-        Determines the directory and the new NIfTI name of the file that will be moved into the assembly folder.
+        Determines the directory and the new NIfTI name of the file that will be moved into the
+        assembly folder.
 
         :return: relative path to the new NIfTI file
          :rtype: str
@@ -458,9 +464,11 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _construct_nifti_filename(self, file_bids_entities_dict):
         """
-        Determines the name of the NIfTI file according to what is present in the bids_mri_scan_type_rel table.
+        Determines the name of the NIfTI file according to what is present in the
+        bids_mri_scan_type_rel table.
 
-        :param file_bids_entities_dict: dictionary with the BIDS entities grepped from the bids_mri_scan_type_rel table
+        :param file_bids_entities_dict: dictionary with the BIDS entities grepped from the
+                                        bids_mri_scan_type_rel table
          :type file_bids_entities_dict: str
 
         :return: name of the NIfTI to be inserted
@@ -508,7 +516,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _move_to_trashbin(self):
         """
-        Determines where the NIfTI file will go under the trashbin directory and move the file there.
+        Determine where the NIfTI file will go under the trashbin directory and move the file there.
         """
         self.trashbin_nifti_rel_path = os.path.join(
             'trashbin',
@@ -519,7 +527,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _create_destination_dir_and_move_image_files(self, destination):
         """
-        Create the destination directory for the files and move the NIfTI file and its associated files there.
+        Create the destination directory for the files and move the NIfTI file and its associated
+        files there.
 
         :param destination: destination root directory (one of 'assembly_bids' or 'trashbin')
          :type destination: str
@@ -620,7 +629,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
         :param violations_list: list of violations to be inserted into mri_violations_log
          :type violations_list: list
-        :param file_rel_path: file relative path (in assembly_bids or trashbin depending on the violation's severity)
+        :param file_rel_path: file relative path (in assembly_bids or trashbin depending on the
+                              violation's severity)
          :type file_rel_path: str
         """
         scan_param = self.json_file_dict
@@ -647,7 +657,8 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         Registers the image into files and file_parameter via the lib.imaging library.
 
-        :param nifti_rel_path: relative path to the imaging file to use for the File column of the files table
+        :param nifti_rel_path: relative path to the imaging file to use for the File column of the
+                               files table
          :type nifti_rel_path: str
 
         :return: file of the inserted image
@@ -694,8 +705,8 @@ class NiftiInsertionPipeline(BasePipeline):
 
     def _run_push_to_s3_pipeline(self):
         """
-        Run push to S3 script to upload data to S3. This function is called only when the file path to insert provided
-        to the script is an S3 URL.
+        Run push to S3 script to upload data to S3. This function is called only when the file path
+        to insert provided to the script is an S3 URL.
         """
 
         push_to_s3_cmd = [

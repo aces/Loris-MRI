@@ -420,7 +420,7 @@ class Physiological:
         for parameter in event_metadata:
             parameter_name = parameter
             tag_dict[parameter_name] = {}
-            # TODO: Commented fields below currently not supported
+            # TODO: Commented fields below currently not supported # ruff: noqa
             # description = event_metadata[parameter]['Description'] \
             #     if 'Description' in event_metadata[parameter] \
             #     else None

@@ -102,7 +102,8 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.dicom_archive.archive_path == archive_new_path
     # check series/files counts
     # notes: - tarchive_series should have 2 series for this upload (localizer + T1W)
-    #        - localizer is skipped from conversion because of config settings `excluded_series_description`
+    #        - localizer is skipped from conversion because of config settings
+    #          `excluded_series_description`
     assert len(mri_upload.dicom_archive.series) == 2
     assert mri_upload.number_of_minc_inserted == 1
     assert mri_upload.number_of_minc_created == 1

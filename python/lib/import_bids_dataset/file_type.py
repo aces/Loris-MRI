@@ -9,8 +9,8 @@ from lib.env import Env
 
 def get_check_bids_imaging_file_type_from_extension(env: Env, file_path: Path) -> DbImagingFileType:
     """
-    Get an imaging file type from a file name, or raise an exception if that file name is incorrect or
-    if the file type is not present in the database.
+    Get an imaging file type from a file name, or raise an exception if that file name is incorrect
+    or if the file type is not present in the database.
     """
 
     file_extension = get_path_extension(file_path)

@@ -39,8 +39,8 @@ class Config:
         :param config_name: name of the ConfigSettings
          :type config_name: str
 
-        :return: the value from the Config table if only one value found, list with values found in the Config table
-                 if multiple values found or None if no value found
+        :return: the value from the Config table if only one value found, list with values found in
+                 the Config table if multiple values found or None if no value found
          :rtype: str or list
         """
 

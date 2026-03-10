@@ -8,7 +8,8 @@ from lib.database_lib.parameter_type import ParameterType
 @deprecated('Use `lib.db.models.file.DbFile` instead.')
 class Files:
     """
-    This class performs database queries for imaging dataset stored in the files tables (MRI, PET...).
+    This class performs database queries for imaging dataset stored in the files tables
+    (MRI, PET...).
 
     :Example:
 
@@ -145,7 +146,8 @@ class Files:
         Get a list of distinct scan types (a.k.a. `MriScanTypeID`) inserted into the `files`
         table for a given DICOM archive (a.k.a. `TarchiveSource`).
 
-        :param tarchive_id: `TarchiveID` to use as the `TarchiveSource` to restrict the SELECT statement on
+        :param tarchive_id: `TarchiveID` to use as the `TarchiveSource` to restrict the SELECT
+                             statement on
          :type tarchive_id: int
 
         :return: list of scan types found (`MriScanTypeID`)
@@ -188,7 +190,8 @@ class Files:
         :param tarchive_id: `TarchiveID` to restrict the query on
          :type tarchive_id: int
 
-        :return: list of relative file path present in the `files` table associated to the `TarchiveID`
+        :return: list of relative file path present in the `files` table associated to the
+                 `TarchiveID`
          :rtype: list
         """
 
@@ -203,7 +206,8 @@ class Files:
         :param session_id: `SessionID` to restrict the query on
          :type session_id: int
 
-        :return: list of relative file path present in the `files` table associated to the `SessionID`
+        :return: list of relative file path present in the `files` table associated to the
+                 `SessionID`
          :rtype: list
         """
 
