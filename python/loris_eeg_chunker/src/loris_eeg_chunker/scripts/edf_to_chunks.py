@@ -2,21 +2,25 @@
 
 import argparse
 import sys
+from collections.abc import Callable
+from pathlib import Path
+from typing import cast
 
 import mne.io
 import mne.io.edf.edf as mne_edf
+from mne.io.edf.edf import RawEDF
 
 from loris_eeg_chunker.chunking import write_chunk_directory
 
 
-def load_channels(exclude):
-    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)
+def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:
+    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)  # type: ignore
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Convert .edf files to chunks for browser based visualisation.')
-    parser.add_argument('files', metavar='FILE', type=str, nargs='+',
+    parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help='one or more .edf files to convert to a directory of chunks next to the input file')
     parser.add_argument('--channel_index', '-i', dest='channel_index', type=int, default=0,
                         help='Starting index of the channels to process')
@@ -26,14 +30,14 @@ def main():
                         help='1 dimensional chunk size')
     parser.add_argument('--downsamplings', '-r', dest='downsamplings', type=int,
                         help='How many downsampling levels to write to disk starting from the coarsest level.')
-    parser.add_argument('--destination', '-d', dest='destination', type=str,
+    parser.add_argument('--destination', '-d', dest='destination', type=Path,
                         help='optional destination for all the chunk directories')
     parser.add_argument('--prefix', '-p', dest="prefix", type=str,
                         help='optional prefixing parent folder name each directory of chunks gets placed under')
 
     args = parser.parse_args()
     for path in args.files:
-        _, edf_info, _ = mne_edf._get_info(
+        _, edf_info, _ = mne_edf._get_info(  # type: ignore
             path,
             stim_channel='auto',
             eog=None,
@@ -42,7 +46,7 @@ def main():
             infer_types=False,
             file_type=mne_edf.FileType.EDF,
         )
-        channel_names = edf_info['ch_names']
+        channel_names = cast(list[str], edf_info['ch_names'])
 
         if args.channel_index < 0:
             sys.exit("Channel index must be a positive integer")
@@ -60,12 +64,12 @@ def main():
             args.channel_count = len(channel_names) - args.channel_index
 
         for i in range(args.channel_count):
-            channel_index = args.channel_index + i
+            channel_index: int = args.channel_index + i
 
             # check if channel_index is a stim channel
             # to avoid a bug in mne.io.edf.edf
             # (see issue https://github.com/mne-tools/mne-python/issues/9811)
-            stim_channel_idxs, _ = mne_edf._check_stim_channel(
+            stim_channel_idxs, _ = mne_edf._check_stim_channel(  # type: ignore
                 'auto', [channel_names[channel_index]]
             )
             if len(stim_channel_idxs) == 1:

@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+ctf-to-chunks    = "loris_eeg_chunker.scripts.ctf_to_chunks:main"
 edf-to-chunks    = "loris_eeg_chunker.scripts.edf_to_chunks:main"
 eeglab-to-chunks = "loris_eeg_chunker.scripts.eeglab_to_chunks:main"
 
