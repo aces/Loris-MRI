@@ -12,7 +12,14 @@ from loris_eeg_chunker.chunking import write_chunk_directory  # type: ignore
 
 
 def load_channels(path: Path) -> RawCTF:
-    return mne.io.read_raw_ctf(path, preload=False, verbose=False)    # type: ignore
+    return mne.io.read_raw_ctf(  # type: ignore
+        path,
+        preload=False,
+        # CTF raw channel names can contain suffixes that causes them to mismatch their
+        # corresponding `channels.tsv` entries, the following flag removes these suffixes.
+        clean_names=True,
+        verbose=False,
+    )
 
 
 def main():
@@ -36,7 +43,7 @@ def main():
     args = parser.parse_args()
 
     for path in args.files:
-        raw_ctf = mne.io.read_raw_ctf(path, preload=False, verbose=False)  # type: ignore
+        raw_ctf = load_channels(path)
         channel_names = cast(list[str], raw_ctf.ch_names)  # type: ignore
 
         if args.channel_index < 0:
