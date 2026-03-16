@@ -7,7 +7,6 @@ import sys
 
 import lib.exitcode
 import lib.utilities
-from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
 from lib.db.queries.physio_file import try_get_physio_file_with_id
 from lib.env import Env
@@ -110,14 +109,11 @@ def make_chunks(env: Env, physio_file_id: int):
     Call the channel signal chunking script on the provided physiological file.
     """
 
-    # grep config settings from the Config module
-    data_dir = get_data_dir_path_config(env)
-
     # create the chunked dataset
     physio_file = try_get_physio_file_with_id(env.db, physio_file_id)
     if physio_file is not None:
         print(f"Chunking physiological file ID {physio_file.id}")
-        create_physio_channels_chunks(env, physio_file, data_dir / physio_file.path)
+        create_physio_channels_chunks(env, physio_file)
 
 
 if __name__ == "__main__":
