@@ -18,13 +18,19 @@ def insert_physio_file(
     modality: DbPhysioModality,
     output_type: DbPhysioOutputType,
     acquisition_time: datetime | None,
+    download_path: Path | None = None,
 ) -> DbPhysioFile:
     """
     Insert a physiological file into the database.
     """
 
+    # If the download path is not provided, use the normal file path.
+    if download_path is None:
+        download_path = file_path
+
     file = DbPhysioFile(
         path             = file_path,
+        download_path    = download_path,
         type             = file_type.name,
         session_id       = session.id,
         modality_id      = modality.id,
