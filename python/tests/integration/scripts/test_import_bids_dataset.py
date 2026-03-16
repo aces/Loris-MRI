@@ -116,3 +116,53 @@ def test_import_eeg_bids_dataset():
             }
         }
     })
+
+
+def test_import_mri_bids_dataset():
+    db = get_integration_database_session()
+
+    process = run_integration_script([
+        'bids_import.py',
+        '--createcandidate', '--createsession',
+        '--directory', '/data/loris/incoming/DCC090_587630_V2',
+    ])
+
+    # Check the return code.
+    assert process.returncode == 0
+
+    # Check that the candidate and sessions are present in the database.
+    candidate = try_get_candidate_with_psc_id(db, 'DCC090')
+    assert candidate is not None
+    session = try_get_session_with_cand_id_visit_label(db, candidate.cand_id, 'V2')
+    assert session is not None
+
+    # Check that the files has been inserted in the database.
+    assert len(session.files) == 5
+
+    # Check that the BIDS files have been copied.
+    assert_files_exist('/data/loris/bids_imports', {
+        'DCC090_587630_V2_BIDSVersion_1.8.0': {
+            'dataset_description.json': None,
+            'participants.tsv': None,
+            'sub-DCC090': {
+                'ses-V2': {
+                    'anat': {
+                        'sub-DCC090_ses-V2_acq-spc3p2_run-4_T2w.json': None,
+                        'sub-DCC090_ses-V2_acq-spc3p2_run-4_T2w.nii.gz': None,
+                        'sub-DCC090_ses-V2_acq-tfl3p2_run-3_T1w.json': None,
+                        'sub-DCC090_ses-V2_acq-tfl3p2_run-3_T1w.nii.gz': None,
+                        'sub-DCC090_ses-V2_acq-tse2p2_run-2_echo-1_T2w.json': None,
+                        'sub-DCC090_ses-V2_acq-tse2p2_run-2_echo-1_T2w.nii.gz': None,
+                        'sub-DCC090_ses-V2_acq-tse2p2_run-2_echo-2_T2w.json': None,
+                        'sub-DCC090_ses-V2_acq-tse2p2_run-2_echo-2_T2w.nii.gz': None,
+                    },
+                    'dwi': {
+                        'sub-DCC090_ses-V2_acq-epb0_dir-AP_run-5_dwi.bval': None,
+                        'sub-DCC090_ses-V2_acq-epb0_dir-AP_run-5_dwi.bvec': None,
+                        'sub-DCC090_ses-V2_acq-epb0_dir-AP_run-5_dwi.json': None,
+                        'sub-DCC090_ses-V2_acq-epb0_dir-AP_run-5_dwi.nii.gz': None,
+                    },
+                }
+            }
+        }
+    })
