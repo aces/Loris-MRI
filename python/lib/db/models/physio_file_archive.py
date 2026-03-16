@@ -16,6 +16,6 @@ class DbPhysioFileArchive(Base):
     physio_file_id : Mapped[int]      = mapped_column('PhysiologicalFileID', ForeignKey('physiological_file.PhysiologicalFileID'))
     insert_time    : Mapped[datetime] = mapped_column('InsertTime', default=datetime.now)
     blake2b_hash   : Mapped[str]      = mapped_column('Blake2bHash')
-    file_path      : Mapped[Path]     = mapped_column('FilePath', StringPath)
+    path           : Mapped[Path]     = mapped_column('FilePath', StringPath)
 
     physio_file: Mapped['db_physio_file.DbPhysioFile'] = relationship('DbPhysioFile')
