@@ -32,9 +32,7 @@ def get_loris_bids_file_path(
 
     # Otherwise, normalize the subject and session directrory names using the LORIS session
     # information.
-    loris_file_name = file_path.name
-    loris_file_name = re.sub(r'sub-[a-zA-Z0-9]+', f'sub-{session.candidate.psc_id}', loris_file_name)
-    loris_file_name = re.sub(r'ses-[a-zA-Z0-9]+', f'ses-{session.visit_label}',      loris_file_name)
+    loris_file_name = get_loris_bids_file_name(file_path.name, session)
 
     return (
         import_env.loris_bids_path
@@ -43,6 +41,22 @@ def get_loris_bids_file_path(
         / data_type
         / loris_file_name
     )
+
+
+def get_loris_bids_file_name(file_name: str, session: DbSession) -> str:
+    """
+    Get the name of a BIDS file in LORIS, replacing or adding the BIDS subject and session labels
+    with the LORIS PSCID and visit label.
+    """
+
+    loris_file_name = file_name
+
+    # Remove the subject and session entities if they are present.
+    loris_file_name = re.sub(r'sub-[a-zA-Z0-9]+_?', '', loris_file_name)
+    loris_file_name = re.sub(r'ses-[a-zA-Z0-9]+_?', '', loris_file_name)
+
+    # Add the LORIS subject and session information back in the correct order.
+    return f'sub-{session.candidate.psc_id}_ses-{session.visit_label}_{loris_file_name}'
 
 
 def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_path: Path):
@@ -66,18 +80,20 @@ def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_
         shutil.copytree(file_path, full_loris_file_path)
 
 
+# TODO: This function is ugly and should be replaced.
 def copy_scans_tsv_file_to_loris_bids_dir(
     scans_file: BidsScansTsvFile,
-    bids_sub_id: str,
-    loris_bids_root_dir: str,
-    data_dir: str,
+    session: DbSession,
+    loris_bids_root_dir: Path,
+    data_dir: Path,
 ) -> str:
     """
     Copy the scans.tsv file to the LORIS BIDS directory for the subject.
     """
 
     original_file_path = scans_file.path
-    final_file_path = os.path.join(loris_bids_root_dir, f'sub-{bids_sub_id}', scans_file.path.name)
+    loris_file_name = get_loris_bids_file_name(scans_file.path.name, session)
+    final_file_path = os.path.join(loris_bids_root_dir, f'sub-{session.candidate.psc_id}', loris_file_name)
 
     # copy the scans.tsv file to the new directory
     if os.path.exists(final_file_path):

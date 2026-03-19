@@ -322,7 +322,7 @@ class Eeg:
                         # copy the scans.tsv file to the LORIS BIDS import directory
                         scans_path = copy_scans_tsv_file_to_loris_bids_dir(
                             self.scans_file,
-                            self.bids_info.subject,
+                            self.session,
                             self.info.data_dir_path / self.info.loris_bids_path,
                             self.data_dir,
                         )
