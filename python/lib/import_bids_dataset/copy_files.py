@@ -49,14 +49,12 @@ def get_loris_bids_file_name(file_name: str, session: DbSession) -> str:
     with the LORIS PSCID and visit label.
     """
 
-    loris_file_name = file_name
-
     # Remove the subject and session entities if they are present.
-    loris_file_name = re.sub(r'sub-[a-zA-Z0-9]+_?', '', loris_file_name)
-    loris_file_name = re.sub(r'ses-[a-zA-Z0-9]+_?', '', loris_file_name)
+    file_name = re.sub(r'sub-[a-zA-Z0-9]+_?', '', file_name)
+    file_name = re.sub(r'ses-[a-zA-Z0-9]+_?', '', file_name)
 
     # Add the LORIS subject and session information back in the correct order.
-    return f'sub-{session.candidate.psc_id}_ses-{session.visit_label}_{loris_file_name}'
+    return f'sub-{session.candidate.psc_id}_ses-{session.visit_label}_{file_name}'
 
 
 def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_path: Path):
