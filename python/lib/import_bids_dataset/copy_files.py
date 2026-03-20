@@ -91,7 +91,12 @@ def copy_scans_tsv_file_to_loris_bids_dir(
 
     original_file_path = scans_file.path
     loris_file_name = get_loris_bids_file_name(scans_file.path.name, session)
-    final_file_path = os.path.join(loris_bids_root_dir, f'sub-{session.candidate.psc_id}', loris_file_name)
+    final_file_path = (
+        loris_bids_root_dir
+        / f'sub-{session.candidate.psc_id}'
+        / f'ses-{session.visit_label}'
+        / loris_file_name
+    )
 
     # copy the scans.tsv file to the new directory
     if os.path.exists(final_file_path):
