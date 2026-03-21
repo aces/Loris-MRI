@@ -222,9 +222,8 @@ class Eeg:
             )
 
             # create data chunks for React visualization
-            eeg_viz_enabled = get_eeg_viz_enabled_config(self.env)
-            if eeg_viz_enabled:
-                create_physio_channels_chunks(self.env, eeg_file, Path(original_file_data.path))
+            if get_eeg_viz_enabled_config(self.env):
+                create_physio_channels_chunks(self.env, eeg_file)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """

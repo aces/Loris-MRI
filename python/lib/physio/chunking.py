@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 
 from loris_utils.path import get_path_stem
 
@@ -12,7 +11,7 @@ from lib.logging import log, log_error_exit
 from lib.physio.parameters import insert_physio_file_parameter
 
 
-def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile, file_path: Path):
+def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
     """
     Create the channels chunks for a physiological file based on its source MEG CTF directory.
     """
@@ -43,9 +42,12 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile, file_path
                 lib.exitcode.CHUNK_CREATION_FAILURE,
             )
 
-    chunk_root_dir = get_dataset_chunks_dir_path(env, physio_file)
+    data_dir_path = get_data_dir_path_config(env)
+    file_path = data_dir_path / physio_file.path
 
-    command_parts = [script, str(file_path), '--destination', str(chunk_root_dir)]
+    chunk_root_dir_path = get_dataset_chunks_dir_path(env, physio_file)
+
+    command_parts = [script, str(file_path), '--destination', str(chunk_root_dir_path)]
 
     try:
         log(env, f"Running chunking script with command: {' '.join(command_parts)}")
@@ -63,7 +65,7 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile, file_path
             lib.exitcode.CHUNK_CREATION_FAILURE,
         )
 
-    chunk_path = chunk_root_dir / f'{get_path_stem(physio_file.path)}.chunks'
+    chunk_path = chunk_root_dir_path / f'{get_path_stem(physio_file.path)}.chunks'
     if not chunk_path.is_dir():
         log_error_exit(
             env,
@@ -89,8 +91,8 @@ def get_dataset_chunks_dir_path(env: Env, physio_file: DbPhysioFile):
     # name. The second part of the physiological file path is assumed to be the dataset name.
     eeg_chunks_dir_path = get_eeg_chunks_dir_path_config(env)
     if eeg_chunks_dir_path is None:
-        data_dir = get_data_dir_path_config(env)
-        eeg_chunks_dir_path = data_dir / physio_file.path.parts[0]
+        data_dir_path = get_data_dir_path_config(env)
+        eeg_chunks_dir_path = data_dir_path / physio_file.path.parts[0]
 
     eeg_chunks_path = eeg_chunks_dir_path / f'{physio_file.path.parts[1]}_chunks'
     eeg_chunks_path.mkdir(exist_ok=True)
