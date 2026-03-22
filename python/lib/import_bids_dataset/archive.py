@@ -4,7 +4,7 @@ from loris_utils.archive import create_archive_with_files
 from loris_utils.crypto import compute_file_blake2b_hash
 from loris_utils.path import remove_path_extension
 
-from lib.config import get_data_dir_path_config, get_eeg_pre_package_download_dir_path_config
+from lib.config import get_data_dir_path_config, get_ephys_archive_dir_path_config
 from lib.db.models.physio_event_archive import DbPhysioEventArchive
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_file_archive import DbPhysioFileArchive
@@ -70,7 +70,7 @@ def get_archive_path(env: Env, file_path: Path) -> Path:
     """
 
     archive_rel_path = remove_path_extension(file_path).with_suffix('.tgz')
-    archive_dir_path = get_eeg_pre_package_download_dir_path_config(env)
+    archive_dir_path = get_ephys_archive_dir_path_config(env)
     if archive_dir_path is not None:
         data_dir_path = get_data_dir_path_config(env)
         return (archive_dir_path / 'raw' / archive_rel_path.name).relative_to(data_dir_path)

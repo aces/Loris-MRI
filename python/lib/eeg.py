@@ -14,7 +14,7 @@ from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
 import lib.utilities as utilities
-from lib.config import get_eeg_viz_enabled_config
+from lib.config import get_ephys_visualization_enabled_config
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.session import DbSession
 from lib.db.queries.physio_file import try_get_physio_file_with_path
@@ -213,7 +213,7 @@ class Eeg:
             import_physio_file_archive(self.env, eeg_file, files_to_archive)
 
             # create data chunks for React visualization
-            if get_eeg_viz_enabled_config(self.env):
+            if get_ephys_visualization_enabled_config(self.env):
                 create_physio_channels_chunks(self.env, eeg_file)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
