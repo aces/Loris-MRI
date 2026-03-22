@@ -24,7 +24,7 @@ from lib.import_bids_dataset.copy_files import (
 )
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.events import import_bids_root_event_dict_file
-from lib.import_bids_dataset.meg import import_bids_meg_data_type
+from lib.import_bids_dataset.meg.ctf import import_bids_meg_data_type
 from lib.import_bids_dataset.mri import import_bids_mri_data_type
 from lib.import_bids_dataset.print import print_bids_import_summary, print_bids_info
 from lib.logging import log, log_error_exit, log_warning

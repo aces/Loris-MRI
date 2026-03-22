@@ -16,6 +16,7 @@ from loris_bids_reader.utils import get_pybids_file_path
 
 # Circular imports
 if TYPE_CHECKING:
+    from loris_bids_reader.meg.reader import BidsMegDataTypeReader
     from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 
 PYBIDS_IGNORE = ['.git', 'code/', 'log/', 'sourcedata/']
@@ -290,12 +291,37 @@ class BidsSessionReader:
         ]
 
     @cached_property
+    def meg_data_types(self) -> list['BidsMegDataTypeReader']:
+        """
+        Get the MEG data type directory readers of this session.
+        """
+
+        from loris_bids_reader.meg.reader import BidsMegDataTypeReader
+
+        return [
+            BidsMegDataTypeReader(
+                session=self,
+                name=data_type,  # type: ignore
+                path=(
+                    self.subject.dataset.path
+                    / f'sub-{self.subject.label}'
+                    / (f'ses-{self.label}' if self.label is not None else '')
+                    / data_type  # type: ignore
+                ),
+            ) for data_type in self.subject.dataset.layout.get_datatypes(  # type: ignore
+                subject=self.subject.label,
+                session=self.label,
+                datatype=['meg'],
+            )
+        ]
+
+    @cached_property
     def data_types(self) -> Sequence['BidsDataTypeReader']:
         """
         Get all the data type directory readers of this session.
         """
 
-        return self.eeg_data_types + self.mri_data_types
+        return self.eeg_data_types + self.meg_data_types + self.mri_data_types
 
     @cached_property
     def info(self) -> BidsSessionInfo:

@@ -1,7 +1,7 @@
 [project]
-name = "loris-meg"
+name = "loris-ephys-server"
 version = "27.0.0"
-description = "LORIS MEG API"
+description = "LORIS electrophysiology server"
 readme = "README.md"
 requires-python = ">= 3.11"
 dependencies = [
@@ -12,15 +12,15 @@ dependencies = [
     "uvicorn[standard]",
 ]
 
-[project.entry-points."loris-server.modules"]
-loris-meg = "loris_meg.main:module"
+[project.entry-points."loris_server.loaders"]
+loris-ephys-server = "loris_ephys_server.main:load"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/loris_meg"]
+packages = ["src/loris_ephys_server"]
 
 [tool.ruff]
 extend = "../../pyproject.toml"

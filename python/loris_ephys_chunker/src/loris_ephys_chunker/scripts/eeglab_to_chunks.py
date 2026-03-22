@@ -39,7 +39,6 @@ def main():
         eeg = mne_eeglab._check_load_mat(path, None)  # type: ignore
         eeglab_info = mne_eeglab._get_info(eeg, eog=(), montage_units="auto")  # type: ignore
         channel_names = cast(list[str], eeglab_info[0]['ch_names'])
-
         if args.channel_index < 0:
             sys.exit("Channel index must be a positive integer")
 

@@ -1,5 +1,6 @@
 import re
 from collections.abc import Iterator
+from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from loris_bids_reader.reader import BidsDataTypeReader
 from loris_bids_reader.utils import get_pybids_file_path, try_get_pybids_value
 
 
+@dataclass
 class BidsMegDataTypeReader(BidsDataTypeReader):
     path: Path
 
@@ -20,11 +22,11 @@ class BidsMegDataTypeReader(BidsDataTypeReader):
         """
 
         acquisitions: list[tuple[MegAcquisition, BidsAcquisitionInfo]] = []
-        for acquisition_name in find_dir_meg_acquisition_names(self.path):
-            scan_row = self.session.scans_file.get_row(self.path / acquisition_name) \
+        for ctf_name in find_dir_meg_acquisition_names(self.path):
+            scan_row = self.session.scans_file.get_row(self.path / ctf_name) \
                 if self.session.scans_file is not None else None
 
-            acquisition = MegAcquisition(self.path, self.head_shape_file)
+            acquisition = MegAcquisition(self.path / ctf_name, self.head_shape_file)
 
             info = BidsAcquisitionInfo(
                 subject         = self.session.subject.label,
@@ -33,7 +35,7 @@ class BidsMegDataTypeReader(BidsDataTypeReader):
                 scans_file      = self.session.scans_file,
                 data_type       = self.name,
                 scan_row        = scan_row,
-                name            = acquisition_name,
+                name            = ctf_name,
                 suffix          = 'meg',
             )
 
@@ -68,6 +70,6 @@ def find_dir_meg_acquisition_names(dir_path: Path) -> Iterator[str]:
     """
 
     for item_path in dir_path.iterdir():
-        name_match = re.search(r'(.+_meg)\.ds$', item_path.name)
+        name_match = re.search(r'.+_meg\.ds$', item_path.name)
         if name_match is not None:
-            yield name_match.group(1)
+            yield name_match.group(0)

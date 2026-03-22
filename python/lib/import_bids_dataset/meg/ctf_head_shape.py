@@ -27,13 +27,13 @@ def insert_head_shape_file(
     env.db.add(db_head_shape_file)
     env.db.flush()
 
-    for name, coordinates in head_shape_file.points.items():
+    for name, point in head_shape_file.points.items():
         env.db.add(DbMegCtfHeadShapePoint(
             file_id = db_head_shape_file.id,
             name    = name,
-            x       = coordinates.x,
-            y       = coordinates.y,
-            z       = coordinates.z,
+            x       = point.x,
+            y       = point.y,
+            z       = point.z,
         ))
 
     env.db.flush()
