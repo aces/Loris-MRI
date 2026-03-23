@@ -39,7 +39,7 @@ def try_get_physio_file_with_hash(db: Database, file_hash: str) -> DbPhysioFile 
         .join(DbPhysioFile.parameters)
         .join(DbPhysioFileParameter.type)
         .where(
-            DbParameterType.name == 'physiological_json_file_blake2b_hash',
+            DbParameterType.name == 'physiological_file_blake2b_hash',
             DbPhysioFileParameter.value == file_hash,
         )
     ).scalar_one_or_none()
