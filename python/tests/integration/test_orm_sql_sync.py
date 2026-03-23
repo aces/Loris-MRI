@@ -33,8 +33,8 @@ def test_orm_sql_sync():
         assert sql_table is not None
 
         # Check that the ORM and SQL tables have the same columns
-        orm_column_names = orm_table.columns.keys().sort()
-        sql_column_names = sql_table.columns.keys().sort()
+        orm_column_names = sorted(orm_table.columns.keys())
+        sql_column_names = sorted(sql_table.columns.keys())
         assert orm_column_names == sql_column_names
 
         for orm_column in orm_table.columns:
