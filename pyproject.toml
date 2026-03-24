@@ -49,6 +49,14 @@ packages = [
     "python/tests",
 ]
 
+[tool.uv.workspace]
+members = ["python/loris_*"]
+
+[tool.uv.sources]
+loris_bids_reader = { workspace = true }
+loris_eeg_chunker = { workspace = true }
+loris_utils       = { workspace = true }
+
 [tool.ruff]
 src = ["python"]
 include = ["python/**/*.py"]
@@ -71,7 +79,6 @@ max-doc-length = 100
 # `test` directory.
 [tool.pyright]
 include = [
-    "python/loris_eeg_chunker",
     "python/tests",
     "python/lib/db",
     "python/lib/imaging_lib",
@@ -87,6 +94,7 @@ include = [
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
     "python/loris_bids_reader",
+    "python/loris_eeg_chunker",
     "python/loris_utils",
 ]
 exclude = [
