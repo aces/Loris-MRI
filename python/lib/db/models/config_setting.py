@@ -16,3 +16,4 @@ class DbConfigSetting(Base):
     parent_id      : Mapped[int | None]  = mapped_column('Parent')
     label          : Mapped[str | None]  = mapped_column('Label')
     order_number   : Mapped[int | None]  = mapped_column('OrderNumber')
+    multilingual   : Mapped[bool | None] = mapped_column('Multilingual', IntBool, default=False)
