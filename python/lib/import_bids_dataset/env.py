@@ -22,3 +22,18 @@ class BidsImportEnv:
     """
     The LORIS BIDS directory path for this import, relative to the LORIS data directory.
     """
+
+    imported_acquisitions_count: int = 0
+    """
+    The number of succesfully imported BIDS acquisitions.
+    """
+
+    ignored_acquisitions_count: int = 0
+    """
+    The number of ignored BIDS acquisition imports.
+    """
+
+    failed_acquisitions_count: int = 0
+    """
+    The number of failed BIDS acquisition imports.
+    """
