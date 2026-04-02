@@ -11,9 +11,13 @@ runs:
   - name: Set up the Python environment
     uses: actions/setup-python@v5
     with:
-      python-version: ${{ matrix.python-version }}
+      python-version: '3.11'
       cache: 'pip'
 
-  - name: Install Python dependencies
-    run: pip install .[dev]
+  - name: Install Python project
     shell: bash
+    run: |
+      pip install --no-cache-dir --editable .[dev] && \
+      for pkg in python/loris_*; do \
+          pip install --no-cache-dir --no-deps --editable "$pkg"; \
+      done
