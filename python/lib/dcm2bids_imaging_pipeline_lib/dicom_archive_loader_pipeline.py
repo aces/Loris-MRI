@@ -36,9 +36,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         super().__init__(loris_getopt_obj, script_name)
         self.init_session_info()
         self.series_uid = self.options_dict["series_uid"]["value"]
-        self.tarchive_path = os.path.join(
-            self.data_dir, "tarchive", self.dicom_archive.archive_path
-        )
+        self.tarchive_path = os.path.join(self.data_dir, "tarchive", self.dicom_archive.path)
 
         # ------------------------------------------------------------------------------------------
         # Run the DICOM archive validation script to check if the DICOM archive is valid
@@ -49,7 +47,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         # Extract DICOM files from the tarchive
         # ------------------------------------------------------------------------------------------
         self.extracted_dicom_dir = self.imaging_obj.extract_files_from_dicom_archive(
-            os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_path),
+            os.path.join(self.data_dir, 'tarchive', self.dicom_archive.path),
             self.tmp_dir
         )
 
@@ -342,7 +340,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         """
 
         acq_date = self.dicom_archive.date_acquired
-        archive_location = str(self.dicom_archive.archive_path)
+        archive_location = str(self.dicom_archive.path)
 
         pattern = re.compile(r"^[0-9]{4}/")
         if acq_date and not pattern.match(archive_location):
@@ -357,7 +355,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             os.replace(self.tarchive_path, new_tarchive_path)
             self.tarchive_path = new_tarchive_path
             # add the new archive location to the list of fields to update in the tarchive table
-            self.dicom_archive.archive_path = Path(new_archive_location)
+            self.dicom_archive.path = Path(new_archive_location)
 
         self.dicom_archive.session = self.session
 
@@ -420,12 +418,10 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - `SessionID`              => `SessionID` associated to the upload
         """
 
-        files_inserted_list = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
-
         # Update the MRI upload.
         self.mri_upload.inserting = False
         self.mri_upload.insertion_complete = True
-        self.mri_upload.number_of_minc_inserted = len(files_inserted_list)
+        self.mri_upload.number_of_minc_inserted = len(self.dicom_archive.mri_files)
         self.mri_upload.number_of_minc_created = len(self.nifti_files_to_insert)
         self.mri_upload.session = self.session
         self.env.db.commit()
@@ -441,8 +437,6 @@ class DicomArchiveLoaderPipeline(BasePipeline):
             - path to the log file
         """
 
-        files_results = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
-        files_inserted_list = [v["File"] for v in files_results] if files_results else None
         prot_viol_results = self.imaging_obj.mri_prot_viol_scan_db_obj.get_protocol_violations_for_tarchive_id(
             self.dicom_archive.id
         )
@@ -452,17 +446,21 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         )
         excluded_violations_list = [v["MincFile"] for v in excl_viol_results] if excl_viol_results else None
 
-        nb_files_inserted = len(files_inserted_list) if files_inserted_list else 0
+        nb_files_inserted = len(self.dicom_archive.mri_files)
         nb_prot_violation = len(protocol_violations_list) if protocol_violations_list else 0
         nb_excluded_viol = len(excluded_violations_list) if excluded_violations_list else 0
 
-        files_list = ', '.join(files_inserted_list) if files_inserted_list else 0
+        if self.dicom_archive.mri_files != []:
+            files_list = ', '.join([str(file.path) for file in self.dicom_archive.mri_files])
+        else:
+            files_list = '0'
+
         prot_viol_list = ', '.join(protocol_violations_list) if protocol_violations_list else 0
         excl_viol_list = ', '.join(excluded_violations_list) if excluded_violations_list else 0
 
         summary = f"""
         Finished processing UploadID {self.mri_upload.id}!
-        - DICOM archive info: {self.dicom_archive.id} => {self.tarchive_path}
+        - DICOM archive info: {self.dicom_archive.id} => {self.dicom_archive.path}
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
         - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list}

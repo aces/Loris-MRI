@@ -76,6 +76,7 @@ class Files:
 
         return results[0] if results else None
 
+    @deprecated('Use `lib.db.queries.try_get_file_with_hash` instead.')
     def find_file_with_hash(self, file_hash):
         """
         Select files stored in the `files` table with a given hash stored in `parameter_file`.
@@ -183,6 +184,7 @@ class Files:
 
         return self.db.pselect(query=query, args=(tarchive_id, scan_type_id, "series_number"))
 
+    @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive.mri_files` instead.')
     def get_files_inserted_for_tarchive_id(self, tarchive_id):
         """
         Get the list of files that were inserted into the `files` table for a given `TarchiveID`.
@@ -199,6 +201,7 @@ class Files:
 
         return self.db.pselect(query=query, args=(tarchive_id,))
 
+    @deprecated('Use `lib.db.models.session.DbSession.files` instead.')
     def get_files_inserted_for_session_id(self, session_id):
         """
         Get the list of files that were inserted into the `files` table for a given `SessionID`.

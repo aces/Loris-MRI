@@ -150,7 +150,7 @@ class BasePipeline:
                 )
 
             self.dicom_archive = self.mri_upload.dicom_archive
-            if os.path.join(self.data_dir, 'tarchive', self.dicom_archive.archive_path) != tarchive_path:
+            if os.path.join(self.data_dir, 'tarchive', self.dicom_archive.path) != tarchive_path:
                 log_error_exit(
                     self.env,
                     f"UploadID {upload_id} and ArchiveLocation {tarchive_path} do not refer to the same upload",
