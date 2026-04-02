@@ -20,7 +20,12 @@ from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.session import DbSession
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
-from lib.import_bids_dataset.copy_files import copy_scans_tsv_file_to_loris_bids_dir
+from lib.import_bids_dataset.copy_files import (
+    copy_loris_bids_file,
+    copy_scans_tsv_file_to_loris_bids_dir,
+    get_loris_bids_file_path,
+)
+from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
 from lib.import_bids_dataset.physio import (
     get_check_bids_physio_file_hash,
@@ -40,9 +45,8 @@ class Eeg:
     into the database by calling the lib.physiological class.
     """
 
-    def __init__(self, env: Env, bids_layout, bids_info: BidsDataTypeInfo, session: DbSession, db,
-                 data_dir, loris_bids_eeg_rel_dir,
-                 loris_bids_root_dir, dataset_tag_dict, dataset_type):
+    def __init__(self, env: Env, import_env: BidsImportEnv, bids_layout, bids_info: BidsDataTypeInfo,
+                 session: DbSession, db, dataset_tag_dict, dataset_type):
         """
         Constructor method for the Eeg class.
 
@@ -52,12 +56,7 @@ class Eeg:
         :param session      : The LORIS session the EEG datasets are linked to
         :param db           : Database class object
          :type db           : object
-        :param data_dir     : LORIS data directory path (usually /data/PROJECT/data)
-         :type data_dir     : str
-        :param loris_bids_eeg_rel_dir: LORIS BIDS EEG relative dir path to data_dir
-         :type loris_bids_eeg_rel_dir: str
-        :param loris_bids_root_dir   : LORIS BIDS root directory path
-         :type loris_bids_root_dir   : str
+        :param info         : The BIDS import pipeline information
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
          :type dataset_tag_dict      : dict
         :param dataset_type          : raw | derivative. Type of the dataset
@@ -71,9 +70,8 @@ class Eeg:
 
         # load the LORIS BIDS import root directory where the eeg files will
         # be copied
-        self.loris_bids_eeg_rel_dir = loris_bids_eeg_rel_dir
-        self.loris_bids_root_dir    = loris_bids_root_dir
-        self.data_dir               = data_dir
+        self.info                = import_env
+        self.data_dir            = self.info.data_dir_path
 
         # load bids subject, visit and modality
         self.bids_info = bids_info
@@ -222,9 +220,8 @@ class Eeg:
             )
 
             # create data chunks for React visualization
-            eeg_viz_enabled = get_eeg_viz_enabled_config(self.env)
-            if eeg_viz_enabled:
-                create_physio_channels_chunks(self.env, eeg_file, Path(original_file_data.path))
+            if get_eeg_viz_enabled_config(self.env):
+                create_physio_channels_chunks(self.env, eeg_file)
 
     def fetch_and_insert_eeg_files(self, derivatives=False, detect=True):
         """
@@ -295,14 +292,9 @@ class Eeg:
             if sidecar_json is not None:
                 eeg_file_data = sidecar_json.data
 
-                sidecar_json_path = os.path.relpath(sidecar_json.path, self.data_dir)
-                if self.loris_bids_root_dir:
-                    # copy the JSON file to the LORIS BIDS import directory
-                    sidecar_json_path = self.copy_file_to_loris_bids_dir(
-                        sidecar_json.path, derivatives
-                    )
+                sidecar_json_path = self.copy_file_to_loris_bids_dir(sidecar_json.path, derivatives)
+                eeg_file_data['eegjson_file'] = str(sidecar_json_path)
 
-                eeg_file_data['eegjson_file'] = sidecar_json_path
                 json_blake2 = compute_file_blake2b_hash(sidecar_json.path)
                 eeg_file_data['physiological_json_file_blake2b_hash'] = json_blake2
 
@@ -326,12 +318,12 @@ class Eeg:
                         print(f"ERROR: {error}")
                         sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-                    if self.loris_bids_root_dir:
+                    if self.info.loris_bids_path:
                         # copy the scans.tsv file to the LORIS BIDS import directory
                         scans_path = copy_scans_tsv_file_to_loris_bids_dir(
                             self.scans_file,
-                            self.bids_info.subject,
-                            self.loris_bids_root_dir,
+                            self.session,
+                            self.info.data_dir_path / self.info.loris_bids_path,
                             self.data_dir,
                         )
 
@@ -343,13 +335,7 @@ class Eeg:
             # eeg_file_data dictionary
             fdt_file_path = None
             if file_type.name == 'set' and fdt_file:
-                fdt_file_path = os.path.relpath(fdt_file, self.data_dir)
-                if self.loris_bids_root_dir:
-                    # copy the fdt file to the LORIS BIDS import directory
-                    fdt_file_path = self.copy_file_to_loris_bids_dir(
-                        fdt_file.path, derivatives
-                    )
-
+                fdt_file_path = self.copy_file_to_loris_bids_dir(fdt_file.path, derivatives)
                 eeg_file_data['fdt_file'] = fdt_file_path
                 fdt_blake2 = compute_file_blake2b_hash(fdt_file.path)
                 eeg_file_data['physiological_fdt_file_blake2b_hash'] = fdt_blake2
@@ -368,18 +354,17 @@ class Eeg:
             # grep the modality ID from physiological_modality table
             modality = get_check_bids_physio_modality(self.env, self.bids_info.data_type)
 
-            if self.loris_bids_root_dir:
-                # copy the eeg_file to the LORIS BIDS import directory
-                eeg_path = self.copy_file_to_loris_bids_dir(
-                    eeg_file.path, derivatives
-                )
+            # copy the eeg_file to the LORIS BIDS import directory
+            eeg_path = self.copy_file_to_loris_bids_dir(
+                eeg_file.path, derivatives
+            )
 
             # insert the file along with its information into
             # physiological_file and physiological_parameter_file tables
             physio_file = insert_physio_file(
                 self.env,
                 self.session,
-                Path(eeg_path),
+                eeg_path,
                 file_type,
                 modality,
                 output_type,
@@ -389,7 +374,7 @@ class Eeg:
             insert_physio_file_parameters(self.env, physio_file, eeg_file_data)
             self.env.db.commit()
 
-            if self.loris_bids_root_dir:
+            if self.info.loris_bids_path:
                 # If we copy the file in assembly_bids and
                 # if the EEG file was a set file, then update the filename for the .set
                 # and .fdt files in the .set file so it can find the proper file for
@@ -458,12 +443,10 @@ class Eeg:
                 )
                 if not result:
                     electrode_data = utilities.read_tsv_file(electrode_file.path)
-                    electrode_path = os.path.relpath(electrode_file.path, self.data_dir)
-                    if self.loris_bids_root_dir:
-                        # copy the electrode file to the LORIS BIDS import directory
-                        electrode_path = self.copy_file_to_loris_bids_dir(
-                            electrode_file.path, derivatives
-                        )
+                    # copy the electrode file to the LORIS BIDS import directory
+                    electrode_path = self.copy_file_to_loris_bids_dir(
+                        electrode_file.path, derivatives
+                    )
                     # get the blake2b hash of the electrode file
                     blake2 = compute_file_blake2b_hash(electrode_file.path)
 
@@ -498,12 +481,10 @@ class Eeg:
                             electrode_ids
                         )
                     else:
-                        electrode_metadata_path = os.path.relpath(coordsystem_metadata_file, self.data_dir)
-                        if self.loris_bids_root_dir:
-                            # copy the electrode metadata file to the LORIS BIDS import directory
-                            electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                                coordsystem_metadata_file.path, derivatives
-                            )
+                        # copy the electrode metadata file to the LORIS BIDS import directory
+                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
+                            coordsystem_metadata_file.path, derivatives
+                        )
                         # load json data
                         with open(coordsystem_metadata_file.path) as metadata_file:
                             electrode_metadata = json.load(metadata_file)
@@ -563,12 +544,10 @@ class Eeg:
         if physiological_file.channels != []:
             return physiological_file.channels[0].file_path
 
-        channel_path = os.path.relpath(channels_file.path, self.data_dir)
-        if self.loris_bids_root_dir:
-            # copy the channel file to the LORIS BIDS import directory
-            channel_path = self.copy_file_to_loris_bids_dir(
-                channels_file.path, derivatives
-            )
+        # copy the channel file to the LORIS BIDS import directory
+        channel_path = self.copy_file_to_loris_bids_dir(
+            channels_file.path, derivatives
+        )
         # get the blake2b hash of the channel file
         blake2 = compute_file_blake2b_hash(channels_file.path)
         # insert the channel data in the database
@@ -638,19 +617,16 @@ class Eeg:
                     full_search = False,
                     subject=self.bids_info.subject,
                 )
-                inheritance = False
 
                 if not event_metadata_file:
                     message = "WARNING: no events metadata files (events.json) associated " \
                               f"with physiological file ID {physiological_file.id}"
                     print(message)
                 else:
-                    event_metadata_path = os.path.relpath(event_metadata_file.path, self.data_dir)
-                    if self.loris_bids_root_dir:
-                        # copy the event file to the LORIS BIDS import directory
-                        event_metadata_path = self.copy_file_to_loris_bids_dir(
-                            event_metadata_file.path, derivatives, inheritance
-                        )
+                    # copy the event file to the LORIS BIDS import directory
+                    event_metadata_path = self.copy_file_to_loris_bids_dir(
+                        event_metadata_file.path, derivatives
+                    )
                     # load json data
                     with open(event_metadata_file.path) as metadata_file:
                         event_metadata = json.load(metadata_file)
@@ -659,7 +635,7 @@ class Eeg:
                     # insert event metadata in the database
                     _, file_tag_dict = physiological.insert_event_metadata(
                         event_metadata=event_metadata,
-                        event_metadata_file=event_metadata_path,
+                        event_metadata_file=str(event_metadata_path),
                         physiological_file=physiological_file,
                         project_id=self.session.project.id,
                         blake2=blake2,
@@ -669,19 +645,17 @@ class Eeg:
                     event_paths.extend([event_metadata_path])
 
             # get events.tsv file and insert
-            event_path = os.path.relpath(events_data_file.path, self.data_dir)
-            if self.loris_bids_root_dir:
-                # copy the event file to the LORIS BIDS import directory
-                event_path = self.copy_file_to_loris_bids_dir(
-                    events_data_file.path, derivatives
-                )
+            # copy the event file to the LORIS BIDS import directory
+            event_path = self.copy_file_to_loris_bids_dir(
+                events_data_file.path, derivatives
+            )
             # get the blake2b hash of the task events file
             blake2 = compute_file_blake2b_hash(events_data_file.path)
 
             # insert event data in the database
             physiological.insert_event_file(
                 events_file=events_data_file,
-                event_file=event_path,
+                event_file=str(event_path),
                 physiological_file=physiological_file,
                 project_id=self.session.project.id,
                 blake2=blake2,
@@ -694,7 +668,7 @@ class Eeg:
 
         return event_paths
 
-    def copy_file_to_loris_bids_dir(self, file, derivatives=False, inheritance=False):
+    def copy_file_to_loris_bids_dir(self, file, derivatives=False):
         """
         Wrapper around the utilities.copy_file function that copies the file
         to the LORIS BIDS import directory and returns the relative path of the
@@ -707,47 +681,19 @@ class Eeg:
          :type derivatives: boolean
 
         :return: relative path to the copied file
-         :rtype: str
+         :rtype: Path
         """
 
-        # Handle derivatives differently
-        # Data path structure is unpredictable, so keep the same relative path
-        if derivatives:
-            copy_file = os.path.relpath(file, self.bids_layout.root)
-            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
-        else :
-            # determine the path of the copied file
-            copy_file = ""
-            if not inheritance:
-                copy_file = self.loris_bids_eeg_rel_dir
-            if self.bids_info.session is not None:
-                copy_file = os.path.join(copy_file, os.path.basename(file))
-            else:
-                # make sure the ses- is included in the new filename if using
-                # default visit label from the LORIS config
-                copy_file = os.path.join(
-                    copy_file,
-                    os.path.basename(file).replace(
-                        f'sub-{self.bids_info.subject}',
-                        f'sub-{self.bids_info.subject}_ses-{self.session.visit_label}'
-                    )
-                )
-
-            copy_file = os.path.join(self.loris_bids_root_dir, copy_file)
-
-        # create the directory if it does not exist
-        lib.utilities.create_dir(
-            os.path.dirname(copy_file),
-            self.env.verbose
+        loris_file_path = get_loris_bids_file_path(
+            self.info,
+            self.session,
+            self.bids_info.data_type,
+            Path(file),
+            derivatives,
         )
 
-        # copy the file
-        utilities.copy_file(file, copy_file, self.env.verbose)
-
-        # determine the relative path and return it
-        relative_path = os.path.relpath(copy_file, self.data_dir)
-
-        return relative_path
+        copy_loris_bids_file(self.info, Path(file), loris_file_path)
+        return loris_file_path
 
     def create_and_insert_archive(self, files_to_archive: list[str], archive_rel_name: str, eeg_file: DbPhysioFile):
         """
