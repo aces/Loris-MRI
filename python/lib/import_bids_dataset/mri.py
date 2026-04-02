@@ -12,11 +12,6 @@ from lib.db.models.session import DbSession
 from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_path
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
-from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
-from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
-from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
-from lib.imaging_lib.scan_type import create_mri_scan_type
 from lib.import_bids_dataset.acquisitions import import_bids_acquisitions
 from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_file_path
 from lib.import_bids_dataset.env import BidsImportEnv
@@ -24,6 +19,11 @@ from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_f
 from lib.import_bids_dataset.mri_sidecar import add_bids_mri_sidecar_file_parameters
 from lib.import_bids_dataset.scans import add_bids_scans_file_parameters
 from lib.logging import log
+from lib.mri.file import register_mri_file
+from lib.mri.file_parameter import register_mri_file_parameter, register_mri_file_parameters
+from lib.mri.nifti import add_nifti_spatial_file_parameters
+from lib.mri.nifti_pic import create_nifti_preview_picture
+from lib.mri.scan_type import create_mri_scan_type
 
 KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
     'anat': [

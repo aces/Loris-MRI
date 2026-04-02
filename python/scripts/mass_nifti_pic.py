@@ -14,9 +14,9 @@ from lib.database import Database
 from lib.db.queries.file import try_get_file_with_id
 from lib.env import Env
 from lib.imaging import Imaging
-from lib.imaging_lib.file_parameter import register_mri_file_parameter
-from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.make_env import make_env
+from lib.mri.file_parameter import register_mri_file_parameter
+from lib.mri.nifti_pic import create_nifti_preview_picture
 
 
 def main():

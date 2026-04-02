@@ -134,7 +134,7 @@ class Imaging:
             series_uid, echo_time, phase_enc_dir, echo_number
         )
 
-    @deprecated('Use `lib.imaging_lib.file.register_mri_file` instead.')
+    @deprecated('Use `lib.mri.file.register_mri_file` instead.')
     def insert_imaging_file(self, file_info_dict, parameter_file_data_dict):
         """
         Inserts the imaging file and its information into the files and parameter_file tables.
@@ -158,7 +158,7 @@ class Imaging:
 
         return file_id
 
-    @deprecated('Use `lib.imaging_lib.file_parameter.register_mri_file_parameter` instead.')
+    @deprecated('Use `lib.mri.file_parameter.register_mri_file_parameter` instead.')
     def insert_parameter_file(self, file_id, parameter_name, value):
         """
         Insert a row into the parameter_file table for the provided FileID,
@@ -341,7 +341,7 @@ class Imaging:
 
         self.mri_viol_log_db_obj.insert_violations_log(info_to_insert_dict)
 
-    @deprecated('Use `lib.imaging_lib.parameter.get_or_create_parameter_type` instead.')
+    @deprecated('Use `lib.parameter.get_or_create_parameter_type` instead.')
     def get_parameter_type_id(self, parameter_name):
         """
         Greps ParameterTypeID from parameter_type table using parameter_name.
@@ -403,7 +403,7 @@ class Imaging:
         """
         return self.mri_scan_type_db_obj.get_scan_type_id_from_name(scan_type_name)
 
-    @deprecated('Use `lib.imaging_lib.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
+    @deprecated('Use `lib.mri.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
     def get_bids_to_minc_terms_mapping(self):
         """
         Returns the BIDS to MINC terms mapping queried from parameter_type table.
@@ -808,7 +808,7 @@ class Imaging:
                 'MriProtocolChecksGroupID': hdr_checks_list[0]['MriProtocolChecksGroupID']
             }
 
-    @deprecated('Use `lib.imaging_lib.mri_scanner.get_or_create_scanner` instead')
+    @deprecated('Use `lib.mri.scanner.get_or_create_scanner` instead')
     def get_scanner_id(self, manufacturer, software_version, serial_nb, model_name, center_id, project_id):
         """
         Get the scanner ID based on the scanner information provided as input.
@@ -1173,7 +1173,7 @@ class Imaging:
         extracted_dicom_dir_path = inner_tar_path.replace(".tar.gz", "")
         return extracted_dicom_dir_path
 
-    @deprecated('Use `lib.imaging_lib.nifti_pic.create_nifti_preview_picture` instead.')
+    @deprecated('Use `lib.mri.nifti_pic.create_nifti_preview_picture` instead.')
     @staticmethod
     def create_imaging_pic(file_info, pic_rel_path=None):
         """

@@ -6,7 +6,7 @@ from lib.db.models.file_parameter import DbFileParameter
 from lib.db.queries.file_parameter import try_get_file_parameter_with_file_id_type_id
 from lib.db.queries.parameter_type import get_all_parameter_types
 from lib.env import Env
-from lib.imaging_lib.parameter import get_or_create_parameter_type
+from lib.parameter import get_or_create_parameter_type
 
 
 def register_mri_file_parameters(env: Env, file: DbFile, file_parameters: dict[str, Any]):

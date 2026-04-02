@@ -15,13 +15,13 @@ from lib.db.queries.file import try_get_file_with_hash
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
-from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
-from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
-from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
 from lib.import_bids_dataset.mri_sidecar import add_bids_mri_sidecar_file_parameters, get_bids_mri_sidecar_session_info
 from lib.logging import log_error_exit, log_verbose
+from lib.mri.file import register_mri_file
+from lib.mri.file_parameter import register_mri_file_parameter, register_mri_file_parameters
+from lib.mri.nifti import add_nifti_spatial_file_parameters
+from lib.mri.nifti_pic import create_nifti_preview_picture
 
 
 class NiftiInsertionPipeline(BasePipeline):

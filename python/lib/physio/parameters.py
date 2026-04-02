@@ -7,7 +7,7 @@ from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_file_parameter import DbPhysioFileParameter
 from lib.db.queries.physio_parameter import get_physio_file_parameters
 from lib.env import Env
-from lib.imaging_lib.parameter import get_or_create_parameter_type
+from lib.parameter import get_or_create_parameter_type
 
 
 def get_physio_file_parameters_dict(db: Database, physio_file_id: int) -> dict[str, str | None]:

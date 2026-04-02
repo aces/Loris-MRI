@@ -56,7 +56,7 @@ class ParameterType:
         results = self.db.pselect(query=query, args=args)
         return results[0]["ParameterTypeID"] if results else None
 
-    @deprecated('Use `lib.imaging_lib.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
+    @deprecated('Use `lib.mri.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
     def get_bids_to_minc_mapping_dict(self):
         """
         Queries the BIDS to MINC mapping dictionary stored in the paramater_type table and returns a

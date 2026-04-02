@@ -33,7 +33,7 @@ class ParameterFile:
         self.db = db
         self.verbose = verbose
 
-    @deprecated('Use `lib.imaging_lib.file_parameter.register_mri_file_parameter` instead.')
+    @deprecated('Use `lib.mri.file_parameter.register_mri_file_parameter` instead.')
     def insert_parameter_file(self, field_value_dict):
         """
         Inserts a row into the parameter_file table based on fields/values dictionary provided to
