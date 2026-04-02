@@ -3,6 +3,7 @@ import re
 import sys
 
 from loris_utils.fs import remove_empty_directories
+from sqlalchemy import inspect
 
 import lib.exitcode
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
@@ -95,17 +96,18 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
         Get the list of files associated to the TarchiveID present in the files table.
         """
 
-        file_entries = self.imaging_obj.files_db_obj.get_files_inserted_for_tarchive_id(self.dicom_archive.id)
-        for file in file_entries:
-            if file['File'].startswith('s3://'):
+        for file in self.dicom_archive.mri_files:
+            # Get the raw path of that file, without converting it to a Python path object.
+            raw_path: str = inspect(file).attrs.path.loaded_value
+            if raw_path.startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
             self.files_to_push_list.append({
                 "table_name": "files",
                 "id_field_name": "FileID",
-                "id_field_value": file["FileID"],
+                "id_field_value": file.id,
                 "file_path_field_name": "File",
-                "original_file_path_field_value": file["File"]
+                "original_file_path_field_value": raw_path
             })
 
     def _get_list_of_files_from_parameter_file(self):
@@ -269,7 +271,6 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         # remove empty folders from file system
         print("Cleaning up empty folders")
-        bids_cand_id = f"sub-{self.session.candidate.cand_id}"
-        remove_empty_directories(os.path.join(self.data_dir, "assembly_bids", bids_cand_id))
-        remove_empty_directories(os.path.join(self.data_dir, "pic", str(self.session.candidate.cand_id)))
-        remove_empty_directories(os.path.join(self.data_dir, "trashbin"))
+        remove_empty_directories(self.data_dir / 'assembly_bids' / f'sub-{self.session.candidate.cand_id}')
+        remove_empty_directories(self.data_dir / 'pic' / str(self.session.candidate.cand_id))
+        remove_empty_directories(self.data_dir / 'trashbin')

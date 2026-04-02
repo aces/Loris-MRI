@@ -99,7 +99,7 @@ def test_successful_run_on_valid_tarchive_path():
     assert mri_upload.dicom_archive is not None
     assert mri_upload.dicom_archive.session is not None
     # check that archive location has been updated
-    assert mri_upload.dicom_archive.archive_path == archive_new_path
+    assert mri_upload.dicom_archive.path == archive_new_path
     # check series/files counts
     # notes: - tarchive_series should have 2 series for this upload (localizer + T1W)
     #        - localizer is skipped from conversion because of config settings

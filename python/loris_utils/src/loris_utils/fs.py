@@ -1,4 +1,3 @@
-import os
 import re
 import tarfile
 import tempfile
@@ -35,23 +34,27 @@ def iter_all_dir_files(dir_path: Path) -> Iterator[Path]:
             yield item_path.relative_to(dir_path)
 
 
-def is_directory_empty(dir_path: str) -> bool:
+def is_directory_empty(dir_path: Path) -> bool:
     """
     Check whether a directory is empty or not.
     """
 
-    with os.scandir(dir_path) as dir_iterator:
-        return next(dir_iterator, None) is None
+    return next(dir_path.iterdir(), None) is None
 
 
-def remove_empty_directories(dir_path: str):
+def remove_empty_directories(dir_path: Path):
     """
     Recursively remove all the empty directories in a directory, including itself if needed.
     """
 
-    for subdir_path, _, _ in os.walk(dir_path, topdown=False):
-        if is_directory_empty(subdir_path):
-            os.rmdir(subdir_path)
+    for sub_path in dir_path.iterdir():
+        if not sub_path.is_dir():
+            continue
+
+        remove_empty_directories(sub_path)
+
+    if is_directory_empty(dir_path):
+        dir_path.rmdir()
 
 
 def search_dir_file_with_regex(dir_path: Path, regex: str) -> Path | None:

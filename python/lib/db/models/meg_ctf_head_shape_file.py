@@ -15,7 +15,7 @@ class DbMegCtfHeadShapeFile(Base):
 
     __tablename__ = 'meg_ctf_head_shape_file'
 
-    id: Mapped[int]  = mapped_column('ID', primary_key=True)
+    id: Mapped[int] = mapped_column('ID', primary_key=True)
     """
     ID of the head shape file.
     """

@@ -101,6 +101,7 @@ class Imaging:
 
         return file_type
 
+    @deprecated('Use `lib.db.queries.try_get_file_with_hash` instead.')
     def grep_file_info_from_hash(self, hash_string):
         """
         Greps the file ID from the files table. If it cannot be found, the method will return None.
@@ -466,6 +467,7 @@ class Imaging:
         if param_type_id:
             return self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
 
+    @deprecated('Use `lib.db.models.file.DbFile.file_type` instead.')
     def grep_file_type_from_file_id(self, file_id):
         """
         Greps the file type stored in the files table using its FileID.
@@ -484,6 +486,7 @@ class Imaging:
         # return the result
         return results[0]['FileType'] if results else None
 
+    @deprecated('Use `lib.db.models.file.DbFile.path` instead.')
     def grep_file_path_from_file_id(self, file_id):
         """
         Greps the file path stored in the files table using its FileID.
@@ -502,6 +505,7 @@ class Imaging:
         # return the result
         return results[0]['File'] if results else None
 
+    @deprecated('Use `lib.db.models.file.DbFile.candidate.cand_id` instead.')
     def grep_cand_id_from_file_id(self, file_id):
         """
         Greps the CandID using the file's FileID.
@@ -887,6 +891,7 @@ class Imaging:
 
         return sorted_fmap_files_dict
 
+    @deprecated('Use `lib.db.models.dicom_archive.DbDicomArchive.mri_files` instead.')
     def get_list_of_files_already_inserted_for_tarchive_id(self, tarchive_id):
         """
         Get the list of filenames already inserted for a given TarchiveID.
@@ -907,6 +912,7 @@ class Imaging:
 
         return files_list
 
+    @deprecated('Use `lib.db.models.session.DbSession.files` instead.')
     def get_list_of_files_already_inserted_for_session_id(self, session_id):
         """
         Get the list of filenames already inserted for a given SessionID.

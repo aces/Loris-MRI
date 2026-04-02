@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.file_parameter as db_file_parameter
 import lib.db.models.session as db_session
 from lib.db.base import Base
@@ -33,13 +34,23 @@ class DbFile(Base):
     source_file_id                 : Mapped[int | None]   = mapped_column('SourceFileID')
     process_protocol_id            : Mapped[int | None]   = mapped_column('ProcessProtocolID')
     caveat                         : Mapped[bool | None]  = mapped_column('Caveat', IntBool)
-    dicom_archive_id               : Mapped[int | None]   = mapped_column('TarchiveSource')
+    dicom_archive_id               : Mapped[int | None]   = mapped_column('TarchiveSource', ForeignKey('tarchive.TarchiveID'))
     hrrt_archive_id                : Mapped[int | None]   = mapped_column('HrrtArchiveID')
     scanner_id                     : Mapped[int | None]   = mapped_column('ScannerID')
     acquisition_order_per_modality : Mapped[int | None]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[date | None]  = mapped_column('AcquisitionDate')
 
-    session    : Mapped['db_session.DbSession'] \
-        = relationship('DbSession', back_populates='files')
-    parameters : Mapped[list['db_file_parameter.DbFileParameter']] \
-        = relationship('DbFileParameter', back_populates='file')
+    session: Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
+    """
+    The session to which this file belongs.
+    """
+
+    parameters: Mapped[list['db_file_parameter.DbFileParameter']] = relationship('DbFileParameter', back_populates='file')
+    """
+    The parameters attached to this file.
+    """
+
+    dicom_archive: Mapped['db_dicom_archive.DbDicomArchive | None'] = relationship('DbDicomArchive', back_populates='mri_files')
+    """
+    The source DICOM archive from which this file was generated.
+    """

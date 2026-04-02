@@ -38,7 +38,7 @@ def try_get_dicom_archive_with_archive_path(db: Database, archive_path: Path) ->
     """
 
     return db.execute(select(DbDicomArchive)
-        .where(DbDicomArchive.archive_path.like(f'%{archive_path}%'))
+        .where(DbDicomArchive.path.like(f'%{archive_path}%'))
     ).scalar_one_or_none()
 
 

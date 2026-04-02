@@ -11,6 +11,7 @@ from loris_utils.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 import lib.exitcode
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
+from lib.db.queries.file import try_get_file_with_hash
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
@@ -340,18 +341,18 @@ class NiftiInsertionPipeline(BasePipeline):
                     error_msg = f"Found a DICOM archive containing DICOM files with the same SeriesUID ({series_uid})" \
                                 f" and EchoTime ({tar_echo_time}) as the one present in the JSON side car file. " \
                                 f" The DICOM archive location containing those DICOM files is " \
-                                f" {self.dicom_archive.archive_path}. Please, rerun " \
+                                f" {self.dicom_archive.path}. Please, rerun " \
                                 f" <run_nifti_insertion.py> with either --upload_id or --tarchive_path option."
 
         # verify that a file with the same MD5 or blake2b hash has not already been inserted
-        md5_match = self.imaging_obj.grep_file_info_from_hash(self.nifti_md5)
-        blake2b_match = self.imaging_obj.grep_file_info_from_hash(self.nifti_blake2)
-        if md5_match:
+        md5_match = try_get_file_with_hash(self.env.db, self.nifti_md5)
+        blake2b_match = try_get_file_with_hash(self.env.db, self.nifti_blake2)
+        if md5_match is not None:
             error_msg = f"There is already a file registered in the files table with MD5 hash {self.nifti_md5}." \
-                        f" The already registered file is {md5_match['File']}"
-        elif blake2b_match:
+                        f" The already registered file is {md5_match.path}"
+        elif blake2b_match is not None:
             error_msg = f"There is already a file registered in the files table with Blake2b hash {self.nifti_blake2}."\
-                        f" The already registered file is {blake2b_match['File']}"
+                        f" The already registered file is {blake2b_match.path}"
 
         if error_msg:
             log_error_exit(self.env, error_msg, lib.exitcode.FILE_NOT_UNIQUE)
@@ -452,10 +453,8 @@ class NiftiInsertionPipeline(BasePipeline):
         bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
 
         # determine NIfTI file name
+        already_inserted_filenames = [file.path.name for file in self.session.files]
         new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)
-        already_inserted_filenames = self.imaging_obj.get_list_of_files_already_inserted_for_session_id(
-            self.session.id,
-        )
         while new_nifti_name in already_inserted_filenames:
             file_bids_entities_dict['run'] += 1
             new_nifti_name = self._construct_nifti_filename(file_bids_entities_dict)

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.dicom_archive_file as db_dicom_archive_file
 import lib.db.models.dicom_archive_series as db_dicom_archive_series
+import lib.db.models.file as db_file
 import lib.db.models.mri_protocol_violated_scan as db_mri_protocol_violated_scan
 import lib.db.models.mri_upload as db_mri_upload
 import lib.db.models.mri_violation_log as db_mri_violation_log
@@ -39,8 +40,6 @@ class DbDicomArchive(Base):
     creating_user            : Mapped[str]             = mapped_column('CreatingUser')
     sum_type_version         : Mapped[int]             = mapped_column('sumTypeVersion')
     tar_type_version         : Mapped[int | None]      = mapped_column('tarTypeVersion')
-    source_path              : Mapped[Path]            = mapped_column('SourceLocation', StringPath)
-    archive_path             : Mapped[Path | None]     = mapped_column('ArchiveLocation', StringPath)
     scanner_manufacturer     : Mapped[str]             = mapped_column('ScannerManufacturer')
     scanner_model            : Mapped[str]             = mapped_column('ScannerModel')
     scanner_serial_number    : Mapped[str]             = mapped_column('ScannerSerialNumber')
@@ -51,6 +50,16 @@ class DbDicomArchive(Base):
     acquisition_metadata     : Mapped[str]             = mapped_column('AcquisitionMetadata')
     date_sent                : Mapped[datetime | None] = mapped_column('DateSent')
     pending_transfer         : Mapped[bool]            = mapped_column('PendingTransfer', IntBool)
+
+    source_path: Mapped[Path] = mapped_column('SourceLocation', StringPath)
+    """
+    The path of the source DICOM study directory from which this DICOM archive was imported.
+    """
+
+    path: Mapped[Path | None] = mapped_column('ArchiveLocation', StringPath)
+    """
+    The path of this DICOM archive relative to the LORIS DICOM archive directory.
+    """
 
     series      : Mapped[list['db_dicom_archive_series.DbDicomArchiveSeries']] \
         = relationship('DbDicomArchiveSeries', back_populates='archive')
@@ -64,3 +73,8 @@ class DbDicomArchive(Base):
         = relationship('DbMriProtocolViolatedScan', back_populates='archive')
     violations_log       : Mapped[list['db_mri_violation_log.DbMriViolationLog']] \
         = relationship('DbMriViolationLog', back_populates='archive')
+
+    mri_files: Mapped[list['db_file.DbFile']] = relationship('DbFile', back_populates='dicom_archive')
+    """
+    The volumetric MRI files (NIfTI or MINC) generated from this DICOM archive.
+    """
