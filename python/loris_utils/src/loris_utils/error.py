@@ -24,8 +24,6 @@ def group_errors(message: str, functions: Iterable[Callable[[], T]]) -> list[T]:
     return results
 
 
-i: str = 100
-
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 T3 = TypeVar('T3')
