@@ -11,7 +11,7 @@ import numpy.typing as npt
 from mne.io import BaseRaw
 from scipy import signal
 
-from loris_eeg_chunker.protocol_buffers import chunk_pb2 as chunk_pb
+from loris_ephys_chunker.protocol_buffers import chunk_pb2 as chunk_pb
 
 ChannelArray = npt.NDArray[np.float64]
 

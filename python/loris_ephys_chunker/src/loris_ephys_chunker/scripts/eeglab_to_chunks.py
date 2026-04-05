@@ -9,7 +9,7 @@ import mne.io
 import mne.io.eeglab.eeglab as mne_eeglab
 from mne.io.eeglab.eeglab import RawEEGLAB
 
-from loris_eeg_chunker.chunking import write_chunk_directory
+from loris_ephys_chunker.chunking import write_chunk_directory
 
 
 def load_channels(path: Path) -> RawEEGLAB:

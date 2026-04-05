@@ -8,7 +8,7 @@ from typing import cast
 import mne.io
 from mne.io.ctf import RawCTF
 
-from loris_eeg_chunker.chunking import write_chunk_directory  # type: ignore
+from loris_ephys_chunker.chunking import write_chunk_directory  # type: ignore
 
 
 def load_channels(path: Path) -> RawCTF:
