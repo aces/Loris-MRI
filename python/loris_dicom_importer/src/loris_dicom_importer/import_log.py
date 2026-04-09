@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from lib.import_dicom_study.text_dict import DictWriter
+from loris_dicom_importer.text_dict import DictWriter
 
 
 @dataclass

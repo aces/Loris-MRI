@@ -134,8 +134,8 @@ my @arg_table =
      );
 
 print STDERR "WARNING: `dicomTar.pl` is deprecated and may eventually be removed. Please use the"
-             . " new `import_dicom_study.py` script instead, which also comes with new features"
-             . " like support for enhanced DICOMs, multi-echo series, and more.\n\n";
+             . " new `import-dicom-study` script instead, which also comes with new features like"
+             . " support for enhanced DICOMs, multi-echo series, and more.\n\n";
 
 GetOptions(\@arg_table, \@ARGV) ||  exit $NeuroDB::ExitCodes::GETOPT_FAILURE;
 

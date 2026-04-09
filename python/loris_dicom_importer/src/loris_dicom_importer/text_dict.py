@@ -1,4 +1,4 @@
-from lib.import_dicom_study.text import write_value
+from loris_dicom_importer.text import write_value
 
 
 class DictWriter:

@@ -6,7 +6,7 @@ import pydicom.errors
 from loris_utils.crypto import compute_file_md5_hash
 from loris_utils.fs import iter_all_dir_files
 
-from lib.import_dicom_study.summary_type import (
+from loris_dicom_importer.summary_type import (
     DicomStudyDicomFile,
     DicomStudyDicomSeries,
     DicomStudyInfo,
@@ -15,7 +15,7 @@ from lib.import_dicom_study.summary_type import (
     DicomStudyScanner,
     DicomStudySummary,
 )
-from lib.import_dicom_study.text import read_dicom_date_none
+from loris_dicom_importer.text import read_dicom_date_none
 
 
 def get_dicom_study_summary(dicom_study_dir_path: Path, verbose: bool):

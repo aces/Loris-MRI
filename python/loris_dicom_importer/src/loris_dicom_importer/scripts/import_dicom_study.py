@@ -8,26 +8,26 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
-from loris_utils.fs import iter_all_dir_files
-
 import lib.exitcode
-import lib.import_dicom_study.text
 from lib.config import get_dicom_archive_dir_path_config
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
 from lib.get_session_info import SessionConfigError
-from lib.import_dicom_study.dicom_database import insert_dicom_archive, update_dicom_archive
-from lib.import_dicom_study.import_log import (
+from lib.logging import log, log_error_exit, log_warning
+from lib.lorisgetopt import LorisGetOpt
+from lib.make_env import make_env_from_opts
+from loris_utils.fs import iter_all_dir_files
+
+import loris_dicom_importer.text
+from loris_dicom_importer.dicom_database import insert_dicom_archive, update_dicom_archive
+from loris_dicom_importer.import_log import (
     make_dicom_study_import_log,
     write_dicom_study_import_log_to_file,
     write_dicom_study_import_log_to_string,
 )
-from lib.import_dicom_study.summary_get import get_dicom_study_summary
-from lib.import_dicom_study.summary_util import get_dicom_study_summary_session_info
-from lib.import_dicom_study.summary_write import write_dicom_study_summary_to_file
-from lib.logging import log, log_error_exit, log_warning
-from lib.lorisgetopt import LorisGetOpt
-from lib.make_env import make_env_from_opts
+from loris_dicom_importer.summary_get import get_dicom_study_summary
+from loris_dicom_importer.summary_util import get_dicom_study_summary_session_info
+from loris_dicom_importer.summary_write import write_dicom_study_summary_to_file
 
 
 class Args:
@@ -59,7 +59,7 @@ def main() -> None:
         "directory into a structured and compressed archive, and inserts or uploads the study\n"
         "into the LORIS database.\n"
         "\n"
-        "Usage: import_dicom_study.py -p <profile> -s <source_dir> ...\n"
+        "Usage: import-dicom-study -p <profile> -s <source_dir> ...\n"
         "\n"
         "Options: \n"
         "\t-p, --profile   : Name of the LORIS Python configuration file (default:\n"
@@ -199,7 +199,7 @@ def main() -> None:
     else:
         log(env, f"Found DICOM scan date: {dicom_summary.info.scan_date}")
 
-        scan_date_string = lib.import_dicom_study.text.write_date(dicom_summary.info.scan_date)
+        scan_date_string = loris_dicom_importer.text.write_date(dicom_summary.info.scan_date)
         dicom_archive_rel_path = (
             Path(str(dicom_summary.info.scan_date.year))
             / f'DCM_{scan_date_string}_{dicom_study_name}.tar'
@@ -240,7 +240,7 @@ def main() -> None:
 
         log(env, "Calculating the tar archive MD5 sum...")
 
-        tar_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(tar_path)
+        tar_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(tar_path)
 
         log(env, "Zipping the tar archive... (may take a long time)")
 
@@ -252,7 +252,7 @@ def main() -> None:
 
         log(env, "Calculating the zipped tar archive MD5 sum...")
 
-        zip_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(zip_path)
+        zip_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(zip_path)
 
         log(env, "Creating DICOM study import log...")
 
@@ -279,7 +279,7 @@ def main() -> None:
 
     log(env, "Calculating final DICOM study archive MD5 sum...")
 
-    dicom_import_log.archive_md5_sum = lib.import_dicom_study.text.compute_md5_hash_with_name(
+    dicom_import_log.archive_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(
         dicom_import_log.target_path
     )
 

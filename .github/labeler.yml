@@ -10,6 +10,10 @@
 - changed-files:
   - any-glob-to-any-file: 'python/loris_bids_reader/**'
 
+"Package: DICOM importer":
+- changed-files:
+  - any-glob-to-any-file: 'python/loris_dicom_importer/**'
+
 "Package: Electrophysiology chunker":
 - changed-files:
   - any-glob-to-any-file: 'python/loris_ephys_chunker/**'
