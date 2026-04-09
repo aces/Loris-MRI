@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import lib.exitcode
-from lib.import_dicom_study.summary_get import get_dicom_study_summary
-from lib.import_dicom_study.summary_write import write_dicom_study_summary
+
+from loris_dicom_importer.summary_get import get_dicom_study_summary
+from loris_dicom_importer.summary_write import write_dicom_study_summary
 
 parser = argparse.ArgumentParser(description=(
         'Read a DICOM directory and print the DICOM summary of this directory '

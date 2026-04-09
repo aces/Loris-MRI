@@ -2,16 +2,16 @@ from datetime import datetime
 from functools import cmp_to_key
 from pathlib import Path
 
-from loris_utils.iter import count, flatten
-from sqlalchemy.orm import Session as Database
-
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 from lib.db.queries.dicom_archive import delete_dicom_archive_file_series
-from lib.import_dicom_study.import_log import DicomStudyImportLog, write_dicom_study_import_log_to_string
-from lib.import_dicom_study.summary_type import DicomStudySummary
-from lib.import_dicom_study.summary_write import compare_dicom_files, compare_dicom_series, write_dicom_study_summary
+from loris_utils.iter import count, flatten
+from sqlalchemy.orm import Session as Database
+
+from loris_dicom_importer.import_log import DicomStudyImportLog, write_dicom_study_import_log_to_string
+from loris_dicom_importer.summary_type import DicomStudySummary
+from loris_dicom_importer.summary_write import compare_dicom_files, compare_dicom_series, write_dicom_study_summary
 
 
 def insert_dicom_archive(

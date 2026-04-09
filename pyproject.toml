@@ -19,15 +19,15 @@ dependencies = [
     "nose",
     "numpy",
     "pybids==0.17.0",
-    "pydicom",
     "python-dateutil",
     "scikit-learn",
     "scipy",
     "sqlalchemy>=2.0.0",
     "virtualenv",
-    "loris-bids-reader   @ {root:uri}/python/loris_bids_reader",
-    "loris-ephys-chunker @ {root:uri}/python/loris_ephys_chunker",
-    "loris-utils         @ {root:uri}/python/loris_utils",
+    "loris-bids-reader    @ {root:uri}/python/loris_bids_reader",
+    "loris-dicom-importer @ {root:uri}/python/loris_dicom_importer",
+    "loris-ephys-chunker  @ {root:uri}/python/loris_ephys_chunker",
+    "loris-utils          @ {root:uri}/python/loris_utils",
 ]
 
 [project.optional-dependencies]
@@ -53,9 +53,10 @@ packages = [
 members = ["python/loris_*"]
 
 [tool.uv.sources]
-loris_bids_reader   = { workspace = true }
-loris_ephys_chunker = { workspace = true }
-loris_utils         = { workspace = true }
+loris_bids_reader    = { workspace = true }
+loris_dicom_importer = { workspace = true }
+loris_ephys_chunker  = { workspace = true }
+loris_utils          = { workspace = true }
 
 [tool.ruff]
 src = ["python"]
@@ -83,7 +84,6 @@ include = [
     "python/lib/db",
     "python/lib/imaging_lib",
     "python/lib/import_bids_dataset",
-    "python/lib/import_dicom_study",
     "python/lib/physio",
     "python/lib/config.py",
     "python/lib/config_file.py",
@@ -91,9 +91,8 @@ include = [
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
-    "python/scripts/import_dicom_study.py",
-    "python/scripts/summarize_dicom_study.py",
     "python/loris_bids_reader",
+    "python/loris_dicom_importer",
     "python/loris_ephys_chunker",
     "python/loris_utils",
 ]
