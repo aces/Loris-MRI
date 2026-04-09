@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to convert Pyright JSON output to GitHub annotation format.
-# Usage: pyright --outputjson | .pyright_to_github.sh
+# Usage: pyright --outputjson | ./pyright_to_github.sh
 
 set -euo pipefail
 
@@ -14,7 +14,4 @@ echo "$pyright_json" | jq -r '
 "::\(.severity |
     if . == "error" then "error"
     elif . == "warning" then "warning"
-    else "notice" end) file=\(.file),line=\(.range.start.line + 1),col=\(.range.start.character + 1),title=Pyright \(.rule // "diagnostic")::\(.message)"'
-
-# Exit with Pyright's return code.
-exit ${PIPESTATUS[0]}
+    else "notice" end) file=\(.file),line=\(.range.start.line),col=\(.range.start.character),title=Pyright \(.rule // "diagnostic")::\(.message)"'

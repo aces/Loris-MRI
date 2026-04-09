@@ -78,7 +78,13 @@ ARG DATABASE_PASS
 # Install LORIS-MRI Python
 WORKDIR /opt/loris/bin/mri
 COPY . .
-RUN pip install --no-cache-dir --editable .[dev]
+
+# First, install the main LORIS package and all its dependencies.
+# Then, iterate and re-install each LORIS subpackage in editable mode.
+RUN pip install --no-cache-dir --editable .[dev] && \
+    for pkg in python/loris_*; do \
+        pip install --no-cache-dir --no-deps --editable "$pkg"; \
+    done
 
 # Run the test LORIS-MRI installer
 RUN bash ./test/imaging_install_test.sh $DATABASE_NAME $DATABASE_USER $DATABASE_PASS
