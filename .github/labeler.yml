@@ -10,9 +10,9 @@
 - changed-files:
   - any-glob-to-any-file: 'python/loris_bids_reader/**'
 
-"Package: EEG chunker":
+"Package: Electrophysiology chunker":
 - changed-files:
-  - any-glob-to-any-file: 'python/loris_eeg_chunker/**'
+  - any-glob-to-any-file: 'python/loris_ephys_chunker/**'
 
 "Package: Utilities":
 - changed-files:

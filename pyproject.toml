@@ -25,9 +25,9 @@ dependencies = [
     "scipy",
     "sqlalchemy>=2.0.0",
     "virtualenv",
-    "loris-bids-reader @ {root:uri}/python/loris_bids_reader",
-    "loris-eeg-chunker @ {root:uri}/python/loris_eeg_chunker",
-    "loris-utils       @ {root:uri}/python/loris_utils",
+    "loris-bids-reader   @ {root:uri}/python/loris_bids_reader",
+    "loris-ephys-chunker @ {root:uri}/python/loris_ephys_chunker",
+    "loris-utils         @ {root:uri}/python/loris_utils",
 ]
 
 [project.optional-dependencies]
@@ -53,9 +53,9 @@ packages = [
 members = ["python/loris_*"]
 
 [tool.uv.sources]
-loris_bids_reader = { workspace = true }
-loris_eeg_chunker = { workspace = true }
-loris_utils       = { workspace = true }
+loris_bids_reader   = { workspace = true }
+loris_ephys_chunker = { workspace = true }
+loris_utils         = { workspace = true }
 
 [tool.ruff]
 src = ["python"]
@@ -94,11 +94,11 @@ include = [
     "python/scripts/import_dicom_study.py",
     "python/scripts/summarize_dicom_study.py",
     "python/loris_bids_reader",
-    "python/loris_eeg_chunker",
+    "python/loris_ephys_chunker",
     "python/loris_utils",
 ]
 exclude = [
-    "python/loris_eeg_chunker/src/loris_eeg_chunker/protocol_buffers",
+    "python/loris_ephys_chunker/src/loris_ephys_chunker/protocol_buffers",
 ]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"

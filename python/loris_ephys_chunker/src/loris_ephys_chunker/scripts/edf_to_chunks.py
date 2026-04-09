@@ -10,7 +10,7 @@ import mne.io
 import mne.io.edf.edf as mne_edf
 from mne.io.edf.edf import RawEDF
 
-from loris_eeg_chunker.chunking import write_chunk_directory
+from loris_ephys_chunker.chunking import write_chunk_directory
 
 
 def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:

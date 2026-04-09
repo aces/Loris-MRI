@@ -1,7 +1,7 @@
 [project]
-name = "loris-eeg-chunker"
+name = "loris-ephys-chunker"
 version = "27.0.0"
-description = "The LORIS EEG chunker"
+description = "The LORIS electrophysiology chunker"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">= 3.11"
@@ -15,16 +15,16 @@ dependencies = [
 ]
 
 [project.scripts]
-ctf-to-chunks    = "loris_eeg_chunker.scripts.ctf_to_chunks:main"
-edf-to-chunks    = "loris_eeg_chunker.scripts.edf_to_chunks:main"
-eeglab-to-chunks = "loris_eeg_chunker.scripts.eeglab_to_chunks:main"
+ctf-to-chunks    = "loris_ephys_chunker.scripts.ctf_to_chunks:main"
+edf-to-chunks    = "loris_ephys_chunker.scripts.edf_to_chunks:main"
+eeglab-to-chunks = "loris_ephys_chunker.scripts.eeglab_to_chunks:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/loris_eeg_chunker"]
+packages = ["src/loris_ephys_chunker"]
 
 [tool.ruff]
 extend = "../../pyproject.toml"
