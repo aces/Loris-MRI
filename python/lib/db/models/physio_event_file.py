@@ -21,8 +21,8 @@ class DbPhysioEventFile(Base):
     project_id     : Mapped[int | None]  = mapped_column('ProjectID', ForeignKey('Project.ProjectID'))
     file_type      : Mapped[str]         = mapped_column('FileType', ForeignKey('ImagingFileTypes.type'))
     file_path      : Mapped[Path | None] = mapped_column('FilePath', StringPath)
-    last_update    : Mapped[datetime]    = mapped_column('LastUpdate')
-    last_written   : Mapped[datetime]    = mapped_column('LastWritten')
+    last_update    : Mapped[datetime]    = mapped_column('LastUpdate', default=datetime.now)
+    last_written   : Mapped[datetime]    = mapped_column('LastWritten', default=datetime.now)
 
     physio_file       : Mapped['db_physio_file.DbPhysioFile | None']                     = relationship('DbPhysioFile')
     project           : Mapped['db_project.DbProject | None']                            = relationship('DbProject')

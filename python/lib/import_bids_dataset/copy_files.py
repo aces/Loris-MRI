@@ -3,11 +3,46 @@ import re
 import shutil
 from pathlib import Path
 
+from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
 from loris_bids_reader.files.scans import BidsScansTsvFile
 
 import lib.utilities
+from lib.config import get_data_dir_path_config
 from lib.db.models.session import DbSession
+from lib.env import Env
 from lib.import_bids_dataset.env import BidsImportEnv
+
+
+def get_loris_bids_dataset_path(env: Env, dataset_description: BidsDatasetDescriptionJsonFile) -> Path:
+    """
+    Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
+    it does not exist yet.
+    """
+
+    # Sanitize the dataset metadata to have a usable name for the directory.
+    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', dataset_description.data['Name'])
+    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', dataset_description.data['BIDSVersion'])
+
+    data_dir_path = get_data_dir_path_config(env)
+    loris_bids_path = data_dir_path / 'bids_imports' / f'{dataset_name}_BIDSVersion_{dataset_version}'
+
+    if not loris_bids_path.exists():
+        loris_bids_path.mkdir()
+
+    return loris_bids_path
+
+
+def get_loris_bids_root_file_path(import_env: BidsImportEnv, file_path: Path) -> Path:
+    """
+    Get the path of a BIDS file relative to the LORIS data directory, maintaining the same relative
+    path in the LORIS BIDS dataset as within the source BIDS dataset.
+    """
+
+    # In the import is run in no-copy mode, simply return the original file path.
+    if import_env.loris_bids_path is None:
+        return file_path.relative_to(import_env.data_dir_path)
+
+    return import_env.loris_bids_path / file_path.relative_to(import_env.source_bids_path)
 
 
 def get_loris_bids_file_path(
@@ -76,6 +111,29 @@ def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_
         shutil.copyfile(file_path, full_loris_file_path)
     elif file_path.is_dir():
         shutil.copytree(file_path, full_loris_file_path)
+
+
+def copy_bids_static_files(import_env: BidsImportEnv):
+    """
+    Copy the static files of the source BIDS dataset to the LORIS BIDS dataset.
+    """
+
+    # Do not copy files in no-copy mode.
+    if import_env.loris_bids_path is None:
+        return
+
+    for file_name in ['README', 'dataset_description.json']:
+        source_file_path = import_env.source_bids_path / file_name
+        if not source_file_path.is_file():
+            continue
+
+        loris_file_path = import_env.loris_bids_path / file_name
+
+        # Do not copy the file if it is already present during an incremental import.
+        if (import_env.data_dir_path / loris_file_path).is_file():
+            continue
+
+        copy_loris_bids_file(import_env, source_file_path, loris_file_path)
 
 
 # TODO: This function is ugly and should be replaced.
