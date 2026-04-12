@@ -3,19 +3,15 @@
 """Script to import BIDS structure into LORIS."""
 
 import getopt
-import json
 import os
-import re
 import sys
 from pathlib import Path
 
 from loris_bids_reader.files.participants import BidsParticipantsTsvFile
 from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 from loris_bids_reader.reader import BidsDatasetReader
-from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
-import lib.physiological
 import lib.utilities
 from lib.candidate import Candidate
 from lib.config import get_default_bids_visit_label_config
@@ -28,8 +24,11 @@ from lib.eeg import Eeg
 from lib.env import Env
 from lib.import_bids_dataset.check_sessions import check_or_create_bids_sessions
 from lib.import_bids_dataset.check_subjects import check_or_create_bids_subjects
+from lib.import_bids_dataset.copy_files import copy_bids_static_files, get_loris_bids_dataset_path
 from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.events import import_bids_root_event_dict_file
 from lib.import_bids_dataset.mri import import_bids_mri_data_type
+from lib.logging import log_error_exit
 from lib.make_env import make_env
 
 
@@ -202,7 +201,7 @@ def read_and_insert_bids(
         validateids(bids_dir, db, verbose)
 
     # load the BIDS directory
-    bids_reader = BidsDatasetReader(Path(bids_dir), not nobidsvalidation)
+    bids_reader = BidsDatasetReader(Path(bids_dir), type == 'derivative', not nobidsvalidation)
 
     if bids_reader.data_types == []:
         print(f"Could not read the BIDS directory '{bids_dir}'.")
@@ -223,7 +222,7 @@ def read_and_insert_bids(
     if not nocopy:
         # create the LORIS_BIDS directory in data_dir based on Name and BIDS version
         loris_bids_root_dir = create_loris_bids_directory(
-            bids_reader, data_dir, verbose
+            env, bids_reader, verbose
         )
 
     check_or_create_bids_subjects(
@@ -241,63 +240,30 @@ def read_and_insert_bids(
     env.db.commit()
 
     # Assumption all same project (for project-wide tags)
-    single_project_id = sessions[0].project.id
-
-    # Import root-level (dataset-wide) events.json
-    # Assumption: Single project for project-wide tags
-    bids_layout = bids_reader.layout
-    root_event_metadata_file = bids_layout.get_nearest(
-        bids_dir,
-        return_type='tuple',
-        strict=False,
-        extension='json',
-        suffix='events',
-        all_=False,
-        subject=None,
-        session=None
-    )
-
-    dataset_tag_dict = {}
-    if not root_event_metadata_file:
-        message = '\nWARNING: no events metadata files (events.json) in ' \
-                  'root directory'
-        print(message)
-    else:
-        # copy the event file to the LORIS BIDS import directory
-        copy_file = str.replace(
-            root_event_metadata_file.path,
-            bids_layout.root,
-            ""
-        ).lstrip('/')
-
-        if not nocopy:
-            event_metadata_path = loris_bids_root_dir + copy_file
-            lib.utilities.copy_file(root_event_metadata_file.path, event_metadata_path, verbose)
-
-        # TODO: Move
-        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
-        hed_union = db.pselect(query=hed_query, args=())
-
-        # load json data
-        with open(root_event_metadata_file.path) as metadata_file:
-            event_metadata = json.load(metadata_file)
-        blake2 = compute_file_blake2b_hash(root_event_metadata_file.path)
-        physio = lib.physiological.Physiological(env, db, verbose)
-        _, dataset_tag_dict = physio.insert_event_metadata(
-            event_metadata=event_metadata,
-            event_metadata_file=event_metadata_path,
-            physiological_file=None,
-            project_id=single_project_id,
-            blake2=blake2,
-            project_wide=True,
-            hed_union=hed_union
-        )
+    single_project = sessions[0].project
 
     import_env = BidsImportEnv(
         data_dir_path    = Path(data_dir),
         source_bids_path = Path(bids_dir),
         loris_bids_path  = Path(loris_bids_root_dir).relative_to(data_dir) if loris_bids_root_dir is not None else None,
     )
+
+    copy_bids_static_files(import_env)
+
+    # Import root-level (dataset-wide) events.json
+    # Assumption: Single project for project-wide tags
+    dataset_tag_dict = {}
+    if bids_reader.event_dict_file is None:
+        message = '\nWARNING: no events metadata files (events.json) in ' \
+                  'root directory'
+        print(message)
+    else:
+        _, dataset_tag_dict = import_bids_root_event_dict_file(
+            env,
+            import_env,
+            single_project,
+            bids_reader.event_dict_file,
+        )
 
     # read list of modalities per session / candidate and register data
     for data_type_reader in bids_reader.data_types:
@@ -367,7 +333,7 @@ def validateids(bids_dir, db, verbose):
         sys.exit(lib.exitcode.CANDIDATE_MISMATCH)
 
 
-def create_loris_bids_directory(bids_reader: BidsDatasetReader, data_dir, verbose):
+def create_loris_bids_directory(env: Env, bids_reader: BidsDatasetReader, verbose):
     """
     Creates the LORIS BIDS import root directory (with name and BIDS version)
     and copy over the dataset_description.json, README and participants.tsv
@@ -384,52 +350,35 @@ def create_loris_bids_directory(bids_reader: BidsDatasetReader, data_dir, verbos
      :rtype: str
     """
 
-    if bids_reader.dataset_description_file is None:
-        print("ERROR: Could not read BIDS dataset description.")
-        sys.exit(lib.exitcode.UNREADABLE_FILE)
+    try:
+        dataset_description = bids_reader.dataset_description_file
+    except Exception as error:
+        log_error_exit(env, str(error))
 
-    # determine the root directory of the LORIS BIDS and create it if does not exist
-    name = re.sub(r"[^0-9a-zA-Z]+", "_", bids_reader.dataset_description_file.data['Name'])
-    version = re.sub(r"[^0-9a-zA-Z\.]+", "_", bids_reader.dataset_description_file.data['BIDSVersion'])
-
-    # the LORIS BIDS directory will be in data_dir/BIDS/ and named with the
-    # concatenation of the dataset name and the BIDS version
-    loris_bids_dirname = lib.utilities.create_dir(
-        os.path.join(data_dir, 'bids_imports', f'{name}_BIDSVersion_{version}'),
-        verbose
-    )
-
-    # copy the dataset JSON file to the new directory
-    lib.utilities.copy_file(
-        bids_reader.path / "dataset_description.json",
-        os.path.join(loris_bids_dirname, "dataset_description.json"),
-        verbose
-    )
-
-    # copy the README file to the new directory
-    if os.path.isfile(bids_reader.path / "README"):
-        lib.utilities.copy_file(
-            bids_reader.path / "README",
-            os.path.join(loris_bids_dirname, "README"),
-            verbose
+    if dataset_description is None:
+        log_error_exit(
+            env,
+            "No file 'dataset_description.json' found in the input BIDS dataset.",
         )
 
+    loris_bids_path = get_loris_bids_dataset_path(env, dataset_description)
+
     # copy the participant.tsv file to the new directory
-    if os.path.exists(os.path.join(loris_bids_dirname, "participants.tsv")):
+    if os.path.exists(os.path.join(loris_bids_path, "participants.tsv")):
         lib.utilities.append_to_tsv_file(
             bids_reader.path / "participants.tsv",
-            os.path.join(loris_bids_dirname, "participants.tsv"),
+            os.path.join(loris_bids_path, "participants.tsv"),
             "participant_id",
             verbose
         )
     else:
         lib.utilities.copy_file(
             bids_reader.path / "participants.tsv",
-            os.path.join(loris_bids_dirname, "participants.tsv"),
+            os.path.join(loris_bids_path, "participants.tsv"),
             verbose
         )
 
-    return loris_bids_dirname
+    return loris_bids_path
 
 
 def validate_participants(bids_reader: BidsDatasetReader, participants_file: BidsParticipantsTsvFile):
