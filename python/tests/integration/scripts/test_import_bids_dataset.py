@@ -19,7 +19,7 @@ def test_import_eeg_bids_dataset():
     db.commit()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
         '--type', 'raw',
         '--directory', '/data/loris/incoming/Face13',
@@ -27,7 +27,9 @@ def test_import_eeg_bids_dataset():
 
     # Check the return code.
     assert process.returncode == 0
-    assert process.stderr == ''
+    assert process.stderr == (
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+    )
 
     # Check that the candidate and sessions are present in the database.
     candidate = try_get_candidate_with_psc_id(db, 'OTT166')
@@ -139,14 +141,18 @@ def test_import_mri_bids_dataset():
     db = get_integration_database_session()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
         '--directory', '/data/loris/incoming/DCC090_587630_V2',
     ])
 
     # Check the return code.
     assert process.returncode == 0
-    assert process.stderr == ''
+    assert process.stderr == (
+        "WARNING: No events dictionary files (events.json) in root directory.\n"
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+    )
 
     # Check that the candidate and sessions are present in the database.
     candidate = try_get_candidate_with_psc_id(db, 'DCC090')
