@@ -21,9 +21,10 @@ from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
 from lib.import_bids_dataset.archive import import_physio_event_archive, import_physio_file_archive
 from lib.import_bids_dataset.copy_files import (
+    copy_bids_scans_file,
     copy_loris_bids_file,
-    copy_scans_tsv_file_to_loris_bids_dir,
     get_loris_bids_file_path,
+    get_loris_scans_path,
 )
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
@@ -311,16 +312,11 @@ class Eeg:
                         print(f"ERROR: {error}")
                         sys.exit(lib.exitcode.PROGRAM_EXECUTION_FAILURE)
 
-                    if self.info.loris_bids_path:
-                        # copy the scans.tsv file to the LORIS BIDS import directory
-                        scans_path = copy_scans_tsv_file_to_loris_bids_dir(
-                            self.scans_file,
-                            self.session,
-                            self.info.data_dir_path / self.info.loris_bids_path,
-                            self.data_dir,
-                        )
+                    # copy the scans.tsv file to the LORIS BIDS import directory
+                    loris_scans_path = get_loris_scans_path(self.info, self.scans_file, self.session)
+                    copy_bids_scans_file(self.info, self.scans_file, loris_scans_path)
 
-                    eeg_file_data['scans_tsv_file'] = scans_path
+                    eeg_file_data['scans_tsv_file'] = loris_scans_path
                     scans_blake2 = compute_file_blake2b_hash(self.scans_file.path)
                     eeg_file_data['physiological_scans_tsv_file_bake2hash'] = scans_blake2
 
