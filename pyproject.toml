@@ -91,6 +91,7 @@ include = [
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/scripts/import_bids_dataset.py",
     "python/loris_bids_reader",
     "python/loris_dicom_importer",
     "python/loris_ephys_chunker",
