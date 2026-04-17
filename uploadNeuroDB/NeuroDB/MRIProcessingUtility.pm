@@ -1531,7 +1531,7 @@ sub dicom_to_minc {
     #-----------------------------------------------------------------------------------#
     my $cmd = "find $study_dir -type f "
          . "| $get_dicom_info -studyuid -attvalue 0020 000e -echo -series_descr -stdin";
-    $cmd .= ' | grep -iv -P "\t(' . $excluded_regex . ')\s*$"' if ($excluded_regex);
+    $cmd .= ' | grep -iv -P "\t\s*(' . $excluded_regex . ')\s*\t[^\t]+\t$"' if ($excluded_regex);
     $cmd .= " | sort | uniq";
 
     my @cmdOutputLines = `$cmd`;
