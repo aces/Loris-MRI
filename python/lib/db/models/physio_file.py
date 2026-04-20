@@ -28,9 +28,20 @@ class DbPhysioFile(Base):
     type             : Mapped[str | None]      = mapped_column('FileType')
     acquisition_time : Mapped[datetime | None] = mapped_column('AcquisitionTime')
     inserted_by_user : Mapped[str]             = mapped_column('InsertedByUser')
-    path             : Mapped[Path]            = mapped_column('FilePath', StringPath)
     index            : Mapped[int | None]      = mapped_column('Index')
     parent_id        : Mapped[int | None]      = mapped_column('ParentID')
+
+    path: Mapped[Path] = mapped_column('FilePath', StringPath)
+    """
+    The path of this physiological file, which may be a directory (notably for MEG CTF data). The
+    path is relative to the LORIS data directory.
+    """
+
+    download_path: Mapped[Path] = mapped_column('DownloadPath', StringPath)
+    """
+    The path from which to download this physiological file, which is guaranteed to be a normal
+    file or an archive. The path is relative to the LORIS data directory.
+    """
 
     head_shape_file_id: Mapped[int | None] = mapped_column('HeadShapeFileID', ForeignKey('meg_ctf_head_shape_file.ID'))
     """
