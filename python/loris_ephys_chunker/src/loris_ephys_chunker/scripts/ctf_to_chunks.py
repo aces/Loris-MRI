@@ -11,8 +11,12 @@ from mne.io.ctf import RawCTF
 from loris_ephys_chunker.chunking import write_chunk_directory  # type: ignore
 
 
-def load_channels(path: Path) -> RawCTF:
-    raw = mne.io.read_raw_ctf(
+def load_ctf_raw(path: Path) -> RawCTF:
+    """
+    Read the CTF acquisition file into an MNE raw object.
+    """
+
+    raw = mne.io.read_raw_ctf(  # type: ignore
         path,
         # CTF raw channel names can contain suffixes that causes them to mismatch their
         # corresponding `channels.tsv` entries, the following flag removes these suffixes.
@@ -52,8 +56,8 @@ def main():
     args = parser.parse_args()
 
     for path in args.files:
-        raw_ctf = load_channels(path)
-        channel_names = cast(list[str], raw_ctf.ch_names)  # type: ignore
+        raw = load_ctf_raw(path)
+        channel_names = cast(list[str], raw.ch_names)  # type: ignore
 
         if args.channel_index < 0:
             print("Channel index must be a positive integer", file=sys.stderr)
@@ -70,10 +74,10 @@ def main():
         print(f'Creating chunks for {path}')
         write_chunk_directory(
             path=path,
+            raw=raw,
             from_channel_index=args.channel_index,
             from_channel_name=channel_names[args.channel_index],  # type: ignore
             channel_count=args.channel_count,
-            loader=load_channels,
             chunk_size=args.chunk_size,
             destination=args.destination,
             prefix=args.prefix
