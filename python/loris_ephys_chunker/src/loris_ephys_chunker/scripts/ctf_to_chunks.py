@@ -12,14 +12,23 @@ from loris_ephys_chunker.chunking import write_chunk_directory  # type: ignore
 
 
 def load_channels(path: Path) -> RawCTF:
-    return mne.io.read_raw_ctf(  # type: ignore
+    raw = mne.io.read_raw_ctf(
         path,
-        preload=False,
         # CTF raw channel names can contain suffixes that causes them to mismatch their
         # corresponding `channels.tsv` entries, the following flag removes these suffixes.
         clean_names=True,
         verbose=False,
     )
+
+    # Apply third-order software gradient compensation to remove environmental noise.
+    # CTF systems use reference sensors to measure ambient magnetic fields (building vibrations,
+    # distant equipment, etc.). This subtraction algorithm cancels this noise from the MEG
+    # channels. Grade 3 is the highest order and standard for analysis/visualization.
+    # Without this, raw channel values reflect environmental noise (millions of fT)
+    # instead of actual brain signals (tens to hundreds of fT).
+    raw.apply_gradient_compensation(3)  # type: ignore
+
+    return raw
 
 
 def main():
