@@ -51,17 +51,22 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
 
     try:
         log(env, f"Running chunking script with command: {' '.join(command_parts)}")
-        subprocess.call(command_parts, stdout=subprocess.DEVNULL if not env.verbose else None)
+        subprocess.run(
+            command_parts,
+            stdout=subprocess.DEVNULL if not env.verbose else None,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
     except OSError:
         log_error_exit(
             env,
-            "Chunking script not found.",
+            "Electrophysiology chunker script not found.",
             lib.exitcode.CHUNK_CREATION_FAILURE,
         )
     except subprocess.CalledProcessError as error:
         log_error_exit(
             env,
-            f"Chunking script execution failure. Error was:\n{error}",
+            f"Electrophysiology chunker execution failure. Error was:\n{error}",
             lib.exitcode.CHUNK_CREATION_FAILURE,
         )
 
