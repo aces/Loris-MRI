@@ -234,6 +234,7 @@ def compute_md5_hash(file_path):
         return loris_utils.crypto.compute_file_md5_hash(file_path)
 
 
+@deprecated('Use `lib.make_env.create_script_tmp_dir` instead.')
 def create_processing_tmp_dir(template_prefix):
     """
     Creates a temporary directory with a name based on the concatenation of the

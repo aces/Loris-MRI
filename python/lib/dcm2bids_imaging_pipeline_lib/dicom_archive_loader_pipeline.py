@@ -464,7 +464,7 @@ class DicomArchiveLoaderPipeline(BasePipeline):
         - {nb_files_inserted} files were inserted into the files table: {files_list}
         - {nb_prot_violation} files did not match any protocol: {prot_viol_list}
         - {nb_excluded_viol} files were exclusionary violations: {excl_viol_list}
-        - Log of process in {self.env.log_file}
+        - Log of process in {self.env.log_file_path}
         """
 
         log_verbose(self.env, summary)
