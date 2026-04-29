@@ -37,7 +37,15 @@ def test_import_eeg_bids_dataset():
         db,
         Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.edf'),
     )
+
     assert file is not None
+    assert file.archive is not None
+    assert file.event_archive is not None
+
+    assert file.archive.path == \
+        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.tgz')
+    assert file.event_archive.path == \
+        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_events.tgz')
 
     # Check that the physiological file parameters has been inserted in the database.
     file_parameters = get_physio_file_parameters_dict(db, file.id)
