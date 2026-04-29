@@ -6,7 +6,6 @@ import getopt
 import sys
 
 import lib.exitcode
-import lib.utilities
 from lib.config_file import load_config
 from lib.db.queries.physio_file import try_get_physio_file_with_id
 from lib.env import Env
@@ -58,8 +57,7 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(smallest_id, largest_id, usage)
-    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
-    env = make_env('mass_nifti_pic', {}, config_file, tmp_dir_path, verbose)
+    env = make_env('mass_electrophysiology_chunking', {}, config_file, verbose)
 
     # run chunking script on electrophysiology datasets with a PhysiologicalFileID
     # between smallest_id and largest_id
