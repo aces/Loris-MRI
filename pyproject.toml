@@ -56,6 +56,8 @@ members = ["python/loris_*"]
 loris_bids_reader    = { workspace = true }
 loris_dicom_importer = { workspace = true }
 loris_ephys_chunker  = { workspace = true }
+loris_ephys_server   = { workspace = true }
+loris_server         = { workspace = true }
 loris_utils          = { workspace = true }
 
 [tool.ruff]
@@ -65,8 +67,8 @@ line-length = 120
 preview = true
 
 [tool.ruff.lint]
-ignore = ["E202", "E203", "E221", "E241", "E251", "E272"]
-select = ["E", "EXE", "F", "I", "N", "RUF", "UP", "W"]
+ignore = ["E202", "E203", "E221", "E241", "E251", "E272", "FAST003"]
+select = ["E", "EXE", "F", "FAST", "I", "N", "RUF", "UP", "W"]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 100
@@ -91,10 +93,14 @@ include = [
     "python/lib/get_session_info.py",
     "python/lib/logging.py",
     "python/lib/make_env.py",
+    "python/lib/user.py",
+    "python/scripts/import_bids_dataset.py",
     "python/loris_bids_reader",
     "python/loris_dicom_importer",
     "python/loris_ephys_chunker",
+    "python/loris_ephys_server",
     "python/loris_utils",
+    "python/loris_server",
 ]
 exclude = [
     "python/loris_ephys_chunker/src/loris_ephys_chunker/protocol_buffers",

@@ -11,9 +11,12 @@ from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJs
 from loris_bids_reader.files.participants import BidsParticipantsTsvFile, BidsParticipantTsvRow
 from loris_bids_reader.files.scans import BidsScansTsvFile
 from loris_bids_reader.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
+from loris_bids_reader.json import BidsJsonFile
+from loris_bids_reader.utils import get_pybids_file_path
 
 # Circular imports
 if TYPE_CHECKING:
+    from loris_bids_reader.meg.reader import BidsMegDataTypeReader
     from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 
 PYBIDS_IGNORE = ['.git', 'code/', 'log/', 'sourcedata/']
@@ -37,12 +40,12 @@ class BidsDatasetReader:
     The path of this BIDS dataset.
     """
 
-    def __init__(self, path: Path, validate: bool = True):
+    def __init__(self, path: Path, derivatives: bool = True, validate: bool = True):
         self.path = path
         self.layout = BIDSLayout(
             path,
             validate=validate,
-            derivatives=True,
+            derivatives=derivatives,
             indexer=BIDSLayoutIndexer(
                 ignore=PYBIDS_IGNORE,
                 force_index=PYBIDS_FORCE_INDEX,
@@ -72,6 +75,29 @@ class BidsDatasetReader:
             return None
 
         return BidsParticipantsTsvFile(participants_path)
+
+    @cached_property
+    def event_dict_file(self) -> BidsJsonFile | None:
+        """
+        The root event dictionary file of this BIDS dataset, if it exists.
+        """
+
+        pybids_event_dict_file = self.layout.get_nearest(  # type: ignore
+            self.path,
+            return_type='tuple',
+            strict=False,
+            extension='json',
+            suffix='events',
+            all_=False,
+            subject=None,
+            session=None
+        )
+
+        if pybids_event_dict_file is None:
+            return None
+
+        event_dict_file_path = get_pybids_file_path(pybids_event_dict_file)  # type: ignore
+        return BidsJsonFile(event_dict_file_path)
 
     @cached_property
     def subject_labels(self) -> list[str]:
@@ -265,12 +291,37 @@ class BidsSessionReader:
         ]
 
     @cached_property
+    def meg_data_types(self) -> list['BidsMegDataTypeReader']:
+        """
+        Get the MEG data type directory readers of this session.
+        """
+
+        from loris_bids_reader.meg.reader import BidsMegDataTypeReader
+
+        return [
+            BidsMegDataTypeReader(
+                session=self,
+                name=data_type,  # type: ignore
+                path=(
+                    self.subject.dataset.path
+                    / f'sub-{self.subject.label}'
+                    / (f'ses-{self.label}' if self.label is not None else '')
+                    / data_type  # type: ignore
+                ),
+            ) for data_type in self.subject.dataset.layout.get_datatypes(  # type: ignore
+                subject=self.subject.label,
+                session=self.label,
+                datatype=['meg'],
+            )
+        ]
+
+    @cached_property
     def data_types(self) -> Sequence['BidsDataTypeReader']:
         """
         Get all the data type directory readers of this session.
         """
 
-        return self.eeg_data_types + self.mri_data_types
+        return self.eeg_data_types + self.meg_data_types + self.mri_data_types
 
     @cached_property
     def info(self) -> BidsSessionInfo:
