@@ -44,13 +44,13 @@ def test_import_eeg_bids_dataset():
     )
 
     assert file is not None
+    assert len(file.channels) == 128
+    assert len(file.event_files) == 1
+    assert len(file.task_events) == 3185
     assert file.archive is not None
+    assert file.archive.path == Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.tgz')  # noqa: E501
     assert file.event_archive is not None
-
-    assert file.archive.path == \
-        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.tgz')
-    assert file.event_archive.path == \
-        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_events.tgz')
+    assert file.event_archive.path == Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_events.tgz')  # noqa: E501
 
     # Check that the physiological file parameters has been inserted in the database.
     file_parameters = get_physio_file_parameters_dict(db, file.id)
@@ -86,7 +86,6 @@ def test_import_eeg_bids_dataset():
 
     # Check that the event files has been inserted in the database.
     bids_event_dataset_mappings = get_bids_event_dataset_mappings_with_project_id(db, session.project.id)
-    assert len(file.event_files) == 1
     assert len(bids_event_dataset_mappings) == 12
 
     # Check that the BIDS files have been copied.

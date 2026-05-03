@@ -1,9 +1,13 @@
 from dataclasses import dataclass
+from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from lib.db.models.physio_task_event_hed import DbPhysioTaskEventHed
+from lib.db.models.physio_task_event_opt import DbPhysioTaskEventOpt
+from lib.db.models.physio_task_event import DbPhysioTaskEvent
 from lib.db.queries.hed_schema_node import get_all_hed_schema_nodes
-
 from lib.db.models.bids_event_dataset_mapping import DbBidsEventDatasetMapping
 from lib.db.models.bids_event_file_mapping import DbBidsEventFileMapping
 from lib.db.models.physio_event_file import DbPhysioEventFile
@@ -67,7 +71,7 @@ def insert_bids_event_mapping(
     source: EventDictFileSource,
     property_name: str,
     property_value: str,
-    level_description: str,
+    level_description: str | None,
     hed_tag_group: list[Physiological.TagGroupMember],
 ) -> None:
     """
@@ -100,7 +104,7 @@ def insert_bids_dataset_event_mapping(
     project: DbProject,
     property_name: str,
     property_value: str,
-    level_description: str,
+    level_description: str | None,
     hed_tag_member: Physiological.TagGroupMember,
 ) -> DbBidsEventDatasetMapping:
     """
@@ -128,7 +132,7 @@ def insert_bids_file_event_mapping(
     physio_file: DbPhysioFile,
     property_name: str,
     property_value: str,
-    level_description: str,
+    level_description: str | None,
     hed_tag_member: Physiological.TagGroupMember,
 ) -> DbBidsEventFileMapping:
     """
@@ -203,3 +207,102 @@ def parse_and_insert_event_dict(
                     tag_dict[event_name][level_name] = tag_groups
 
     return tag_dict
+
+
+def insert_events_file(env: Env, physio_file: DbPhysioFile, event_file_path: Path) -> DbPhysioEventFile:
+    """
+    Insert an events file into the LORIS database.
+    """
+
+    event_dict_file = DbPhysioEventFile(
+        physio_file_id = physio_file.id,
+        project_id     = physio_file.session.project.id,
+        file_type      = 'tsv',
+        file_path      = event_file_path,
+    )
+
+    env.db.add(event_dict_file)
+    env.db.flush()
+    return event_dict_file
+
+
+def insert_physio_task_event(
+    env: Env,
+    physio_file: DbPhysioFile,
+    events_file: DbPhysioEventFile,
+    onset: Decimal,
+    duration: Decimal,
+    event_code: int | None,
+    event_value: str | None,
+    event_sample: int | None,
+    event_type: str | None,
+    trial_type: str | None,
+    response_time: Decimal | None,
+) -> DbPhysioTaskEvent:
+    """
+    Insert a physiological task event into LORIS the database.
+    """
+
+    event_task_file = DbPhysioTaskEvent(
+        physio_file_id = physio_file.id,
+        event_file_id  = events_file.id,
+        insert_time    = datetime.now(),
+        onset          = onset,
+        duration       = duration,
+        event_code     = event_code,
+        event_value    = event_value,
+        event_sample   = event_sample,
+        event_type     = event_type,
+        trial_type     = trial_type,
+        response_time  = response_time,
+    )
+
+    env.db.add(event_task_file)
+    env.db.flush()
+
+    return event_task_file
+
+
+def insert_physio_task_event_hed(
+    env: Env,
+    task_event: DbPhysioTaskEvent,
+    hed_tag_member: Physiological.TagGroupMember,
+) -> DbPhysioTaskEventHed:
+    """
+    Insert a physiological task event HED into the LORIS database.
+    """
+
+    task_event_hed = DbPhysioTaskEventHed(
+        task_event_id      = task_event.id,
+        hed_tag_id         = hed_tag_member.hed_tag_id,
+        tag_value          = hed_tag_member.tag_value,
+        has_pairing        = hed_tag_member.has_pairing,
+        additional_members = hed_tag_member.additional_members,
+    )
+
+    env.db.add(task_event_hed)
+    env.db.flush()
+
+    return task_event_hed
+
+
+def insert_physio_task_event_opt(
+    env: Env,
+    task_event: DbPhysioTaskEvent,
+    property_name: str,
+    property_value: str | None,
+) -> DbPhysioTaskEventOpt:
+    """
+    Insert a physiological task event option into the LORIS database.
+    """
+
+    task_event_opt = DbPhysioTaskEventOpt(
+        task_event_id  = task_event.id,
+        property_name  = property_name,
+        property_value = property_value,
+    )
+
+    env.db.add(task_event_opt)
+    env.db.flush()
+
+    return task_event_opt

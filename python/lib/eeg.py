@@ -10,6 +10,7 @@ from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_reader.files.events import BidsEventsTsvFile
 from loris_bids_reader.files.scans import BidsScansTsvFile
 from loris_bids_reader.info import BidsDataTypeInfo
+from loris_bids_reader.json import BidsJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash
 
 import lib.exitcode
@@ -23,6 +24,7 @@ from lib.import_bids_dataset.archive import import_physio_event_archive, import_
 from lib.import_bids_dataset.channels import insert_bids_channels_file
 from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_file_path, get_loris_scans_path
 from lib.import_bids_dataset.env import BidsImportEnv
+from lib.import_bids_dataset.events import insert_bids_event_dict_file, insert_bids_events_file
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
 from lib.import_bids_dataset.physio import (
     get_check_bids_physio_file_hash,
@@ -31,6 +33,7 @@ from lib.import_bids_dataset.physio import (
 )
 from lib.logging import log, log_warning
 from lib.physio.chunking import create_physio_channels_chunks
+from lib.physio.events import EventDictFileSource
 from lib.physio.file import insert_physio_file
 from lib.physio.parameters import insert_physio_file_parameters
 from lib.physiological import Physiological
@@ -542,7 +545,7 @@ class Eeg:
         """
         Gather raw channel file information to insert into
         physiological_task_event. Once all the information has been gathered,
-        it will call Physiological.insert_event_file that will perform the
+        it will call insert_bids_event_file that will perform the
         insertion into physiological_task_event, linking it to the
         PhysiologicalFileID already registered.
 
@@ -559,10 +562,6 @@ class Eeg:
         :return: channel file path in the /DATA_DIR/bids_import directory
          :rtype: str
         """
-
-        # load the Physiological object that will be used to insert the
-        # physiological data into the database
-        physiological = Physiological(self.env, self.db, self.env.verbose)
 
         bids_events_data_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
@@ -607,21 +606,17 @@ class Eeg:
                     event_metadata_path = self.copy_file_to_loris_bids_dir(
                         event_metadata_file.path, derivatives
                     )
-                    # load json data
-                    with open(event_metadata_file.path) as metadata_file:
-                        event_metadata = json.load(metadata_file)
-                    # get the blake2b hash of the json events file
-                    blake2 = compute_file_blake2b_hash(event_metadata_file.path)
-                    # insert event metadata in the database
-                    _, file_tag_dict = physiological.insert_event_metadata(
-                        event_metadata=event_metadata,
-                        event_metadata_file=str(event_metadata_path),
-                        physiological_file=physiological_file,
-                        project_id=self.session.project.id,
-                        blake2=blake2,
-                        project_wide=False,
-                        hed_union=self.hed_union
+
+                    event_dict_file = BidsJsonFile(Path(event_metadata_file.path))
+
+                    _, file_tag_dict = insert_bids_event_dict_file(
+                        self.env,
+                        EventDictFileSource.from_file(physiological_file),
+                        event_dict_file,
+                        event_metadata_path,
                     )
+
+                    self.env.db.commit()
                     event_paths.extend([event_metadata_path])
 
             # get events.tsv file and insert
@@ -629,21 +624,19 @@ class Eeg:
             event_path = self.copy_file_to_loris_bids_dir(
                 events_data_file.path, derivatives
             )
-            # get the blake2b hash of the task events file
-            blake2 = compute_file_blake2b_hash(events_data_file.path)
 
             # insert event data in the database
-            physiological.insert_event_file(
-                events_file=events_data_file,
-                event_file=str(event_path),
-                physiological_file=physiological_file,
-                project_id=self.session.project.id,
-                blake2=blake2,
-                dataset_tag_dict=self.dataset_tag_dict,
-                file_tag_dict=file_tag_dict,
-                hed_union=self.hed_union
+            insert_bids_events_file(
+                self.env,
+                physiological_file,
+                events_data_file,
+                event_path,
+                self.dataset_tag_dict,
+                file_tag_dict,
+                self.hed_union,
             )
 
+            self.env.db.commit()
             event_paths.extend([event_path])
 
         return event_paths
