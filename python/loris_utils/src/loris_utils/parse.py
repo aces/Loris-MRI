@@ -32,3 +32,11 @@ def try_parse_int(string: str) -> int | None:
         return int(string)
     except ValueError:
         return None
+
+
+def nullify_empty_string(string: str | None) -> str | None:
+    """
+    Replace a string with `None` if that string is empty.
+    """
+
+    return string if string != '' else None

@@ -20,6 +20,7 @@ from lib.db.models.session import DbSession
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
 from lib.import_bids_dataset.archive import import_physio_event_archive, import_physio_file_archive
+from lib.import_bids_dataset.channels import insert_bids_channels_file
 from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_file_path, get_loris_scans_path
 from lib.import_bids_dataset.env import BidsImportEnv
 from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
@@ -481,7 +482,7 @@ class Eeg:
                         )
 
     def fetch_and_insert_channel_file(
-            self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False):
+            self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False) -> Path:
         """
         Gather channel file information to insert into physiological_channel.
         Once all the information has been gathered, it will call
@@ -503,10 +504,6 @@ class Eeg:
          :rtype: str
         """
 
-        # load the Physiological object that will be used to insert the
-        # physiological data into the database
-        physiological = Physiological(self.env, self.db, self.env.verbose)
-
         bids_channels_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
@@ -526,17 +523,17 @@ class Eeg:
             return physiological_file.channels[0].file_path
 
         # copy the channel file to the LORIS BIDS import directory
-        channel_path = self.copy_file_to_loris_bids_dir(
-            channels_file.path, derivatives
-        )
-        # get the blake2b hash of the channel file
-        blake2 = compute_file_blake2b_hash(channels_file.path)
-        # insert the channel data in the database
-        physiological.insert_channel_file(
-            channels_file, channel_path, physiological_file, blake2
-        )
+        self.copy_file_to_loris_bids_dir(channels_file.path, derivatives)
 
-        return channel_path
+        # Insert the channel data in the database.
+        return insert_bids_channels_file(
+            self.env,
+            self.info,
+            physiological_file,
+            self.session,
+            self.bids_info,
+            channels_file,
+        )
 
     def fetch_and_insert_event_files(
             self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False):
