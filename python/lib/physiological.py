@@ -774,25 +774,3 @@ class Physiological:
                     )
         # insert blake2b hash of task event file into physiological_parameter_file
         insert_physio_file_parameter(self.env, physiological_file, 'event_file_blake2b_hash', blake2)
-
-    def insert_archive_file(self, archive_info):
-        """
-        Inserts the archive file of all physiological files (including
-        electrodes.tsv, channels.tsv and events.tsv) in the
-        physiological_archive table of the database.
-
-        :param archive_info: dictionary with key/value pairs to insert
-         :type archive_info: dict
-        """
-
-        # insert the archive into the physiological_archive table
-        archive_fields = ()
-        archive_values = ()
-        for key, value in archive_info.items():
-            archive_fields = (*archive_fields, key)
-            archive_values = (*archive_values, value)
-        self.db.insert(
-            table_name   = 'physiological_archive',
-            column_names = archive_fields,
-            values       = archive_values
-        )
