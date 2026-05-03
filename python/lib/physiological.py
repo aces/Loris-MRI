@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from functools import reduce
 
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
 
 from lib.database_lib.bids_event_mapping import BidsEventMapping
@@ -14,9 +13,7 @@ from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskE
 from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
 from lib.db.models.physio_file import DbPhysioFile
-from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
-from lib.logging import log_error_exit
 from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
 from lib.point_3d import Point3D
 
@@ -179,78 +176,6 @@ class Physiological:
         # insert blake2b hash of electrode file into physiological_parameter_file
         insert_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
         return electrode_ids
-
-    def insert_channel_file(self, channels_file: BidsEegChannelsTsvFile, channel_file,
-                            physiological_file: DbPhysioFile, blake2):
-        """
-        Inserts the channel information read from the file *channels.tsv
-        into the physiological_channel table, linking it to the
-        physiological file ID already inserted in physiological_file.
-
-        :param channels_file        : list with dictionaries of channels
-                                      information to insert into
-                                      physiological_channel
-         :type channels_file        : list
-        :param channel_file         : name of the channel file
-         :type channel_file         : str
-        :param physiological_file   : Physiological file object to link the channel info to
-        :param blake2               : blake2b hash of the channel file
-         :type blake2               : str
-        """
-
-        channel_fields = (
-            'PhysiologicalFileID',       'PhysiologicalChannelTypeID',
-            'PhysiologicalStatusTypeID', 'Name',
-            'Description',               'SamplingFrequency',
-            'LowCutoff',                 'HighCutoff',
-            'ManualFlag',                'Notch',
-            'StatusDescription',         'Unit',
-            'Reference',                 'FilePath'
-        )
-        channel_values = []
-        for row in channels_file.rows:
-            physio_channel_type = try_get_channel_type_with_name(self.env.db, row.data['type'])
-            if physio_channel_type is None:
-                log_error_exit(
-                    self.env,
-                    f"No channel type found in the database for channel type name '{row.data['type']}'.",
-                )
-
-            physio_status_type = None
-            if 'status' in row.data.keys():
-                physio_status_type = try_get_status_type_with_name(self.env.db, row.data['status'])
-                if physio_status_type is None:
-                    log_error_exit(
-                        self.env,
-                        f"No status type found in the database for status type name '{row.data['status']}'.",
-                    )
-
-            values_tuple = (
-                str(physiological_file.id),
-                physio_channel_type.id,
-                physio_status_type.id if physio_status_type is not None else None,
-                row.data['name'],
-                row.data['description'],
-                row.data['sampling_frequency'],
-                row.data['low_cutoff'],
-                row.data['high_cutoff'],
-                row.data['manual'],
-                row.data['notch'],
-                row.data['status_description'],
-                row.data['units'],
-                row.data['reference'],
-                channel_file
-            )
-            channel_values.append(values_tuple)
-
-        self.db.insert(
-            table_name   = 'physiological_channel',
-            column_names = channel_fields,
-            values       = channel_values
-        )
-
-        # insert blake2b hash of channel file into physiological_parameter_file
-        insert_physio_file_parameter(self.env, physiological_file, 'channel_file_blake2b_hash', blake2)
 
     def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
                                   physiological_file: DbPhysioFile, blake2, electrode_ids):

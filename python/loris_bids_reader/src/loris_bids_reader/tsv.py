@@ -2,6 +2,8 @@ import csv
 from pathlib import Path
 from typing import Any, Generic, TypeVar
 
+from loris_utils.parse import nullify_empty_string
+
 
 class BidsTsvRow:
     """
@@ -34,6 +36,7 @@ class BidsTsvFile(Generic[T]):
         with open(self.path, encoding='utf-8-sig') as file:
             reader = csv.DictReader(file, delimiter='\t')
             for row in reader:
+                row = {key: nullify_empty_string(value) for key, value in row.items()}
                 self.rows.append(model(row))
 
     def get_field_names(self) -> list[str]:
