@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from lib.db.queries.bids_event_dataset_mapping import get_bids_event_dataset_mappings_with_project_id
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.physio_file import try_get_physio_file_with_path
@@ -18,13 +19,17 @@ def test_import_eeg_bids_dataset():
     db.commit()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
+        '--type', 'raw',
         '--directory', '/data/loris/incoming/Face13',
     ])
 
     # Check the return code.
     assert process.returncode == 0
+    assert process.stderr == (
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+    )
 
     # Check that the candidate and sessions are present in the database.
     candidate = try_get_candidate_with_psc_id(db, 'OTT166')
@@ -37,7 +42,15 @@ def test_import_eeg_bids_dataset():
         db,
         Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.edf'),
     )
+
     assert file is not None
+    assert file.archive is not None
+    assert file.event_archive is not None
+
+    assert file.archive.path == \
+        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_eeg.tgz')
+    assert file.event_archive.path == \
+        Path('bids_imports/Face13_BIDSVersion_1.1.0/sub-OTT166/ses-V1/eeg/sub-OTT166_ses-V1_task-faceO_events.tgz')
 
     # Check that the physiological file parameters has been inserted in the database.
     file_parameters = get_physio_file_parameters_dict(db, file.id)
@@ -71,10 +84,16 @@ def test_import_eeg_bids_dataset():
         'electrophysiology_chunked_dataset_path': 'bids_imports/Face13_BIDSVersion_1.1.0_chunks/sub-OTT166_ses-V1_task-faceO_eeg.chunks',  # noqa: E501
     }
 
+    # Check that the event files has been inserted in the database.
+    bids_event_dataset_mappings = get_bids_event_dataset_mappings_with_project_id(db, session.project.id)
+    assert len(file.event_files) == 1
+    assert len(bids_event_dataset_mappings) == 12
+
     # Check that the BIDS files have been copied.
     assert_files_exist('/data/loris/bids_imports', {
         'Face13_BIDSVersion_1.1.0': {
             'dataset_description.json': None,
+            'events.json': None,
             'participants.tsv': None,
             'README': None,
             'sub-OTT166': {
@@ -122,13 +141,18 @@ def test_import_mri_bids_dataset():
     db = get_integration_database_session()
 
     process = run_integration_script([
-        'bids_import.py',
+        'import_bids_dataset.py',
         '--createcandidate', '--createsession',
         '--directory', '/data/loris/incoming/DCC090_587630_V2',
     ])
 
     # Check the return code.
     assert process.returncode == 0
+    assert process.stderr == (
+        "WARNING: No events dictionary files (events.json) in root directory.\n"
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+        "WARNING: No 'scans.tsv' file found, 'scans.tsv' data will be ignored.\n"
+    )
 
     # Check that the candidate and sessions are present in the database.
     candidate = try_get_candidate_with_psc_id(db, 'DCC090')

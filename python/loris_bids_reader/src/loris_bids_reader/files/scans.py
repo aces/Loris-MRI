@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import dateutil.parser
-from loris_utils.iter import find
+from loris_utils.iter import find, replace_or_append
 
 from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
 
@@ -65,3 +65,19 @@ class BidsScansTsvFile(BidsTsvFile[BidsScanTsvRow]):
         """
 
         return find(self.rows, lambda row: file_path.name in row.data['filename'])
+
+    def set_row(self, scan: BidsScanTsvRow):
+        """
+        Add a row in the `scans.tsv` file, replacing it if a row already exists for its file name.
+        """
+
+        replace_or_append(self.rows, scan, lambda row: row.data['filename'] == scan.data['filename'])
+
+    def merge(self, other: 'BidsScansTsvFile'):
+        """
+        Copy another `scans.tsv` file into this file. The rows of this file are replaced by those
+        of the other file if there are duplicates.
+        """
+
+        for other_row in other.rows:
+            self.set_row(other_row)

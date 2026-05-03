@@ -77,3 +77,11 @@ def replace_or_append(elements: list[T], value: T, predicate: Callable[[T], bool
             return
 
     elements.append(value)
+
+
+def map_non_none(value: T | None, function: Callable[[T], U]) -> U | None:
+    """
+    Apply a function to a value if that value is not `None`.
+    """
+
+    return function(value) if value is not None else value

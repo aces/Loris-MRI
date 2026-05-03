@@ -1,13 +1,47 @@
-import os
 import re
 import shutil
 from pathlib import Path
 
+from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
+from loris_bids_reader.files.participants import BidsParticipantsTsvFile
 from loris_bids_reader.files.scans import BidsScansTsvFile
 
-import lib.utilities
+from lib.config import get_data_dir_path_config
 from lib.db.models.session import DbSession
+from lib.env import Env
 from lib.import_bids_dataset.env import BidsImportEnv
+
+
+def get_loris_bids_dataset_path(env: Env, dataset_description: BidsDatasetDescriptionJsonFile) -> Path:
+    """
+    Get the LORIS BIDS directory path for the BIDS dataset to import, and create that directory if
+    it does not exist yet.
+    """
+
+    # Sanitize the dataset metadata to have a usable name for the directory.
+    dataset_name    = re.sub(r'[^0-9a-zA-Z]+',   '_', dataset_description.data['Name'])
+    dataset_version = re.sub(r'[^0-9a-zA-Z\.]+', '_', dataset_description.data['BIDSVersion'])
+
+    data_dir_path = get_data_dir_path_config(env)
+    loris_bids_path = data_dir_path / 'bids_imports' / f'{dataset_name}_BIDSVersion_{dataset_version}'
+
+    if not loris_bids_path.exists():
+        loris_bids_path.mkdir()
+
+    return loris_bids_path
+
+
+def get_loris_bids_root_file_path(import_env: BidsImportEnv, file_path: Path) -> Path:
+    """
+    Get the path of a BIDS file relative to the LORIS data directory, maintaining the same relative
+    path in the LORIS BIDS dataset as within the source BIDS dataset.
+    """
+
+    # In the import is run in no-copy mode, return the original file path.
+    if import_env.loris_bids_path is None:
+        return file_path.relative_to(import_env.data_dir_path)
+
+    return import_env.loris_bids_path / file_path.relative_to(import_env.source_bids_path)
 
 
 def get_loris_bids_file_path(
@@ -21,7 +55,7 @@ def get_loris_bids_file_path(
     Get the path of a BIDS file in LORIS, relative to the LORIS data directory.
     """
 
-    # In the import is run in no-copy mode, simply return the original file path.
+    # In the import is run in no-copy mode, return the original file path.
     if import_env.loris_bids_path is None:
         return file_path.relative_to(import_env.data_dir_path)
 
@@ -57,6 +91,24 @@ def get_loris_bids_file_name(file_name: str, session: DbSession) -> str:
     return f'sub-{session.candidate.psc_id}_ses-{session.visit_label}_{file_name}'
 
 
+def get_loris_scans_path(import_env: BidsImportEnv, scans_file: BidsScansTsvFile, session: DbSession) -> Path:
+    """
+    Get the path of a `scans.tsv` file in LORIS, relative to the LORIS data directory.
+    """
+
+    # In the import is run in no-copy mode, return the original file path.
+    if import_env.loris_bids_path is None:
+        return scans_file.path.relative_to(import_env.data_dir_path)
+
+    loris_file_name = get_loris_bids_file_name(scans_file.path.name, session)
+    return (
+        import_env.loris_bids_path
+        / f'sub-{session.candidate.psc_id}'
+        / f'ses-{session.visit_label}'
+        / loris_file_name
+    )
+
+
 def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_path: Path):
     """
     Copy a BIDS file to the LORIS data directory, unless the no-copy mode is enabled.
@@ -78,31 +130,63 @@ def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_
         shutil.copytree(file_path, full_loris_file_path)
 
 
-# TODO: This function is ugly and should be replaced.
-def copy_scans_tsv_file_to_loris_bids_dir(
-    scans_file: BidsScansTsvFile,
-    session: DbSession,
-    loris_bids_root_dir: Path,
-    data_dir: Path,
-) -> str:
+def copy_bids_static_files(import_env: BidsImportEnv):
     """
-    Copy the scans.tsv file to the LORIS BIDS directory for the subject.
+    Copy the static files of the source BIDS dataset to the LORIS BIDS dataset.
     """
 
-    original_file_path = scans_file.path
-    loris_file_name = get_loris_bids_file_name(scans_file.path.name, session)
-    final_file_path = (
-        loris_bids_root_dir
-        / f'sub-{session.candidate.psc_id}'
-        / f'ses-{session.visit_label}'
-        / loris_file_name
-    )
+    # Do not copy files in no-copy mode.
+    if import_env.loris_bids_path is None:
+        return
 
-    # copy the scans.tsv file to the new directory
-    if os.path.exists(final_file_path):
-        lib.utilities.append_to_tsv_file(original_file_path, final_file_path, 'filename', False)  # type: ignore
-    else:
-        lib.utilities.copy_file(original_file_path, final_file_path, False)  # type: ignore
+    for file_name in ['README', 'dataset_description.json']:
+        source_file_path = import_env.source_bids_path / file_name
+        if not source_file_path.is_file():
+            continue
 
-    # determine the relative path and return it
-    return os.path.relpath(final_file_path, data_dir)
+        loris_file_path = import_env.loris_bids_path / file_name
+
+        # Do not copy the file if it is already present during an incremental import.
+        if (import_env.data_dir_path / loris_file_path).is_file():
+            continue
+
+        copy_loris_bids_file(import_env, source_file_path, loris_file_path)
+
+
+def copy_bids_participants_file(
+    import_env: BidsImportEnv,
+    participants_file: BidsParticipantsTsvFile,
+    loris_participants_path: Path,
+):
+    """
+    Copy some `participants.tsv` rows into the LORIS `participants.tsv` file, creating it if
+    necessary.
+    """
+
+    # Do not copy the file in no-copy mode.
+    if import_env.loris_bids_path is None:
+        return
+
+    participants_path = import_env.data_dir_path / loris_participants_path
+    if participants_path.exists():
+        participants_file.merge(BidsParticipantsTsvFile(participants_path))
+
+    participants_path.parent.mkdir(parents=True, exist_ok=True)
+    participants_file.write(participants_path)
+
+
+def copy_bids_scans_file(import_env: BidsImportEnv, scans_file: BidsScansTsvFile, loris_scans_path: Path):
+    """
+    Copy some `scans.tsv` rows into a LORIS `scans.tsv` file, creating it if necessary.
+    """
+
+    # Do not copy the file in no-copy mode.
+    if import_env.loris_bids_path is None:
+        return
+
+    scans_path = import_env.data_dir_path / loris_scans_path
+    if scans_path.exists():
+        scans_file.merge(BidsScansTsvFile(scans_path))
+
+    scans_path.parent.mkdir(parents=True, exist_ok=True)
+    scans_file.write(scans_path)
