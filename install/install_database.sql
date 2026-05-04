@@ -19,6 +19,8 @@ UPDATE Config SET Value = CONCAT('/data/', @project, '/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'imagePath');
 UPDATE Config SET Value = CONCAT('/data/', @project, '/tarchive/')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'tarchiveLibraryDir');
+UPDATE Config SET Value = CONCAT('/data/', @project, '/chunks/')
+  WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'EEGChunksPath');
 UPDATE Config SET Value = CONCAT('/opt/', @project, '/bin/mri/dicom-archive/get_dicom_info.pl')
   WHERE ConfigID = (SELECT ID FROM ConfigSettings WHERE Name = 'get_dicom_info');
 UPDATE Config SET Value = CONCAT('/opt/', @project, '/bin/mri/')
