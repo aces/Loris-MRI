@@ -121,7 +121,7 @@ def copy_loris_bids_file(import_env: BidsImportEnv, file_path: Path, loris_file_
     full_loris_file_path = import_env.data_dir_path / loris_file_path
 
     if full_loris_file_path.exists():
-        raise Exception(f"File '{loris_file_path}' already exists in LORIS.")
+        raise Exception(f"File '{loris_file_path}' already exists in the LORIS data directory.")
 
     full_loris_file_path.parent.mkdir(parents=True, exist_ok=True)
     if file_path.is_file():

@@ -28,7 +28,7 @@ from lib.import_bids_dataset.physio import (
     get_check_bids_physio_modality,
     get_check_bids_physio_output_type,
 )
-from lib.logging import log
+from lib.logging import log, log_warning
 from lib.physio.chunking import create_physio_channels_chunks
 from lib.physio.file import insert_physio_file
 from lib.physio.parameters import insert_physio_file_parameters
@@ -674,6 +674,19 @@ class Eeg:
             Path(file),
             derivatives,
         )
+
+        # In the past, the code did not check if a file already existed and could silently import
+        # the same metadata file several times if it is shared acquisitions. A warning has been
+        # added.
+        # TODO: Properly handle metadata files shared across several acquisitions.
+        full_file_path = self.info.data_dir_path / loris_file_path
+        if full_file_path.exists():
+            log_warning(
+                self.env,
+                f"Duplicate import of file '{loris_file_path}', this is a bug in the EEG importer.",
+            )
+
+            return loris_file_path
 
         copy_loris_bids_file(self.info, Path(file), loris_file_path)
         return loris_file_path
