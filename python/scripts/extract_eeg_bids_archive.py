@@ -17,7 +17,6 @@ from lib.env import Env
 from lib.exitcode import BAD_CONFIG_SETTING, SUCCESS
 from lib.logging import log, log_error, log_error_exit, log_verbose, log_warning
 from lib.lorisgetopt import LorisGetOpt
-from lib.make_env import make_env_from_opts
 
 
 def main():
@@ -78,7 +77,7 @@ def main():
     # and create the log object (their basename being the name of the script run)
     # ---------------------------------------------------------------------------------------------
     tmp_dir = loris_getopt_obj.tmp_dir
-    env = make_env_from_opts(loris_getopt_obj)
+    env = loris_getopt_obj.env
 
     # ---------------------------------------------------------------------------------------------
     # Grep config settings from the Config module

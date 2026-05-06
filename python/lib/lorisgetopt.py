@@ -4,11 +4,11 @@ import os
 import sys
 
 import lib.exitcode
-import lib.utilities
 from lib.aws_s3 import AwsS3
 from lib.config_file import load_config
 from lib.database import Database
 from lib.database_lib.config import Config
+from lib.make_env import make_env
 
 
 class LorisGetOpt:
@@ -82,7 +82,16 @@ class LorisGetOpt:
         self.populate_options_dict_values(opts)
         self.check_required_options_are_set()
         self.load_config_file()
-        self.tmp_dir = lib.utilities.create_processing_tmp_dir(script_name)
+
+        # Create the environment object using the provided arguments.
+        self.env = make_env(
+            self.script_name,
+            self.options_dict,
+            self.config_info,
+            self.options_dict['verbose']['value'],
+        )
+
+        self.tmp_dir = self.env.tmp_dir_path
 
         # ------------------------------------------------------------------------------------------
         # Establish database connection

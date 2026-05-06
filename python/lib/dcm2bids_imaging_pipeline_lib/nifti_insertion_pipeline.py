@@ -519,7 +519,7 @@ class NiftiInsertionPipeline(BasePipeline):
         """
         self.trashbin_nifti_rel_path = os.path.join(
             'trashbin',
-            re.sub(r'\.log', '', os.path.basename(self.env.log_file)),
+            re.sub(r'\.log', '', self.env.log_file_path.name),
             os.path.basename(self.nifti_path)
         )
         self._create_destination_dir_and_move_image_files('trashbin')

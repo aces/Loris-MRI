@@ -100,8 +100,7 @@ def main():
     # input error checking and load config_file file
     config_file = load_config(profile)
     input_error_checking(bids_dir, usage)
-    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
-    env = make_env('bids_import', {}, config_file, tmp_dir_path, verbose)
+    env = make_env('bids_import', {}, config_file, verbose)
 
     dataset_json = bids_dir + "/dataset_description.json"
     if not os.path.isfile(dataset_json) and not type:

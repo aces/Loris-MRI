@@ -65,7 +65,7 @@ def write_to_log_file(env: Env, message: str):
     Write a message to the log file of the environment.
     """
 
-    with open(env.log_file, 'a') as file:
+    with open(env.log_file_path, 'a') as file:
         file.write(f"{message}\n")
 
 

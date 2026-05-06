@@ -7,7 +7,6 @@ import re
 import sys
 
 import lib.exitcode
-import lib.utilities
 from lib.config import get_data_dir_path_config
 from lib.config_file import load_config
 from lib.database import Database
@@ -66,8 +65,7 @@ def main():
     # input error checking and load config_file file
     config_info = load_config(profile)
     input_error_checking(smallest_id, largest_id, usage)
-    tmp_dir_path = lib.utilities.create_processing_tmp_dir('mass_nifti_pic')
-    env = make_env('mass_nifti_pic', {}, config_info, tmp_dir_path, verbose)
+    env = make_env('mass_nifti_pic', {}, config_info, verbose)
 
     # create pic for NIfTI files with a FileID between smallest_id and largest_id
     if (smallest_id == largest_id):

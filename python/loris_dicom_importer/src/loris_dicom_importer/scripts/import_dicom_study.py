@@ -15,7 +15,6 @@ from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
 from lib.get_session_info import SessionConfigError
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
-from lib.make_env import make_env_from_opts
 from loris_utils.fs import iter_all_dir_files
 
 import loris_dicom_importer.text
@@ -111,7 +110,7 @@ def main() -> None:
     # Get the CLI arguments and connect to the database.
 
     loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import_dicom_study')
-    env = make_env_from_opts(loris_getopt_obj)
+    env = loris_getopt_obj.env
     args = Args(loris_getopt_obj.options_dict)
 
     # Check arguments.

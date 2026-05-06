@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import Engine
@@ -37,7 +38,8 @@ class Env:
     db: Session
     script_name: str
     config_info: Any
-    log_file: str
+    tmp_dir_path: Path
+    log_file_path: Path
     verbose: bool
     cleanups: list[Callable[[], None]]
     notifier: Notifier | None = None
