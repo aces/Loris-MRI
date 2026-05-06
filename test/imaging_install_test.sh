@@ -17,6 +17,7 @@ echo "Creating the data directories"
   sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/"
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/trashbin"         #holds mincs that didn't match protocol
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/tarchive"         #holds tared dicom-folder
+  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/chunks"           #holds electrophysiology chunks folder
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/hrrtarchive"      #holds tared hrrt-folder
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/pic"              #holds jpegs generated for the MRI-browser
   sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/logs"             #holds logs from pipeline script

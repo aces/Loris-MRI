@@ -68,7 +68,7 @@ def test_import_eeg_bids_dataset():
         'electrode_file_blake2b_hash': '0206db2650ae5a07e4225ff87b6fb2a6bfcf6ea088dd8cdfd77d04e9e25a171ffe68878aa156478babb32dcaf9b46459f87fe0516b728278cc0d9372a0d49299',  # noqa: E501
         'channel_file_blake2b_hash': '7b91e3650086ef50ecc00f1c50e17e7ad8dc39c484536bbc2423af4be7d2b50a3a0010f840d457fec68fbfb3e136edf4d616a31bab0ca09ed686f555727341dd',  # noqa: E501
         'event_file_blake2b_hash': '532aa0b52749eb9ee52c2bbb65fa7b1d00d7126cb9a4e10bd4b9dbb4c5527b06e30acdaf17d5806e81d3ce8ad224a9f456e27aba1bf8b92fd43522837c7ffec7',  # noqa: E501
-        'electrophysiology_chunked_dataset_path': 'bids_imports/Face13_BIDSVersion_1.1.0_chunks/sub-OTT166_ses-V1_task-faceO_eeg.chunks',  # noqa: E501
+        'electrophysiology_chunked_dataset_path': 'chunks/Face13_BIDSVersion_1.1.0_chunks/sub-OTT166_ses-V1_task-faceO_eeg.chunks',  # noqa: E501
     }
 
     # Check that the BIDS files have been copied.
@@ -92,7 +92,7 @@ def test_import_eeg_bids_dataset():
     })
 
     # Check that the chunk files have been created.
-    assert_files_exist('/data/loris/bids_imports', {
+    assert_files_exist('/data/loris/chunks', {
         'Face13_BIDSVersion_1.1.0_chunks': {
             'sub-OTT166_ses-V1_task-faceO_eeg.chunks': {
                 'index.json': None,
