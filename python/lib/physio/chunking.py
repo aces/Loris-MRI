@@ -3,7 +3,7 @@ import subprocess
 from loris_utils.path import get_path_stem
 
 import lib.exitcode
-from lib.config import get_data_dir_path_config, get_eeg_chunks_dir_path_config
+from lib.config import get_data_dir_path_config, get_ephys_chunks_dir_path_config
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.queries.physio_parameter import try_get_physio_file_parameter_with_file_id_name
 from lib.env import Env
@@ -94,11 +94,11 @@ def get_dataset_chunks_dir_path(env: Env, physio_file: DbPhysioFile):
 
     # The first part of the physiological file path is assumed to be the BIDS imports directory
     # name. The second part of the physiological file path is assumed to be the dataset name.
-    eeg_chunks_dir_path = get_eeg_chunks_dir_path_config(env)
-    if eeg_chunks_dir_path is None:
+    ephys_chunks_dir_path = get_ephys_chunks_dir_path_config(env)
+    if ephys_chunks_dir_path is None:
         data_dir_path = get_data_dir_path_config(env)
-        eeg_chunks_dir_path = data_dir_path / physio_file.path.parts[0]
+        ephys_chunks_dir_path = data_dir_path / physio_file.path.parts[0]
 
-    eeg_chunks_path = eeg_chunks_dir_path / f'{physio_file.path.parts[1]}_chunks'
+    eeg_chunks_path = ephys_chunks_dir_path / f'{physio_file.path.parts[1]}_chunks'
     eeg_chunks_path.mkdir(exist_ok=True)
     return eeg_chunks_path

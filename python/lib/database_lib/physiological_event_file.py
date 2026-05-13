@@ -1,6 +1,9 @@
 """This class performs database queries for the physiological_event_file table"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.models.physio_event_file.DbPhysioEventFile` instead.')
 class PhysiologicalEventFile:
 
     def __init__(self, db, verbose):

@@ -137,6 +137,7 @@ def create_dir(dir_name, verbose):
     return dir_name
 
 
+@deprecated('Use `loris_utils.archive.create_archive_with_files` instead')
 def create_archive(files_to_archive, archive_path):
     """
     Creates an archive with the files listed in the files_to_archive tuple.

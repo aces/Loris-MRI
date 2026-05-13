@@ -34,22 +34,7 @@ def get_data_dir_path_config(env: Env) -> Path:
     """
 
     data_dir_path = Path(_get_config_value(env, 'dataDirBasepath'))
-
-    if not data_dir_path.is_dir():
-        log_error_exit(
-            env,
-            (
-                f"The LORIS base data directory path configuration value '{data_dir_path}' does not refer to an"
-                " existing directory."
-            )
-        )
-
-    if not os.access(data_dir_path, os.R_OK) or not os.access(data_dir_path, os.W_OK):
-        log_error_exit(
-            env,
-            f"Missing read or write permission on the LORIS base data directory '{data_dir_path}'.",
-        )
-
+    check_loris_directory(env, data_dir_path, "data")
     return data_dir_path
 
 
@@ -60,22 +45,7 @@ def get_dicom_archive_dir_path_config(env: Env) -> Path:
     """
 
     dicom_archive_dir_path = Path(_get_config_value(env, 'tarchiveLibraryDir'))
-
-    if not dicom_archive_dir_path.is_dir():
-        log_error_exit(
-            env,
-            (
-                f"The LORIS DICOM archive directory path configuration value '{dicom_archive_dir_path}' does not refer"
-                " to an existing directory."
-            ),
-        )
-
-    if not os.access(dicom_archive_dir_path, os.R_OK) or not os.access(dicom_archive_dir_path, os.W_OK):
-        log_error_exit(
-            env,
-            f"Missing read or write permission on the LORIS DICOM archive directory '{dicom_archive_dir_path}'.",
-        )
-
+    check_loris_directory(env, dicom_archive_dir_path, "DICOM archive")
     return dicom_archive_dir_path
 
 
@@ -87,74 +57,65 @@ def get_default_bids_visit_label_config(env: Env) -> str | None:
     return _try_get_config_value(env, 'default_bids_vl')
 
 
-def get_eeg_viz_enabled_config(env: Env) -> bool:
+def get_ephys_visualization_enabled_config(env: Env) -> bool:
     """
-    Get whether the EEG visualization is enabled from the in-database configuration.
-    """
-
-    eeg_viz_enabled = _try_get_config_value(env, 'useEEGBrowserVisualizationComponents')
-    return eeg_viz_enabled == 'true' or eeg_viz_enabled == '1'
-
-
-def get_eeg_chunks_dir_path_config(env: Env) -> Path | None:
-    """
-    Get the EEG chunks directory path configuration value from the in-database configuration.
+    Get whether the electrophysiology visualization is enabled from the in-database configuration.
     """
 
-    eeg_chunks_path = _try_get_config_value(env, 'EEGChunksPath')
-    if eeg_chunks_path is None:
+    visualization_enabled = _try_get_config_value(env, 'useEEGBrowserVisualizationComponents')
+    return visualization_enabled == 'true' or visualization_enabled == '1'
+
+
+def get_ephys_chunks_dir_path_config(env: Env) -> Path | None:
+    """
+    Get the electrophysiology chunks directory path configuration value from the in-database
+    configuration.
+    """
+
+    ephys_chunks_path = _try_get_config_value(env, 'EEGChunksPath')
+    if ephys_chunks_path is None:
         return None
 
-    eeg_chunks_path = Path(eeg_chunks_path)
-
-    if not eeg_chunks_path.is_dir():
-        log_error_exit(
-            env,
-            (
-                f"The configuration value for the LORIS EEG chunks directory path '{eeg_chunks_path}' does not refer to"
-                " an existing directory."
-            ),
-        )
-
-    if not os.access(eeg_chunks_path, os.R_OK) or not os.access(eeg_chunks_path, os.W_OK):
-        log_error_exit(
-            env,
-            f"Missing read or write permission on the LORIS EEG chunks directory '{eeg_chunks_path}'.",
-        )
-
-    return eeg_chunks_path
+    ephys_chunks_path = Path(ephys_chunks_path)
+    check_loris_directory(env, ephys_chunks_path, "electrophysiology chunks")
+    return ephys_chunks_path
 
 
-def get_eeg_pre_package_download_dir_path_config(env: Env) -> Path | None:
+def get_ephys_archive_dir_path_config(env: Env) -> Path | None:
     """
-    Get the EEG pre-packaged download path configuration value from the in-database configuration.
+    Get the electrophysiology archive directory path configuration value from the in-database
+    configuration.
     """
 
-    eeg_pre_package_path = _try_get_config_value(env, 'prePackagedDownloadPath')
-    if eeg_pre_package_path is None:
+    ephys_archive_dir_path = _try_get_config_value(env, 'prePackagedDownloadPath')
+    if ephys_archive_dir_path is None:
         return None
 
-    eeg_pre_package_path = Path(eeg_pre_package_path)
+    ephys_archive_dir_path = Path(ephys_archive_dir_path)
+    check_loris_directory(env, ephys_archive_dir_path, "electrophysiology archive")
+    return ephys_archive_dir_path
 
-    if not eeg_pre_package_path.is_dir():
+
+def check_loris_directory(env: Env, dir_path: Path, display_name: str):
+    """
+    Check that a LORIS directory exists and is readable and writable, or exit the program with an
+    error otherwise.
+    """
+
+    if not dir_path.is_dir():
         log_error_exit(
             env,
             (
-                "The configuration value for the LORIS EEG pre-packaged download directory path"
-                f" '{eeg_pre_package_path}' does not refer to an existing directory."
+                f"The LORIS {display_name} directory path configuration value '{dir_path}' does not refer to an"
+                " existing directory."
             ),
         )
 
-    if not os.access(eeg_pre_package_path, os.R_OK) or not os.access(eeg_pre_package_path, os.W_OK):
+    if not os.access(dir_path, os.R_OK) or not os.access(dir_path, os.W_OK):
         log_error_exit(
             env,
-            (
-                "Missing read or write permission on the LORIS EEG pre-packaged download directory"
-                f" '{eeg_pre_package_path}'."
-            ),
+            f"Missing read or write permission on the {display_name} directory '{dir_path}'.",
         )
-
-    return eeg_pre_package_path
 
 
 def _get_config_value(env: Env, setting_name: str) -> str:

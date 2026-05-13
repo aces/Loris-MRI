@@ -1,6 +1,9 @@
 """This class performs database queries for the physiological_event_archive table"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.physio_event_archive.DbPhysioEventArchive` instead')
 class PhysiologicalEventArchive:
 
     def __init__(self, db, verbose):
@@ -17,6 +20,7 @@ class PhysiologicalEventArchive:
         self.table = 'physiological_event_archive'
         self.verbose = verbose
 
+    @deprecated('Use `lib.db.physio_event_archive.DbPhysioEventArchive.physio_file_id` instead')
     def grep_from_physiological_file_id(self, physiological_file_id):
         """
         Gets rows given a physiological_file_id
@@ -33,6 +37,7 @@ class PhysiologicalEventArchive:
             args=(physiological_file_id,)
         )
 
+    @deprecated('Use `lib.db.physio_event_archive.DbPhysioEventArchive` instead')
     def insert(self, physiological_file_id, blake2, archive_path):
         """
         Inserts a new entry in the physiological_event_archive table.

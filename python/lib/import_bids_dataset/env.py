@@ -37,3 +37,11 @@ class BidsImportEnv:
     """
     The number of failed BIDS acquisition imports.
     """
+
+    @property
+    def processed_acquisitions_count(self) -> int:
+        """
+        The total number of processed BIDS acquisitions.
+        """
+
+        return self.imported_acquisitions_count + self.ignored_acquisitions_count + self.failed_acquisitions_count

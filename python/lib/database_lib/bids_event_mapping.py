@@ -1,6 +1,12 @@
 """This class performs bids_event_*_mapping related database queries"""
 
+from typing_extensions import deprecated
 
+
+@deprecated(
+    'Use `lib.db.models.bids_event_dataset_mapping.BidsEventDatasetMapping` and '
+    '`lib.db.models.bids_event_file_mapping.BidsEventFileMapping` instead.'
+)
 class BidsEventMapping:
 
     def __init__(self, db, verbose):

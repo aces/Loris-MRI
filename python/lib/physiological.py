@@ -3,21 +3,11 @@
 from dataclasses import dataclass
 from functools import reduce
 
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
-from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
-
-from lib.database_lib.bids_event_mapping import BidsEventMapping
 from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
-from lib.database_lib.physiological_event_file import PhysiologicalEventFile
-from lib.database_lib.physiological_task_event import PhysiologicalTaskEvent
-from lib.database_lib.physiological_task_event_hed_rel import PhysiologicalTaskEventHEDRel
-from lib.database_lib.physiological_task_event_opt import PhysiologicalTaskEventOpt
 from lib.database_lib.point_3d import Point3DDB
 from lib.db.models.physio_file import DbPhysioFile
-from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
-from lib.logging import log_error_exit
-from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
+from lib.physio.parameters import insert_physio_file_parameter
 from lib.point_3d import Point3D
 
 
@@ -65,11 +55,6 @@ class Physiological:
         self.db      = db
         self.verbose = verbose
 
-        self.physiological_event_file_obj                   = PhysiologicalEventFile(self.db, self.verbose)
-        self.physiological_task_event                       = PhysiologicalTaskEvent(self.db, self.verbose)
-        self.physiological_task_event_opt                   = PhysiologicalTaskEventOpt(self.db, self.verbose)
-        self.physiological_task_event_hed_rel               = PhysiologicalTaskEventHEDRel(self.db, self.verbose)
-        self.bids_event_mapping_obj                         = BidsEventMapping(self.db, self.verbose)
         self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
         self.point_3d_db = Point3DDB(self.db, self.verbose)
 
@@ -179,78 +164,6 @@ class Physiological:
         # insert blake2b hash of electrode file into physiological_parameter_file
         insert_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
         return electrode_ids
-
-    def insert_channel_file(self, channels_file: BidsEegChannelsTsvFile, channel_file,
-                            physiological_file: DbPhysioFile, blake2):
-        """
-        Inserts the channel information read from the file *channels.tsv
-        into the physiological_channel table, linking it to the
-        physiological file ID already inserted in physiological_file.
-
-        :param channels_file        : list with dictionaries of channels
-                                      information to insert into
-                                      physiological_channel
-         :type channels_file        : list
-        :param channel_file         : name of the channel file
-         :type channel_file         : str
-        :param physiological_file   : Physiological file object to link the channel info to
-        :param blake2               : blake2b hash of the channel file
-         :type blake2               : str
-        """
-
-        channel_fields = (
-            'PhysiologicalFileID',       'PhysiologicalChannelTypeID',
-            'PhysiologicalStatusTypeID', 'Name',
-            'Description',               'SamplingFrequency',
-            'LowCutoff',                 'HighCutoff',
-            'ManualFlag',                'Notch',
-            'StatusDescription',         'Unit',
-            'Reference',                 'FilePath'
-        )
-        channel_values = []
-        for row in channels_file.rows:
-            physio_channel_type = try_get_channel_type_with_name(self.env.db, row.data['type'])
-            if physio_channel_type is None:
-                log_error_exit(
-                    self.env,
-                    f"No channel type found in the database for channel type name '{row.data['type']}'.",
-                )
-
-            physio_status_type = None
-            if 'status' in row.data.keys():
-                physio_status_type = try_get_status_type_with_name(self.env.db, row.data['status'])
-                if physio_status_type is None:
-                    log_error_exit(
-                        self.env,
-                        f"No status type found in the database for status type name '{row.data['status']}'.",
-                    )
-
-            values_tuple = (
-                str(physiological_file.id),
-                physio_channel_type.id,
-                physio_status_type.id if physio_status_type is not None else None,
-                row.data['name'],
-                row.data['description'],
-                row.data['sampling_frequency'],
-                row.data['low_cutoff'],
-                row.data['high_cutoff'],
-                row.data['manual'],
-                row.data['notch'],
-                row.data['status_description'],
-                row.data['units'],
-                row.data['reference'],
-                channel_file
-            )
-            channel_values.append(values_tuple)
-
-        self.db.insert(
-            table_name   = 'physiological_channel',
-            column_names = channel_fields,
-            values       = channel_values
-        )
-
-        # insert blake2b hash of channel file into physiological_parameter_file
-        insert_physio_file_parameter(self.env, physiological_file, 'channel_file_blake2b_hash', blake2)
 
     def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
                                   physiological_file: DbPhysioFile, blake2, electrode_ids):
@@ -365,91 +278,6 @@ class Physiological:
             # insert blake2b hash of task event file into physiological_parameter_file
             insert_physio_file_parameter(self.env, physiological_file, 'coordsystem_file_json_blake2b_hash', blake2)
 
-    def insert_event_metadata(self, event_metadata, event_metadata_file, physiological_file: DbPhysioFile | None,
-                              project_id, blake2, project_wide, hed_union):
-        """
-        Inserts the events metadata information read from the file *events.json
-        into the physiological_event_file, physiological_event_parameter
-        and physiological_event_parameter_category_level tables, linking it to the
-        physiological file ID already inserted in physiological_file.
-
-        :param event_metadata           : list with dictionaries of events
-                                          metadata to insert into the database
-         :type event_metadata           : list
-        :param event_metadata_file      : name of the event metadata file
-         :type event_file               : str
-        :param physiological_file       : Physiological file object to link the event info to
-        :param project_id               : ProjectID
-         :type project_id               : int
-        :param blake2                   : blake2b hash of the event file
-         :type blake2                   : str
-        :param project_wide             : ProjectID if true, otherwise PhysiologicalFileID
-         :type project_wide             : bool
-        :param hed_union                : Union of HED schemas
-         :type hed_union                : any
-
-        :return: event file id
-         :rtype: int
-        """
-
-        event_file_id = self.physiological_event_file_obj.insert(
-            physiological_file.id if not project_wide else None,
-            project_id,
-            'json',
-            event_metadata_file
-        )
-
-        tag_dict = self.parse_and_insert_event_metadata(
-            event_metadata=event_metadata,
-            target_id=project_id if project_wide else physiological_file.id,
-            project_wide=project_wide,
-            hed_union=hed_union
-        )
-
-        # insert blake2b hash of task event file into physiological_parameter_file
-        if project_wide:
-            insert_physio_project_parameter(self.env, project_id, 'event_file_json_blake2b_hash', blake2)
-        else:
-            insert_physio_file_parameter(self.env, physiological_file, 'event_file_json_blake2b_hash', blake2)
-
-        return event_file_id, tag_dict
-
-    def parse_and_insert_event_metadata(self, event_metadata, target_id, project_wide, hed_union):
-        tag_dict = {}
-
-        for parameter in event_metadata:
-            parameter_name = parameter
-            tag_dict[parameter_name] = {}
-            # TODO: Commented fields below currently not supported # ruff: noqa
-            # description = event_metadata[parameter]['Description'] \
-            #     if 'Description' in event_metadata[parameter] \
-            #     else None
-            # long_name = event_metadata[parameter]['LongName'] if 'LongName' in event_metadata[parameter] else None
-            # units = event_metadata[parameter]['Units'] if 'Units' in event_metadata[parameter] else None
-            if 'Levels' in event_metadata[parameter]:
-                is_categorical = 'Y'
-                # value_hed = None
-            else:
-                is_categorical = 'N'
-                # value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
-
-            if is_categorical == 'Y':
-                for level in event_metadata[parameter]['Levels']:
-                    level_name = level
-                    tag_dict[parameter_name][level_name] = []
-                    level_description = event_metadata[parameter]['Levels'][level]
-                    level_hed = event_metadata[parameter]['HED'][level] \
-                        if 'HED' in event_metadata[parameter] and level in event_metadata[parameter]['HED'] \
-                        else None
-
-                    if level_hed:
-                        tag_groups = Physiological.build_hed_tag_groups(hed_union, level_hed)
-                        for tag_group in tag_groups:
-                            self.insert_hed_tag_group(tag_group, target_id, parameter_name,
-                                                      level_name, level_description, True, project_wide)
-                        tag_dict[parameter_name][level_name] = tag_groups
-        return tag_dict
-
     @staticmethod
     def get_additional_members_from_parenthesis_index(string_split, parentheses_to_find, end_index):
         """
@@ -512,7 +340,8 @@ class Physiological:
 
         # NOT SUPPORTED: DEFS & VALUES
 
-        # TODO: TRANSACTION THAT ROLLS BACK IF HED_TAG_ID LIST MATCHES (CONSIDER ADDING ADDITIONAL + HP TO IT)
+        # TODO: TRANSACTION THAT ROLLS BACK IF HED_TAG_ID LIST MATCHES (CONSIDER ADDING ADDITIONAL
+        # + HP TO IT)
 
         string_split = hed_string.split(',')
         group_depth = 0
@@ -556,55 +385,6 @@ class Physiological:
             tag_groups.append(tag_group)
 
         return tag_groups
-
-    def insert_hed_tag_group(self, hed_tag_group, target_id, property_name=None, property_value=None,
-                             level_description=None, from_sidecar=False, project_wide=False):
-        """
-        Assembles physiological event HED tags.
-
-        :param hed_tag_group        : List of TagGroupMember to insert
-         :type hed_tag_group        : list[TagGroupMember]
-
-        :param target_id            : ProjectID if project_wide else PhysiologicalEventFileID
-         :type target_id            : int
-
-        :param property_name        : PropertyName
-         :type property_name        : str | None
-
-        :param property_value       : PropertyValue
-         :type property_value       : str | None
-
-        :param level_description    : Tag Description
-         :type level_description    : str | None
-
-        :param from_sidecar         : Whether tag comes from an events.json file
-         :type from_sidecar         : bool
-
-        :param project_wide         : Whether target is ProjectID or PhysiologicalEventFileID
-         :type project_wide         : bool
-
-        """
-        pair_rel_id = None
-        for hed_tag in hed_tag_group:
-            pair_rel_id = self.bids_event_mapping_obj.insert(
-                target_id=target_id,
-                property_name=property_name,
-                property_value=property_value,
-                hed_tag_id=hed_tag.hed_tag_id,
-                tag_value=hed_tag.tag_value,
-                description=level_description,
-                has_pairing=hed_tag.has_pairing,
-                pair_rel_id=pair_rel_id,
-                additional_members=hed_tag.additional_members,
-                project_wide=project_wide
-            ) if from_sidecar else self.physiological_task_event_hed_rel.insert(
-                target_id=target_id,
-                hed_tag_id=hed_tag.hed_tag_id,
-                tag_value=hed_tag.tag_value,
-                has_pairing=hed_tag.has_pairing,
-                pair_rel_id=pair_rel_id,
-                additional_members=hed_tag.additional_members,
-            )
 
     @staticmethod
     def standardize_row_columns(row):
@@ -687,112 +467,3 @@ class Physiological:
                     raise
                 hed_tag_id = hed_tag['ID']
         return hed_tag_id
-
-    def insert_event_file(self, events_file: BidsEventsTsvFile, event_file, physiological_file: DbPhysioFile,
-                          project_id, blake2, dataset_tag_dict, file_tag_dict,
-                          hed_union):
-        """
-        Inserts the event information read from the file *events.tsv
-        into the physiological_task_event table, linking it to the
-        physiological file ID already inserted in physiological_file.
-        Only called in `eeg.py`.
-
-        :param event_data           : list with dictionaries of events
-                                      information to insert into
-                                      physiological_task_event
-         :type event_data           : list
-        :param event_file           : name of the event file
-         :type event_file           : str
-        :param physiological_file   : Physiological file object to link the event info to
-        :param project_id           : ProjectID to link the event info to
-         :type project_id           : int
-        :param blake2               : blake2b hash of the task event file
-         :type blake2               : str
-        :param dataset_tag_dict     : Dict of dataset-inherited HED tags
-         :type dataset_tag_dict     : dict
-        :param file_tag_dict        : Dict of subject-inherited HED tags
-         :type file_tag_dict        : dict
-        :param hed_union            : Union of HED schemas
-         :type hed_union            : any
-        """
-
-        event_file_id = self.physiological_event_file_obj.insert(
-            physiological_file.id,
-            project_id,
-            'tsv',
-            event_file
-        )
-
-        event_fields = (
-            'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',
-            'ResponseTime',        'EventCode', 'EventValue', 'EventSample',
-            'EventType',           'FilePath',  'EventFileID'
-        )
-        # all listed fields
-        known_fields = {*event_fields, *OPTIONAL_EVENT_FIELDS}
-
-        for row in events_file.rows:
-            # has additional fields?
-            additional_fields = {}
-            for field in row.data:
-                if field not in known_fields and row.data[field].lower() != 'nan':
-                    additional_fields[field] = row.data[field]
-
-            # insert one event and get its db id
-            last_task_id = self.physiological_task_event.insert(
-                physiological_file_id = physiological_file.id,
-                event_file_id         = event_file_id,
-                onset                 = row.onset,
-                duration              = row.duration,
-                event_code            = row.data['event_code'],
-                event_value           = row.event_value,
-                event_sample          = row.event_sample,
-                event_type            = row.data['event_type'],
-                trial_type            = row.trial_type,
-                response_time         = row.response_time,
-            )
-
-            # Insert HED tags after filtering out inherited tags from events.json, so that they are not "duplicated"
-            if row.data['HED'] and len(row.data['HED']) > 0 and row.data['HED'] != 'n/a':
-                tag_groups = Physiological.build_hed_tag_groups(hed_union, row.data['HED'])
-                tag_groups_without_inherited = Physiological.filter_inherited_tags(
-                    row.data, tag_groups, dataset_tag_dict, file_tag_dict
-                )
-                for tag_group in tag_groups_without_inherited:
-                    self.insert_hed_tag_group(tag_group, last_task_id)
-
-            # if needed, process additional and unlisted
-            # fields and send them in secondary table
-            if additional_fields:
-                # each additional fields is a new entry
-                for add_field, add_value in additional_fields.items():
-                    self.physiological_task_event_opt.insert(
-                        target_id=last_task_id,
-                        property_name=add_field,
-                        property_value=add_value,
-                        get_last_id=False
-                    )
-        # insert blake2b hash of task event file into physiological_parameter_file
-        insert_physio_file_parameter(self.env, physiological_file, 'event_file_blake2b_hash', blake2)
-
-    def insert_archive_file(self, archive_info):
-        """
-        Inserts the archive file of all physiological files (including
-        electrodes.tsv, channels.tsv and events.tsv) in the
-        physiological_archive table of the database.
-
-        :param archive_info: dictionary with key/value pairs to insert
-         :type archive_info: dict
-        """
-
-        # insert the archive into the physiological_archive table
-        archive_fields = ()
-        archive_values = ()
-        for key, value in archive_info.items():
-            archive_fields = (*archive_fields, key)
-            archive_values = (*archive_values, value)
-        self.db.insert(
-            table_name   = 'physiological_archive',
-            column_names = archive_fields,
-            values       = archive_values
-        )

@@ -1,6 +1,9 @@
 """This class performs database queries for the physiological_task_event_hed_rel table"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.models.physio_task_event_hed.DbPhysioTaskEventHed` instead.')
 class PhysiologicalTaskEventHEDRel:
 
     def __init__(self, db, verbose):
