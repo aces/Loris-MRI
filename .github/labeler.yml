@@ -6,6 +6,10 @@
 - changed-files:
   - any-glob-to-any-file: '**/*.py'
 
+"Package: BIDS importer":
+- changed-files:
+  - any-glob-to-any-file: 'python/loris_bids_importer/**'
+
 "Package: BIDS reader":
 - changed-files:
   - any-glob-to-any-file: 'python/loris_bids_reader/**'

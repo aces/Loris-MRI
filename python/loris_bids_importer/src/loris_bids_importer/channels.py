@@ -1,20 +1,20 @@
 from pathlib import Path
 
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile, BidsEegChannelTsvRow
-from loris_bids_reader.info import BidsAcquisitionInfo
-from loris_utils.crypto import compute_file_blake2b_hash
-from loris_utils.error import group_errors, group_errors_tuple
-
 from lib.db.models.physio_channel_type import DbPhysioChannelType
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_status_type import DbPhysioStatusType
 from lib.db.models.session import DbSession
 from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
-from lib.import_bids_dataset.copy_files import get_loris_bids_file_path
-from lib.import_bids_dataset.env import BidsImportEnv
 from lib.physio.channels import insert_physio_channel
 from lib.physio.parameters import insert_physio_file_parameter
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile, BidsEegChannelTsvRow
+from loris_bids_reader.info import BidsAcquisitionInfo
+from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.error import group_errors, group_errors_tuple
+
+from loris_bids_importer.copy_files import get_loris_bids_file_path
+from loris_bids_importer.env import BidsImportEnv
 
 
 def insert_bids_channels_file(

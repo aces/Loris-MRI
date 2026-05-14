@@ -2,14 +2,14 @@ import re
 import shutil
 from pathlib import Path
 
+from lib.config import get_data_dir_path_config
+from lib.db.models.session import DbSession
+from lib.env import Env
 from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
 from loris_bids_reader.files.participants import BidsParticipantsTsvFile
 from loris_bids_reader.files.scans import BidsScansTsvFile
 
-from lib.config import get_data_dir_path_config
-from lib.db.models.session import DbSession
-from lib.env import Env
-from lib.import_bids_dataset.env import BidsImportEnv
+from loris_bids_importer.env import BidsImportEnv
 
 
 def get_loris_bids_dataset_path(env: Env, dataset_description: BidsDatasetDescriptionJsonFile) -> Path:

@@ -3,17 +3,11 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
-from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
-from loris_bids_reader.json import BidsJsonFile
-from loris_utils.crypto import compute_file_blake2b_hash
-
 from lib.db.models.hed_schema_node import DbHedSchemaNode
 from lib.db.models.physio_event_file import DbPhysioEventFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.project import DbProject
 from lib.env import Env
-from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_root_file_path
-from lib.import_bids_dataset.env import BidsImportEnv
 from lib.physio.events import (
     EventDictFileSource,
     insert_event_dict_file,
@@ -25,6 +19,12 @@ from lib.physio.events import (
 )
 from lib.physio.hed import TagGroupMember, build_hed_tag_groups, filter_inherited_tags
 from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
+from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
+from loris_bids_reader.json import BidsJsonFile
+from loris_utils.crypto import compute_file_blake2b_hash
+
+from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_root_file_path
+from loris_bids_importer.env import BidsImportEnv
 
 
 def import_bids_root_event_dict_file(
