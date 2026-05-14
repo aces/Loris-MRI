@@ -18,6 +18,7 @@ import lib.utilities as utilities
 from lib.config import get_ephys_visualization_enabled_config
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.session import DbSession
+from lib.db.queries.hed_schema_node import get_all_hed_schema_nodes
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
 from lib.import_bids_dataset.archive import import_physio_event_archive, import_physio_file_archive
@@ -85,8 +86,7 @@ class Eeg:
         # find corresponding CandID and SessionID in LORIS
         self.session = session
 
-        hed_query = 'SELECT * FROM hed_schema_nodes WHERE 1'
-        self.hed_union = self.db.pselect(query=hed_query, args=())
+        self.hed_union = get_all_hed_schema_nodes(self.env.db)
 
         # check if a tsv with acquisition dates or age is available for the subject
         self.scans_file = None
