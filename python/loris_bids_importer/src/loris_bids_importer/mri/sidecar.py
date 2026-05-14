@@ -1,12 +1,11 @@
 from typing import Any
 
-from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
-
 from lib.config import get_patient_id_dicom_header_config
 from lib.env import Env
 from lib.get_session_info import SessionInfo, get_session_info
 from lib.imaging_lib.file_parameter import map_bids_to_loris_file_parameters
 from lib.imaging_lib.mri_scanner import MriScannerInfo
+from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
 
 
 def get_bids_mri_sidecar_scanner_info(sidecar: BidsMriSidecarJsonFile) -> MriScannerInfo:

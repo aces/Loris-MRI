@@ -1,8 +1,8 @@
+from lib.env import Env
+from lib.logging import log
 from loris_bids_reader.reader import BidsDatasetReader
 
-from lib.env import Env
-from lib.import_bids_dataset.env import BidsImportEnv
-from lib.logging import log
+from loris_bids_importer.env import BidsImportEnv
 
 
 def print_bids_info(env: Env, bids: BidsDatasetReader):

@@ -76,7 +76,7 @@ class Imaging:
         self.param_type_db_obj = ParameterType(db, verbose)
         self.param_file_db_obj = ParameterFile(db, verbose)
 
-    @deprecated('Use `lib.import_bids_dataset.file_type.get_check_bids_imaging_file_type_from_extension` instead.')
+    @deprecated('Use `loris_bids_importer.file_type.get_check_bids_imaging_file_type_from_extension` instead.')
     def determine_file_type(self, file):
         """
         Greps all file types defined in the ImagingFileTypes table and checks

@@ -1,12 +1,11 @@
 from pathlib import Path
 
-from loris_utils.crypto import compute_file_blake2b_hash
-
 from lib.db.models.physio_modality import DbPhysioModality
 from lib.db.models.physio_output_type import DbPhysioOutputType
 from lib.db.queries.physio import try_get_physio_modality_with_name, try_get_physio_output_type_with_name
 from lib.db.queries.physio_file import try_get_physio_file_with_hash
 from lib.env import Env
+from loris_utils.crypto import compute_file_blake2b_hash
 
 
 def get_check_bids_physio_modality(env: Env, data_type_name: str) -> DbPhysioModality:
