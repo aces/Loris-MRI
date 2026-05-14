@@ -1,10 +1,9 @@
 from pathlib import Path
 
-from loris_utils.path import get_path_extension
-
 from lib.db.models.imaging_file_type import DbImagingFileType
 from lib.db.queries.imaging_file_type import try_get_imaging_file_type_with_name
 from lib.env import Env
+from loris_utils.path import get_path_extension
 
 
 def get_check_bids_imaging_file_type_from_extension(env: Env, file_path: Path) -> DbImagingFileType:

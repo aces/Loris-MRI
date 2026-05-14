@@ -1,10 +1,5 @@
 from datetime import datetime
 
-from loris_bids_reader.files.participants import BidsParticipantTsvRow
-from loris_bids_reader.info import BidsSubjectInfo
-from loris_utils.error import group_errors, group_errors_tuple
-from loris_utils.parse import try_parse_int
-
 from lib.candidate import generate_new_cand_id
 from lib.db.models.candidate import DbCandidate
 from lib.db.models.project import DbProject
@@ -15,9 +10,13 @@ from lib.db.queries.sex import try_get_sex_with_name
 from lib.db.queries.site import try_get_site_with_alias, try_get_site_with_name
 from lib.env import Env
 from lib.logging import log
+from loris_bids_reader.files.participants import BidsParticipantTsvRow
+from loris_bids_reader.info import BidsSubjectInfo
+from loris_utils.error import group_errors, group_errors_tuple
+from loris_utils.parse import try_parse_int
 
 
-def check_or_create_bids_subjects(
+def validate_bids_subjects(
     env: Env,
     subject_infos: list[BidsSubjectInfo],
     create_candidate: bool = False,
@@ -30,11 +29,11 @@ def check_or_create_bids_subjects(
 
     return group_errors(
         "Could not get or create the LORIS candidates for the BIDS dataset.",
-        (lambda: check_or_create_bids_subject(env, subject_info, create_candidate) for subject_info in subject_infos),
+        (lambda: validate_bids_subject(env, subject_info, create_candidate) for subject_info in subject_infos),
     )
 
 
-def check_or_create_bids_subject(
+def validate_bids_subject(
     env: Env,
     subject_info: BidsSubjectInfo,
     create_candidate: bool = False,

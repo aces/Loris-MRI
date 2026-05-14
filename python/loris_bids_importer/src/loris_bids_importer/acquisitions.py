@@ -1,11 +1,11 @@
 from collections.abc import Callable
 from typing import TypeVar
 
+from lib.env import Env
+from lib.logging import log, log_error
 from loris_bids_reader.info import BidsAcquisitionInfo
 
-from lib.env import Env
-from lib.import_bids_dataset.env import BidsImportEnv
-from lib.logging import log, log_error
+from loris_bids_importer.env import BidsImportEnv
 
 T = TypeVar('T')
 

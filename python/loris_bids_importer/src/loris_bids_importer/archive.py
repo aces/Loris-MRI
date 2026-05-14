@@ -1,14 +1,13 @@
 from pathlib import Path
 
-from loris_utils.archive import create_archive_with_files
-from loris_utils.crypto import compute_file_blake2b_hash
-from loris_utils.path import remove_path_extension
-
 from lib.config import get_data_dir_path_config, get_ephys_archive_dir_path_config
 from lib.db.models.physio_event_archive import DbPhysioEventArchive
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_file_archive import DbPhysioFileArchive
 from lib.env import Env
+from loris_utils.archive import create_archive_with_files
+from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.path import remove_path_extension
 
 
 def import_physio_file_archive(env: Env, physio_file: DbPhysioFile, file_paths: list[Path]):
