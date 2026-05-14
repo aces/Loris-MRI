@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -6,6 +7,7 @@ from loris_bids_reader.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvF
 from loris_bids_reader.json import BidsJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash
 
+from lib.db.models.hed_schema_node import DbHedSchemaNode
 from lib.db.models.physio_event_file import DbPhysioEventFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.project import DbProject
@@ -21,8 +23,8 @@ from lib.physio.events import (
     insert_physio_task_event_opt,
     parse_and_insert_event_dict,
 )
+from lib.physio.hed import TagGroupMember, build_hed_tag_groups, filter_inherited_tags
 from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
-from lib.physiological import Physiological
 
 
 def import_bids_root_event_dict_file(
@@ -30,7 +32,7 @@ def import_bids_root_event_dict_file(
     import_env: BidsImportEnv,
     project: DbProject,
     bids_event_dict_file: BidsJsonFile,
-) -> tuple[DbPhysioEventFile, dict[str, dict[str, list[list[Physiological.TagGroupMember]]]]]:
+) -> tuple[DbPhysioEventFile, dict[str, dict[str, list[list[TagGroupMember]]]]]:
     """
     Import a root-level BIDS event dictionary file and its associated HED tags into LORIS.
     """
@@ -56,7 +58,7 @@ def insert_bids_event_dict_file(
     source: EventDictFileSource,
     bids_event_dict_file: BidsJsonFile,
     loris_event_dict_file_path: Path,
-) -> tuple[DbPhysioEventFile, dict[str, dict[str, list[list[Physiological.TagGroupMember]]]]]:
+) -> tuple[DbPhysioEventFile, dict[str, dict[str, list[list[TagGroupMember]]]]]:
     """
     Insert a BIDS event dictionary file and its associated HED tags into the LORIS database.
     """
@@ -83,20 +85,16 @@ def insert_bids_events_file(
     loris_events_file_path: Path,
     dataset_tag_dict: dict[str, Any],
     file_tag_dict: dict[str, Any],
-    hed_union: dict[str, Any],
+    hed_union: Sequence[DbHedSchemaNode],
 ):
     """
     Inserts the event information read from the file *events.tsv
     into the physiological_task_event table, linking it to the
     physiological file ID already inserted in physiological_file.
-    Only called in `eeg.py`.
 
-    :param dataset_tag_dict     : Dict of dataset-inherited HED tags
-     :type dataset_tag_dict     : dict
-    :param file_tag_dict        : Dict of subject-inherited HED tags
-     :type file_tag_dict        : dict
-    :param hed_union            : Union of HED schemas
-     :type hed_union            : any
+    :param dataset_tag_dict: Dict of dataset-inherited HED tags
+    :param file_tag_dict   : Dict of subject-inherited HED tags
+    :param hed_union       : Union of HED schemas
     """
 
     blake2_hash = compute_file_blake2b_hash(events_file.path)
@@ -140,8 +138,8 @@ def insert_bids_events_file(
         # Insert HED tags after filtering out inherited tags from events.json, so that they are
         # not "duplicated"
         if row.data.get('HED') is not None and len(row.data['HED']) > 0 and row.data['HED'] != 'n/a':
-            tag_groups = Physiological.build_hed_tag_groups(hed_union, row.data['HED'])  # type: ignore
-            tag_groups_without_inherited = Physiological.filter_inherited_tags(  # type: ignore
+            tag_groups = build_hed_tag_groups(hed_union, row.data['HED'])
+            tag_groups_without_inherited = filter_inherited_tags(
                 row.data, tag_groups, dataset_tag_dict, file_tag_dict
             )
             for tag_group in tag_groups_without_inherited:  # type: ignore
