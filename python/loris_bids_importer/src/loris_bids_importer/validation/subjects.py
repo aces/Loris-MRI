@@ -131,24 +131,24 @@ def get_bids_participant_row_sex(env: Env, participant: BidsParticipantTsvRow) -
     Raise an exception if a sex is specified but does not exist in LORIS.
     """
 
-    if 'sex' not in participant.data:
+    if participant.sex is None:
         return None
 
-    tsv_participant_sex = participant.data['sex'].lower()
+    participant_sex = participant.sex.lower()
 
-    if tsv_participant_sex in ['m', 'male']:
+    if participant_sex in ['m', 'male']:
         sex_name = 'Male'
-    elif tsv_participant_sex in ['f', 'female']:
+    elif participant_sex in ['f', 'female']:
         sex_name = 'Female'
-    elif tsv_participant_sex in ['o', 'other']:
+    elif participant_sex in ['o', 'other']:
         sex_name = 'Other'
     else:
-        sex_name = participant.data['sex']
+        sex_name = participant.sex
 
     sex = try_get_sex_with_name(env.db, sex_name)
     if sex is None:
         raise Exception(
-            f"No LORIS sex found for the BIDS participants.tsv sex name or alias '{participant.data['sex']}'."
+            f"No LORIS sex found for the BIDS participants.tsv sex name or alias '{participant.sex}'."
         )
 
     return sex.name
@@ -160,22 +160,22 @@ def get_bids_participant_row_site(env: Env, participant: BidsParticipantTsvRow) 
     specified or does not exist in LORIS.
     """
 
-    if 'site' not in participant.data:
+    if participant.site is None:
         raise Exception(
             "No 'site' column found in the BIDS participants.tsv file, this field is required to create candidates or"
             " sessions. "
         )
 
-    site = try_get_site_with_name(env.db, participant.data['site'])
+    site = try_get_site_with_name(env.db, participant.site)
     if site is not None:
         return site
 
-    site = try_get_site_with_alias(env.db, participant.data['site'])
+    site = try_get_site_with_alias(env.db, participant.site)
     if site is not None:
         return site
 
     raise Exception(
-        f"No site found for the BIDS participants.tsv site name or alias '{participant.data['site']}'."
+        f"No site found for the BIDS participants.tsv site name or alias '{participant.site}'."
     )
 
 
@@ -185,20 +185,20 @@ def get_bids_participant_row_project(env: Env, participant: BidsParticipantTsvRo
     specified or does not exist in LORIS.
     """
 
-    if 'project' not in participant.data:
+    if participant.project is None:
         raise Exception(
             "No 'project' column found in the BIDS participants.tsv file, this field is required to create candidates"
             " or sessions. "
         )
 
-    project = try_get_project_with_name(env.db, participant.data['project'])
+    project = try_get_project_with_name(env.db, participant.project)
     if project is not None:
         return project
 
-    project = try_get_project_with_alias(env.db, participant.data['project'])
+    project = try_get_project_with_alias(env.db, participant.project)
     if project is not None:
         return project
 
     raise Exception(
-        f"No project found for the BIDS participants.tsv project name or alias '{participant.data['project']}'."
+        f"No project found for the BIDS participants.tsv project name or alias '{participant.project}'."
     )
