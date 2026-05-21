@@ -9,6 +9,7 @@ from nilearn import plotting
 from lib.config import get_data_dir_path_config
 from lib.db.models.file import DbFile
 from lib.env import Env
+from lib.imaging_lib.file_parameter import register_mri_file_parameter
 
 
 def create_nifti_preview_picture(env: Env, nifti_file: DbFile) -> Path:
@@ -52,4 +53,10 @@ def create_nifti_preview_picture(env: Env, nifti_file: DbFile) -> Path:
         annotate=False,
     )
 
-    return pic_path.relative_to(data_dir_path / 'pic')
+    pic_rel_path = pic_path.relative_to(data_dir_path / 'pic')
+
+    # Register the preview picture path as a file parameter.
+    register_mri_file_parameter(env, nifti_file, 'check_pic_filename', str(pic_rel_path))
+    env.db.commit()
+
+    return pic_rel_path

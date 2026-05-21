@@ -93,6 +93,7 @@ include = [
     "python/lib/logging.py",
     "python/lib/make_env.py",
     "python/scripts/mass_electrophysiology_chunking.py",
+    "python/scripts/mass_nifti_pic.py",
     "python/loris_bids_importer",
     "python/loris_bids_reader",
     "python/loris_dicom_importer",
