@@ -15,9 +15,9 @@ class DbPhysioTaskEventHed(Base):
     task_event_id      : Mapped[int]         = mapped_column('PhysiologicalTaskEventID', ForeignKey('physiological_task_event.PhysiologicalTaskEventID'))
     hed_tag_id         : Mapped[int | None]  = mapped_column('HEDTagID', ForeignKey('hed_schema_nodes.ID'))
     tag_value          : Mapped[str | None]  = mapped_column('TagValue')
-    has_pairing        : Mapped[bool | None] = mapped_column('HasPairing', IntBool)
+    has_pairing        : Mapped[bool | None] = mapped_column('HasPairing', IntBool, default=False)
     pair_rel_id        : Mapped[int | None]  = mapped_column('PairRelID', ForeignKey('physiological_task_event_hed_rel.ID'))
-    additional_members : Mapped[int | None]  = mapped_column('AdditionalMembers')
+    additional_members : Mapped[int | None]  = mapped_column('AdditionalMembers', default=0)
     tagger_id          : Mapped[int | None]  = mapped_column('TaggedBy', ForeignKey('users.ID'))
 
     task_event      : Mapped['db_physio_task_event.DbPhysioTaskEvent'] = relationship('DbPhysioTaskEvent')

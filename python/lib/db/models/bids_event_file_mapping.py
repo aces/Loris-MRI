@@ -16,9 +16,9 @@ class DbBidsEventFileMapping(Base):
     hed_tag_id         : Mapped[int | None]  = mapped_column('HEDTagID', ForeignKey('hed_schema_nodes.ID'))
     tag_value          : Mapped[str | None]  = mapped_column('TagValue')
     description        : Mapped[str | None]  = mapped_column('Description')
-    has_pairing        : Mapped[bool | None] = mapped_column('HasPairing', IntBool)
+    has_pairing        : Mapped[bool | None] = mapped_column('HasPairing', IntBool, default=False)
     pair_rel_id        : Mapped[int | None]  = mapped_column('PairRelID')
-    additional_members : Mapped[int | None]  = mapped_column('AdditionalMembers')
+    additional_members : Mapped[int | None]  = mapped_column('AdditionalMembers', default=0)
     tagger_id          : Mapped[int | None]  = mapped_column('TaggedBy', ForeignKey('users.ID'))
 
     tagger: Mapped['db_user.DbUser | None'] = relationship('DbUser')

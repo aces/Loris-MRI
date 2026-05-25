@@ -17,21 +17,21 @@ class DbMriUpload(Base):
     __tablename__ = 'mri_upload'
 
     id                          : Mapped[int]             = mapped_column('UploadID', primary_key=True)
-    uploaded_by                 : Mapped[str]             = mapped_column('UploadedBy')
+    uploaded_by                 : Mapped[str]             = mapped_column('UploadedBy', default='')
     upload_date                 : Mapped[datetime | None] = mapped_column('UploadDate')
-    upload_path                 : Mapped[Path]            = mapped_column('UploadLocation', StringPath)
-    decompressed_path           : Mapped[Path]            = mapped_column('DecompressedLocation', StringPath)
-    insertion_complete          : Mapped[bool]            = mapped_column('InsertionComplete', IntBool)
+    upload_path                 : Mapped[Path]            = mapped_column('UploadLocation', StringPath, default='')
+    decompressed_path           : Mapped[Path]            = mapped_column('DecompressedLocation', StringPath, default='')
+    insertion_complete          : Mapped[bool]            = mapped_column('InsertionComplete', IntBool, default=False)
     inserting                   : Mapped[bool | None]     = mapped_column('Inserting', IntBool)
-    patient_name                : Mapped[str]             = mapped_column('PatientName')
+    patient_name                : Mapped[str]             = mapped_column('PatientName', default='')
     number_of_minc_inserted     : Mapped[int | None]      = mapped_column('number_of_mincInserted')
     number_of_minc_created      : Mapped[int | None]      = mapped_column('number_of_mincCreated')
     dicom_archive_id            : Mapped[int | None] \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
     session_id                  : Mapped[int | None]      = mapped_column('SessionID', ForeignKey('session.ID'))
     is_candidate_info_validated : Mapped[bool | None]     = mapped_column('IsCandidateInfoValidated', IntBool)
-    is_dicom_archive_validated  : Mapped[bool]            = mapped_column('IsTarchiveValidated', IntBool)
-    is_phantom                  : Mapped[bool]            = mapped_column('IsPhantom', YNBool)
+    is_dicom_archive_validated  : Mapped[bool]            = mapped_column('IsTarchiveValidated', IntBool, default=False)
+    is_phantom                  : Mapped[bool]            = mapped_column('IsPhantom', YNBool, default=False)
 
     dicom_archive : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
         = relationship('DbDicomArchive', back_populates='mri_uploads')

@@ -8,7 +8,7 @@ class DbSite(Base):
     __tablename__ = 'psc'
 
     id         : Mapped[int]         = mapped_column('CenterID', primary_key=True)
-    name       : Mapped[str]         = mapped_column('Name')
+    name       : Mapped[str]         = mapped_column('Name', default='')
     area       : Mapped[str | None]  = mapped_column('PSCArea')
     address    : Mapped[str | None]  = mapped_column('Address')
     city       : Mapped[str | None]  = mapped_column('City')
@@ -18,7 +18,7 @@ class DbSite(Base):
     phone_2    : Mapped[str | None]  = mapped_column('Phone2')
     contact_1  : Mapped[str | None]  = mapped_column('Contact1')
     contact_2  : Mapped[str | None]  = mapped_column('Contact2')
-    alias      : Mapped[str]         = mapped_column('Alias')
-    mri_alias  : Mapped[str]         = mapped_column('MRI_alias')
+    alias      : Mapped[str]         = mapped_column('Alias', default='')
+    mri_alias  : Mapped[str]         = mapped_column('MRI_alias', default='')
     account    : Mapped[str | None]  = mapped_column('Account')
-    study_site : Mapped[bool | None] = mapped_column('Study_site', YNBool)
+    study_site : Mapped[bool | None] = mapped_column('Study_site', YNBool, default=True)

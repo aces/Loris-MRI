@@ -91,11 +91,9 @@ def populate_dicom_archive(
     dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number or ''
     dicom_archive.scanner_software_version = dicom_summary.info.scanner.software_version or ''
     dicom_archive.session_id               = None
-    dicom_archive.upload_attempt           = 0
     dicom_archive.create_info              = write_dicom_study_import_log_to_string(dicom_import_log)
     dicom_archive.acquisition_metadata     = write_dicom_study_summary(dicom_summary)
     dicom_archive.date_sent                = None
-    dicom_archive.pending_transfer         = False
 
 
 def insert_files_series(db: Database, dicom_archive: DbDicomArchive, dicom_summary: DicomStudySummary):

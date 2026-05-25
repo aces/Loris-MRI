@@ -86,8 +86,6 @@ def register_notification(env: Env, message: str, is_error: bool, is_verbose: bo
         process_id   = env.notifier.process_id,
         error        = is_error,
         verbose      = is_verbose,
-        sent         = False,
-        active       = True,
     )
 
     env.notifier.db.add(notification)

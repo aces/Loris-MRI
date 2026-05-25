@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -239,7 +238,6 @@ def insert_physio_task_event(
     event_task_file = DbPhysioTaskEvent(
         physio_file_id = physio_file.id,
         event_file_id  = events_file.id,
-        insert_time    = datetime.now(),
         onset          = onset,
         duration       = duration,
         event_code     = event_code,

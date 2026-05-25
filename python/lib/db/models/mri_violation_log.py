@@ -17,7 +17,7 @@ class DbMriViolationLog(Base):
     __tablename__ = 'mri_violations_log'
 
     id                      : Mapped[int]              = mapped_column('LogID', primary_key=True)
-    time_run                : Mapped[datetime]         = mapped_column('TimeRun')
+    time_run                : Mapped[datetime]         = mapped_column('TimeRun', default=datetime.now)
     series_uid              : Mapped[str | None]       = mapped_column('SeriesUID')
     dicom_archive_id        : Mapped[int | None]       \
         = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))

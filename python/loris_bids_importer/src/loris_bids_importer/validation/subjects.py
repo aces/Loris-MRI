@@ -113,10 +113,8 @@ def create_bids_candidate(env: Env, participant: BidsParticipantTsvRow) -> DbCan
         registration_site_id    = site.id,
         registration_project_id = project.id,
         user_id                 = 'imaging.py',
-        entity_type             = 'Human',
         date_active             = now,
         date_registered         = now,
-        active                  = True,
     )
 
     env.db.add(candidate)

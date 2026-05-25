@@ -73,8 +73,7 @@ class Env:
         notification_type = try_get_notification_type_with_name(notification_db, notification_type_name)
         if notification_type is None:
             notification_type = DbNotificationType(
-                name    = notification_type_name,
-                private = False,
+                name = notification_type_name,
             )
 
             notification_db.add(notification_type)

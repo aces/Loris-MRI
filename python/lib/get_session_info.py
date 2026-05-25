@@ -249,17 +249,9 @@ def create_session(
         visit_label      = visit_label,
         visit_number     = visit_number,
         site_id          = create_session_info.site.id,
-        current_stage    = 'Not Started',
         scan_done        = True,
-        submitted        = False,
         project_id       = create_session_info.project.id,
         cohort_id        = create_session_info.cohort.id if create_session_info.cohort is not None else None,
-        active           = True,
-        user_id          = '',
-        hardcopy_request = '-',
-        mri_qc_status    = '',
-        mri_qc_pending   = False,
-        mri_caveat       = True,
     )
 
     env.db.add(session)
