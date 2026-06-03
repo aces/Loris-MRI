@@ -14,7 +14,7 @@ def get_bids_mri_sidecar_scanner_info(sidecar: BidsMriSidecarJsonFile) -> MriSca
     """
 
     return MriScannerInfo(
-        manufacturer     = sidecar.data.get('Manufaturer'),
+        manufacturer     = sidecar.data.get('Manufacturer'),
         model            = sidecar.data.get('ManufacturersModelName'),
         serial_number    = sidecar.data.get('DeviceSerialNumber'),
         software_version = sidecar.data.get('SoftwareVersions'),
