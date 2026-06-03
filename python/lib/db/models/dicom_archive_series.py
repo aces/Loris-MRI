@@ -11,7 +11,7 @@ class DbDicomArchiveSeries(Base):
 
     id                 : Mapped[int]          = mapped_column('TarchiveSeriesID', primary_key=True)
     archive_id         : Mapped[int]          = mapped_column('TarchiveID', ForeignKey('tarchive.TarchiveID'))
-    series_number      : Mapped[int]          = mapped_column('SeriesNumber')
+    series_number      : Mapped[int]          = mapped_column('SeriesNumber', default=0)
     series_description : Mapped[str | None]   = mapped_column('SeriesDescription')
     sequence_name      : Mapped[str | None]   = mapped_column('SequenceName')
     echo_time          : Mapped[float | None] = mapped_column('EchoTime')
@@ -19,7 +19,7 @@ class DbDicomArchiveSeries(Base):
     inversion_time     : Mapped[float | None] = mapped_column('InversionTime')
     slice_thickness    : Mapped[float | None] = mapped_column('SliceThickness')
     phase_encoding     : Mapped[str | None]   = mapped_column('PhaseEncoding')
-    number_of_files    : Mapped[int]          = mapped_column('NumberOfFiles')
+    number_of_files    : Mapped[int]          = mapped_column('NumberOfFiles', default=0)
     series_uid         : Mapped[str | None]   = mapped_column('SeriesUID')
     modality           : Mapped[str | None]   = mapped_column('Modality')
 

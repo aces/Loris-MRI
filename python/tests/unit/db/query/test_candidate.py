@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from datetime import datetime
 
 import pytest
 from sqlalchemy.orm import Session as Database
@@ -25,10 +24,6 @@ def setup():
         psc_id='DCC001',
         registration_site_id = 1,
         registration_project_id = 1,
-        active = True,
-        user_id = 'admin',
-        test_date = datetime.now(),
-        entity_type = 'human',
     )
 
     candidate_2 = DbCandidate(
@@ -36,10 +31,6 @@ def setup():
         psc_id='DCC002',
         registration_site_id = 1,
         registration_project_id = 1,
-        active = True,
-        user_id = 'admin',
-        test_date = datetime.now(),
-        entity_type = 'human',
     )
 
     db.add(candidate_1)

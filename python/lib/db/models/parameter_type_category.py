@@ -8,4 +8,4 @@ class DbParameterTypeCategory(Base):
 
     id   : Mapped[int]        = mapped_column('ParameterTypeCategoryID', primary_key=True)
     name : Mapped[str | None] = mapped_column('Name')
-    type : Mapped[str | None] = mapped_column('Type')
+    type : Mapped[str | None] = mapped_column('Type', default='Metavars')

@@ -15,7 +15,7 @@ class DbPhysioTaskEvent(Base):
     id             : Mapped[int]            = mapped_column('PhysiologicalTaskEventID', primary_key=True)
     physio_file_id : Mapped[int]            = mapped_column('PhysiologicalFileID', ForeignKey('physiological_file.PhysiologicalFileID'))
     event_file_id  : Mapped[int]            = mapped_column('EventFileID', ForeignKey('physiological_event_file.EventFileID'))
-    insert_time    : Mapped[datetime]       = mapped_column('InsertTime')
+    insert_time    : Mapped[datetime]       = mapped_column('InsertTime', default=datetime.now)
     onset          : Mapped[Decimal]        = mapped_column('Onset')
     duration       : Mapped[Decimal]        = mapped_column('Duration')
     channel        : Mapped[str | None]     = mapped_column('Channel')

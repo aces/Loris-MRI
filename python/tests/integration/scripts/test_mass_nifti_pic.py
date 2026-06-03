@@ -164,8 +164,6 @@ def test_running_on_a_text_file():
         file_type           = 'txt',
         session_id          = 564,
         output_type         = 'native',
-        insert_time         = datetime.now(),
-        inserted_by_user_id = 'test'
     )
 
     db.add(file)
