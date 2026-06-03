@@ -16,8 +16,6 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
     Create the channels chunks for a physiological file based on its source MEG CTF directory.
     """
 
-    data_dir = get_data_dir_path_config(env)
-
     chunk_path = try_get_physio_file_parameter_with_file_id_name(
         env.db,
         physio_file.id,
@@ -82,8 +80,10 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
         env,
         physio_file,
         'electrophysiology_chunked_dataset_path',
-        chunk_path.relative_to(data_dir),
+        chunk_path.relative_to(data_dir_path),
     )
+
+    env.db.commit()
 
 
 def get_dataset_chunks_dir_path(env: Env, physio_file: DbPhysioFile):
