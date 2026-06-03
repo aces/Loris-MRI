@@ -19,7 +19,7 @@ def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert .edf files to chunks for browser based visualisation.')
+        description='Convert .edf files to chunks for browser based visualization.')
     parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help='one or more .edf files to convert to a directory of chunks next to the input file')
     parser.add_argument('--channel_index', '-i', dest='channel_index', type=int, default=0,

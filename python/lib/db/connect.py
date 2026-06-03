@@ -18,6 +18,6 @@ def get_database_engine(config: DatabaseConfig):
         database   = config.database,
     )
 
-    # 'READ COMMITED' means that the records read in a session can be modified by other sessions
+    # 'READ COMMITTED' means that the records read in a session can be modified by other sessions
     # (such as subscripts or other scripts) during this session's lifetime.
     return create_engine(url, isolation_level='READ COMMITTED')

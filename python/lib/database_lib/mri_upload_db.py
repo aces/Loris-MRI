@@ -24,7 +24,7 @@ class MriUploadDB:
 
     def __init__(self, db, verbose):
         """
-        Constructor method for the MriUplaodDB class.
+        Constructor method for the MriUploadDB class.
 
         :param db                 : Database class object
          :type db                 : object

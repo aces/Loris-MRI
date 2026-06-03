@@ -124,7 +124,7 @@ class AwsS3:
         :param s3_object_name: S3 object name. It should be identical to the LORIS relative path to
                                data_dir
          :type s3_object_name: str
-        :param force: Whether to force upload if the file aready exists on the bucket.
+        :param force: Whether to force upload if the file already exists on the bucket.
          :type force: bool
         """
 

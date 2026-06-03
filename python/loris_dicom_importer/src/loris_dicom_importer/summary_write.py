@@ -174,7 +174,7 @@ def write_dicom_study_ending(dicom_summary: DicomStudySummary) -> str:
 
 def compare_dicom_files(a: DicomStudyDicomFile, b: DicomStudyDicomFile):
     """
-    Compare two DICOM file informations in accordance with `functools.cmp_to_key`.
+    Compare two DICOM file information in accordance with `functools.cmp_to_key`.
     """
 
     return \
@@ -185,7 +185,7 @@ def compare_dicom_files(a: DicomStudyDicomFile, b: DicomStudyDicomFile):
 
 def compare_dicom_series(a: DicomStudyDicomSeries, b: DicomStudyDicomSeries):
     """
-    Compare two acquisition informations in accordance with `functools.cmp_to_key`.
+    Compare two acquisition information in accordance with `functools.cmp_to_key`.
     """
 
     return \

@@ -38,7 +38,7 @@ def create_nifti_preview_picture(env: Env, nifti_file: DbFile) -> Path:
         # Load the full data for a 3D image.
         data = img.dataobj[...]  # type: ignore
 
-    # Explicitely load the volume as float32 for plotting.
+    # Explicitly load the volume as float32 for plotting.
     volume = Nifti1Image(
         data.astype(np.float32, copy=False),  # type: ignore
         img.affine,  # type: ignore
