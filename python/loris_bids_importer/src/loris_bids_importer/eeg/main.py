@@ -5,14 +5,6 @@ import os
 import sys
 from pathlib import Path
 
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
-from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
-from loris_bids_reader.files.events import BidsEventsTsvFile
-from loris_bids_reader.files.scans import BidsScansTsvFile
-from loris_bids_reader.info import BidsDataTypeInfo
-from loris_bids_reader.json import BidsJsonFile
-from loris_utils.crypto import compute_file_blake2b_hash
-
 import lib.exitcode
 import lib.utilities as utilities
 from lib.config import get_ephys_visualization_enabled_config
@@ -21,29 +13,37 @@ from lib.db.models.session import DbSession
 from lib.db.queries.hed_schema_node import get_all_hed_schema_nodes
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
-from lib.import_bids_dataset.archive import import_physio_event_archive, import_physio_file_archive
-from lib.import_bids_dataset.channels import insert_bids_channels_file
-from lib.import_bids_dataset.copy_files import copy_loris_bids_file, get_loris_bids_file_path, get_loris_scans_path
-from lib.import_bids_dataset.env import BidsImportEnv
-from lib.import_bids_dataset.events import insert_bids_event_dict_file, insert_bids_events_file
-from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
-from lib.import_bids_dataset.physio import (
-    get_check_bids_physio_file_hash,
-    get_check_bids_physio_modality,
-    get_check_bids_physio_output_type,
-)
 from lib.logging import log, log_warning
 from lib.physio.chunking import create_physio_channels_chunks
 from lib.physio.events import EventDictFileSource
 from lib.physio.file import insert_physio_file
 from lib.physio.parameters import insert_physio_file_parameters
-from lib.physiological import Physiological
+from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
+from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
+from loris_bids_reader.files.events import BidsEventsTsvFile
+from loris_bids_reader.files.scans import BidsScansTsvFile
+from loris_bids_reader.info import BidsDataTypeInfo
+from loris_bids_reader.json import BidsJsonFile
+from loris_utils.crypto import compute_file_blake2b_hash
+
+from loris_bids_importer.archive import import_physio_event_archive, import_physio_file_archive
+from loris_bids_importer.channels import insert_bids_channels_file
+from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_file_path, get_loris_scans_path
+from loris_bids_importer.eeg.physiological import Physiological
+from loris_bids_importer.env import BidsImportEnv
+from loris_bids_importer.events import insert_bids_event_dict_file, insert_bids_events_file
+from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
+from loris_bids_importer.physio import (
+    get_check_bids_physio_file_hash,
+    get_check_bids_physio_modality,
+    get_check_bids_physio_output_type,
+)
 
 
 class Eeg:
     """
     This class reads the BIDS EEG data structure and register the EEG datasets
-    into the database by calling the lib.physiological class.
+    into the database by calling the loris_bids_importer.eeg.physiological class.
     """
 
     def __init__(self, env: Env, import_env: BidsImportEnv, bids_layout, bids_info: BidsDataTypeInfo,

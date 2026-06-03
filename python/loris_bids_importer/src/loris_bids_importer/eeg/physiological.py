@@ -15,7 +15,7 @@ class Physiological:
 
     :Example:
 
-        from lib.physiological import Physiological
+        from loris_bids_importer.eeg.physiological import Physiological
         from lib.database      import Database
 
         # database connection

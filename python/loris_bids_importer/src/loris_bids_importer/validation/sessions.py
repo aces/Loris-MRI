@@ -1,7 +1,3 @@
-from loris_bids_reader.files.participants import BidsParticipantTsvRow
-from loris_bids_reader.info import BidsSessionInfo
-from loris_utils.error import group_errors
-
 from lib.config import get_default_bids_visit_label_config
 from lib.db.models.candidate import DbCandidate
 from lib.db.models.cohort import DbCohort
@@ -9,11 +5,15 @@ from lib.db.models.session import DbSession
 from lib.db.queries.cohort import try_get_cohort_with_name
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.env import Env
-from lib.import_bids_dataset.check_subjects import check_or_create_bids_subject
 from lib.logging import log
+from loris_bids_reader.files.participants import BidsParticipantTsvRow
+from loris_bids_reader.info import BidsSessionInfo
+from loris_utils.error import group_errors
+
+from loris_bids_importer.validation.subjects import validate_bids_subject
 
 
-def check_or_create_bids_sessions(
+def validate_bids_sessions(
     env: Env,
     session_infos: list[BidsSessionInfo],
     create_session: bool,
@@ -26,11 +26,11 @@ def check_or_create_bids_sessions(
 
     return group_errors(
         "Could not get or create the LORIS sessions for the BIDS dataset.",
-        (lambda: check_or_create_bids_session(env, session_info, create_session) for session_info in session_infos),
+        (lambda: validate_bids_session(env, session_info, create_session) for session_info in session_infos),
     )
 
 
-def check_or_create_bids_session(
+def validate_bids_session(
     env: Env,
     session_info: BidsSessionInfo,
     create_session: bool,
@@ -41,7 +41,7 @@ def check_or_create_bids_session(
     does not exist or cannot be created.
     """
 
-    candidate = check_or_create_bids_subject(env, session_info)
+    candidate = validate_bids_subject(env, session_info)
 
     if session_info.session is not None:
         visit_label = session_info.session

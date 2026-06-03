@@ -1,19 +1,17 @@
 from typing import Any
 
-from loris_bids_reader.mri.reader import BidsMriDataTypeReader
-from loris_bids_reader.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
-
 from lib.config import get_data_dir_path_config, get_default_bids_visit_label_config
 from lib.database import Database
 from lib.db.models.session import DbSession
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
-from lib.eeg import Eeg
 from lib.env import Env
-from lib.import_bids_dataset.args import Args
-from lib.import_bids_dataset.check_sessions import check_or_create_bids_sessions
-from lib.import_bids_dataset.check_subjects import check_or_create_bids_subjects
-from lib.import_bids_dataset.copy_files import (
+from lib.logging import log, log_error_exit, log_warning
+from loris_bids_reader.mri.reader import BidsMriDataTypeReader
+from loris_bids_reader.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
+
+from loris_bids_importer.args import Args
+from loris_bids_importer.copy_files import (
     copy_bids_participants_file,
     copy_bids_scans_file,
     copy_bids_static_files,
@@ -21,11 +19,13 @@ from lib.import_bids_dataset.copy_files import (
     get_loris_bids_root_file_path,
     get_loris_scans_path,
 )
-from lib.import_bids_dataset.env import BidsImportEnv
-from lib.import_bids_dataset.events import import_bids_root_event_dict_file
-from lib.import_bids_dataset.mri import import_bids_mri_data_type
-from lib.import_bids_dataset.print import print_bids_import_summary, print_bids_info
-from lib.logging import log, log_error_exit, log_warning
+from loris_bids_importer.eeg.main import Eeg
+from loris_bids_importer.env import BidsImportEnv
+from loris_bids_importer.events import import_bids_root_event_dict_file
+from loris_bids_importer.mri.main import import_bids_mri_data_type
+from loris_bids_importer.print import print_bids_import_summary, print_bids_info
+from loris_bids_importer.validation.sessions import validate_bids_sessions
+from loris_bids_importer.validation.subjects import validate_bids_subjects
 
 
 def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
@@ -44,13 +44,13 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     # Check the BIDS subject and session labels and create their candidates and sessions in LORIS
     # if needed.
 
-    check_or_create_bids_subjects(
+    validate_bids_subjects(
         env,
         [subject.info for subject in bids.subjects],
         args.create_candidate,
     )
 
-    sessions = check_or_create_bids_sessions(
+    sessions = validate_bids_sessions(
         env,
         [session.info for session in bids.sessions],
         args.create_session,
