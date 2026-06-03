@@ -19,18 +19,16 @@ class BidsScanTsvRow(BidsTsvRow):
         Get the acquisition time of the acquisition file.
         """
 
-        if 'acq_time' in self.data:
-            # the variable name could be mri_acq_time, but is eeg originally.
-            eeg_acq_time = self.data['acq_time']
-
-            if eeg_acq_time == 'n/a':
+        acq_time_string = self.data.get('acq_time')
+        if acq_time_string is not None:
+            if acq_time_string == 'n/a':
                 return None
 
             try:
-                eeg_acq_time = dateutil.parser.parse(eeg_acq_time)
+                acq_time = dateutil.parser.parse(acq_time_string)
             except ValueError as e:
-                raise Exception(f"Could not convert acquisition time {eeg_acq_time}' to datetime: {e}")
-            return eeg_acq_time
+                raise Exception(f"Could not convert acquisition time {acq_time_string}' to datetime: {e}")
+            return acq_time
 
         return None
 
@@ -43,8 +41,9 @@ class BidsScanTsvRow(BidsTsvRow):
         age_header_list = ['age', 'age_at_scan', 'age_acq_time']
 
         for header_name in age_header_list:
-            if header_name in self.data:
-                return self.data[header_name].strip()
+            age_string = self.data.get(header_name)
+            if age_string is not None:
+                return age_string.strip()
 
         return None
 
@@ -64,7 +63,7 @@ class BidsScansTsvFile(BidsTsvFile[BidsScanTsvRow]):
         Get the row corresponding to the given file path.
         """
 
-        return find(self.rows, lambda row: file_path.name in row.data['filename'])
+        return find(self.rows, lambda row: file_path.name == row.data['filename'])
 
     def set_row(self, scan: BidsScanTsvRow):
         """

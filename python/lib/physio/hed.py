@@ -121,7 +121,7 @@ def build_hed_tag_groups(hed_union: Sequence[DbHedSchemaNode], hed_string: str) 
     return tag_groups
 
 
-def standardize_row_columns(row: dict[str, str | None]) -> dict[str, str | None]:
+def standardize_row_columns(row: dict[str, str | None]) -> dict[str, str]:
     """
     Standardizes LORIS-recognized events.tsv columns to their DB column name
 
@@ -130,7 +130,7 @@ def standardize_row_columns(row: dict[str, str | None]) -> dict[str, str | None]
     :return: Standardized row
     """
 
-    standardized_row: dict[str, Any] = {}
+    standardized_row: dict[str, str] = {}
     recognized_event_fields = [
         'Onset', 'Duration', 'TrialType',
         'ResponseTime', 'EventCode',

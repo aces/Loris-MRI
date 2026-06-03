@@ -1,6 +1,6 @@
 import csv
 from pathlib import Path
-from typing import Any, Generic, TypeVar
+from typing import Generic, TypeVar
 
 from loris_utils.parse import nullify_empty_string
 
@@ -11,9 +11,9 @@ class BidsTsvRow:
     Documentation: https://bids-specification.readthedocs.io/en/stable/common-principles.html#tabular-files
     """
 
-    data: dict[str, Any]
+    data: dict[str, str | None]
 
-    def __init__(self, data: dict[str, Any]):
+    def __init__(self, data: dict[str, str | None]):
         self.data = data
 
 
@@ -33,9 +33,15 @@ class BidsTsvFile(Generic[T]):
         self.path = path
         self.rows = []
 
+        # The 'utf-8-sig' encoding is used to support some datasets where metadata files may contain
+        # a byte-order mark (BOM).
         with open(self.path, encoding='utf-8-sig') as file:
             reader = csv.DictReader(file, delimiter='\t')
             for row in reader:
+                # Skip empty lines (such as trailing newlines).
+                if row == {}:
+                    continue
+
                 row = {key: nullify_empty_string(value) for key, value in row.items()}
                 self.rows.append(model(row))
 

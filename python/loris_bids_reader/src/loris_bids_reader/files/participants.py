@@ -16,14 +16,24 @@ class BidsParticipantTsvRow(BidsTsvRow):
     """
 
     participant_id: str
-    birth_date: date | None
+    project: str | None
+    site: str | None
     cohort: str | None
+    birth_date: date | None
+    sex: str | None
 
-    def __init__(self, data: dict[str, str]):
+    def __init__(self, data: dict[str, str | None]):
         super().__init__(data)
-        self.participant_id = data['participant_id'].removeprefix('sub-')
-        self.birth_date = self._read_birth_date()
+        participant_id = self.data.get('participant_id')
+        if participant_id is None:
+            raise Exception("Missing participant_id field in `participants.tsv` file.")
+
+        self.participant_id = participant_id.removeprefix('sub-')
+        self.project = self.data.get('project')
+        self.site = self.data.get('site')
         self.cohort = self._read_cohort()
+        self.birth_date = self._read_birth_date()
+        self.sex = self.data.get('sex')
 
     def _read_birth_date(self) -> date | None:
         """
@@ -31,9 +41,10 @@ class BidsParticipantTsvRow(BidsTsvRow):
         """
 
         for birth_date_field_name in ['date_of_birth', 'birth_date', 'dob']:
-            if birth_date_field_name in self.data:
+            birth_date_string = self.data.get(birth_date_field_name)
+            if birth_date_string is not None:
                 try:
-                    return dateutil.parser.parse(self.data[birth_date_field_name]).date()
+                    return dateutil.parser.parse(birth_date_string).date()
                 except ParserError:
                     pass
 

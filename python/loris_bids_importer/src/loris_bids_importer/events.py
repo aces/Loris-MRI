@@ -116,9 +116,9 @@ def insert_bids_events_file(
     for row in events_file.rows:
         # has additional fields?
         additional_fields: dict[str, str] = {}
-        for field in row.data:
-            if field not in known_fields and str(row.data[field]).lower() != 'nan':
-                additional_fields[field] = row.data[field]
+        for field, value in row.data.items():
+            if field not in known_fields and value is not None and value.lower() != 'nan':
+                additional_fields[field] = value
 
         # insert one event and get its db id
         task_event = insert_physio_task_event(
@@ -137,8 +137,9 @@ def insert_bids_events_file(
 
         # Insert HED tags after filtering out inherited tags from events.json, so that they are
         # not "duplicated"
-        if row.data.get('HED') is not None and len(row.data['HED']) > 0 and row.data['HED'] != 'n/a':
-            tag_groups = build_hed_tag_groups(hed_union, row.data['HED'])
+        hed = row.data.get('HED')
+        if hed is not None and len(hed) > 0 and hed != 'n/a':
+            tag_groups = build_hed_tag_groups(hed_union, hed)
             tag_groups_without_inherited = filter_inherited_tags(
                 row.data, tag_groups, dataset_tag_dict, file_tag_dict
             )
