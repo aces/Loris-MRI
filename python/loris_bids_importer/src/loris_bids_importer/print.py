@@ -10,10 +10,6 @@ def print_bids_info(env: Env, bids: BidsDatasetReader):
     Print information about the BIDS dataset to import.
     """
 
-    log(env, f"Found {len(bids.data_types)} data types:")
-    for data_type in bids.data_types:
-        log(env, f"- {data_type.name}")
-
     log(env, f"Found {len(bids.subject_labels)} subjects:")
     for subject_label in bids.subject_labels:
         log(env, f"- {subject_label}")
@@ -21,6 +17,10 @@ def print_bids_info(env: Env, bids: BidsDatasetReader):
     log(env, f"Found {len(bids.session_labels)} sessions:")
     for session_label in bids.session_labels:
         log(env, f"- {session_label}")
+
+    log(env, f"Found {len(bids.data_type_names)} data types:")
+    for data_type_name in bids.data_type_names:
+        log(env, f"- {data_type_name}")
 
 
 def print_bids_import_summary(env: Env, import_env: BidsImportEnv):

@@ -6,7 +6,7 @@ from lib.db.models.session import DbSession
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.env import Env
-from lib.logging import log, log_error_exit, log_warning
+from lib.logging import log, log_error, log_error_exit, log_warning
 from loris_bids_reader.mri.reader import BidsMriDataTypeReader
 from loris_bids_reader.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
 
@@ -207,13 +207,24 @@ def import_bids_eeg_data_type_files(
     Read the provided BIDS EEG data type directory and import it into LORIS.
     """
 
-    Eeg(
-        env                    = env,
-        import_env             = import_env,
-        bids_layout            = data_type.session.subject.dataset.layout,
-        bids_info              = data_type.info,
-        db                     = legacy_db,
-        session                = session,
-        dataset_tag_dict       = dataset_tag_dict,
-        dataset_type           = args.type,
-    )
+    try:
+        Eeg(
+            env              = env,
+            import_env       = import_env,
+            bids_layout      = data_type.session.subject.dataset.layout,
+            bids_info        = data_type.info,
+            db               = legacy_db,
+            session          = session,
+            dataset_tag_dict = dataset_tag_dict,
+            dataset_type     = args.type,
+        )
+    except Exception as exception:
+        log_error(
+            env,
+            (
+                f"Error while importing EEG session. Error message:\n"
+                f"{exception}\n"
+                "Skipping."
+            )
+        )
+        import_env.failed_acquisitions_count += 1
