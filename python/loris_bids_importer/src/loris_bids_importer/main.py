@@ -7,8 +7,8 @@ from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.env import Env
 from lib.logging import log, log_error_exit, log_warning
-from loris_bids_reader.mri.reader import BidsMriDataTypeReader
-from loris_bids_reader.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
+from loris_bids_utils.mri.reader import BidsMriDataTypeReader
+from loris_bids_utils.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
 
 from loris_bids_importer.args import Args
 from loris_bids_importer.copy_files import (

@@ -4,7 +4,7 @@ from pathlib import Path
 import dateutil.parser
 from loris_utils.iter import find, replace_or_append
 
-from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
+from loris_bids_utils.tsv import BidsTsvFile, BidsTsvRow
 
 
 class BidsScanTsvRow(BidsTsvRow):

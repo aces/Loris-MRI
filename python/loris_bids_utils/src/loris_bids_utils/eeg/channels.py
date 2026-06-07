@@ -5,7 +5,7 @@ from pathlib import Path
 from loris_utils.iter import map_non_none
 from loris_utils.parse import try_parse_decimal
 
-from loris_bids_reader.tsv import BidsTsvFile, BidsTsvRow
+from loris_bids_utils.tsv import BidsTsvFile, BidsTsvRow
 
 
 class BidsEegChannelTsvRow(BidsTsvRow):

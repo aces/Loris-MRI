@@ -8,7 +8,7 @@ from pathlib import Path
 
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
 from loris_bids_importer.mri.sidecar import add_bids_mri_sidecar_file_parameters, get_bids_mri_sidecar_session_info
-from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 import lib.exitcode

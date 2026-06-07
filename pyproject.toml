@@ -25,7 +25,7 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "typing-extensions",
     "loris-bids-importer  @ {root:uri}/python/loris_bids_importer",
-    "loris-bids-reader    @ {root:uri}/python/loris_bids_reader",
+    "loris-bids-utils     @ {root:uri}/python/loris_bids_utils",
     "loris-dicom-importer @ {root:uri}/python/loris_dicom_importer",
     "loris-ephys-chunker  @ {root:uri}/python/loris_ephys_chunker",
     "loris-utils          @ {root:uri}/python/loris_utils",
@@ -55,7 +55,7 @@ members = ["python/loris_*"]
 
 [tool.uv.sources]
 loris_bids_importer  = { workspace = true }
-loris_bids_reader    = { workspace = true }
+loris_bids_utils     = { workspace = true }
 loris_dicom_importer = { workspace = true }
 loris_ephys_chunker  = { workspace = true }
 loris_utils          = { workspace = true }
@@ -94,7 +94,7 @@ include = [
     "python/lib/make_env.py",
     "python/scripts/mass_electrophysiology_chunking.py",
     "python/loris_bids_importer",
-    "python/loris_bids_reader",
+    "python/loris_bids_utils",
     "python/loris_dicom_importer",
     "python/loris_ephys_chunker",
     "python/loris_utils",

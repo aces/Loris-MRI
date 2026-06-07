@@ -3,7 +3,7 @@ from typing import TypeVar
 
 from lib.env import Env
 from lib.logging import log, log_error
-from loris_bids_reader.info import BidsAcquisitionInfo
+from loris_bids_utils.info import BidsAcquisitionInfo
 
 from loris_bids_importer.env import BidsImportEnv
 

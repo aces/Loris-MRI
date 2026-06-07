@@ -18,12 +18,12 @@ from lib.physio.chunking import create_physio_channels_chunks
 from lib.physio.events import EventDictFileSource
 from lib.physio.file import insert_physio_file
 from lib.physio.parameters import insert_physio_file_parameters
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile
-from loris_bids_reader.eeg.sidecar import BidsEegSidecarJsonFile
-from loris_bids_reader.files.events import BidsEventsTsvFile
-from loris_bids_reader.files.scans import BidsScansTsvFile
-from loris_bids_reader.info import BidsDataTypeInfo
-from loris_bids_reader.json import BidsJsonFile
+from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile
+from loris_bids_utils.eeg.sidecar import BidsEegSidecarJsonFile
+from loris_bids_utils.files.events import BidsEventsTsvFile
+from loris_bids_utils.files.scans import BidsScansTsvFile
+from loris_bids_utils.info import BidsDataTypeInfo
+from loris_bids_utils.json import BidsJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash
 
 from loris_bids_importer.archive import import_physio_event_archive, import_physio_file_archive

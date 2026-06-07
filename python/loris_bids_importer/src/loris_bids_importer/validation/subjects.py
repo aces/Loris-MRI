@@ -10,8 +10,8 @@ from lib.db.queries.sex import try_get_sex_with_name
 from lib.db.queries.site import try_get_site_with_alias, try_get_site_with_name
 from lib.env import Env
 from lib.logging import log
-from loris_bids_reader.files.participants import BidsParticipantTsvRow
-from loris_bids_reader.info import BidsSubjectInfo
+from loris_bids_utils.files.participants import BidsParticipantTsvRow
+from loris_bids_utils.info import BidsSubjectInfo
 from loris_utils.error import group_errors, group_errors_tuple
 from loris_utils.parse import try_parse_int
 

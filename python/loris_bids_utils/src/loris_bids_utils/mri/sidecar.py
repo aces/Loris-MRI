@@ -1,4 +1,4 @@
-from loris_bids_reader.json import BidsJsonFile
+from loris_bids_utils.json import BidsJsonFile
 
 
 class BidsMriSidecarJsonFile(BidsJsonFile):

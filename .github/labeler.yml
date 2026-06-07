@@ -10,9 +10,9 @@
 - changed-files:
   - any-glob-to-any-file: 'python/loris_bids_importer/**'
 
-"Package: BIDS reader":
+"Package: BIDS utilities":
 - changed-files:
-  - any-glob-to-any-file: 'python/loris_bids_reader/**'
+  - any-glob-to-any-file: 'python/loris_bids_utils/**'
 
 "Package: DICOM importer":
 - changed-files:

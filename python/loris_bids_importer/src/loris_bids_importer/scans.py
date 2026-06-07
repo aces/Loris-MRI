@@ -1,6 +1,6 @@
 from typing import Any
 
-from loris_bids_reader.files.scans import BidsScansTsvFile, BidsScanTsvRow
+from loris_bids_utils.files.scans import BidsScansTsvFile, BidsScanTsvRow
 from loris_utils.crypto import compute_file_blake2b_hash
 
 
