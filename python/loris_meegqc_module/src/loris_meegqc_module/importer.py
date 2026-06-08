@@ -1,136 +1,92 @@
 import re
-from collections.abc import Sequence
-from enum import Enum
 from pathlib import Path
 
 from lib.db.models.physio_file import DbPhysioFile
-from lib.db.queries.candidate import try_get_candidate_with_psc_id
-from lib.db.queries.physio import get_candidate_ephys_files
+from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
-from lib.logging import log, log_error
-from loris_bids_importer.copy_files import copy_loris_bids_file
-from loris_bids_importer.env import BidsImportEnv
+from lib.logging import log, log_error, log_warning
+from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_root_file_path
+from loris_bids_importer.importer import BidsImporter
 from loris_bids_utils.reader import BidsDatasetReader
 from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.fs import iter_all_dir_files
+from loris_utils.iter import find
 
 from loris_meegqc_module.database.models.meegqc_file import DbMeegqcFile
 from loris_meegqc_module.database.queries.meegqc_file import try_get_meegqc_file_with_path
 
 
-class MeegqcFileKind(Enum):
-    CALCULATION     = 'calculation'
-    REPORTS         = 'reports'
-    SUMMARY_REPORTS = 'summary_reports'
+def import_meegqc_derivatives(env: Env, importer: BidsImporter, bids_dataset: BidsDatasetReader):
+    print("Running MEEGQC importer")
 
-
-def import_meegqc_derivatives(env: Env, import_env: BidsImportEnv, bids_dataset: BidsDatasetReader):
-    meegqc_path = bids_dataset.path / 'derivatives' / 'MEG_QC'
+    meegqc_path = bids_dataset.path / 'derivatives' / 'Meg_QC'
     if not meegqc_path.exists():
         log(env, "No MEEGqc derivatives found in the BIDS dataset. Skipping.")
         return
 
-    calculation_path = meegqc_path / 'calculation'
-
-    reports_path = meegqc_path / 'reports'
-
-    summary_reports_path = meegqc_path / 'summary_reports'
-
-    if calculation_path.exists():
-        import_meegqc_files(env, import_env, calculation_path, MeegqcFileKind.CALCULATION)
-
-    if reports_path.exists():
-        import_meegqc_files(env, import_env, reports_path, MeegqcFileKind.REPORTS)
-
-    if summary_reports_path.exists():
-        import_meegqc_files(env, import_env, summary_reports_path, MeegqcFileKind.SUMMARY_REPORTS)
-
-
-def import_meegqc_files(env: Env, import_env: BidsImportEnv, files_path: Path, kind: MeegqcFileKind):
-    for subject_path in files_path.iterdir():
-        # TODO: Use a general BIDS file name abstraction.
-        subject_match = re.match(r'sub-(.+)', subject_path.name)
-        if not subject_match:
+    for kind in ['calculation', 'summary_reports', 'reports']:
+        kind_path = meegqc_path / kind
+        if not kind_path.exists():
+            log_warning(env, f"No MEEGqc files found for kind '{kind}'.")
             continue
 
-        subject_label = subject_match.group(1)
-
-        for data_type in ['eeg', 'meg']:
-            data_type_path = subject_path / data_type
-            if not data_type_path.exists():
-                continue
-
-            for file_path in data_type_path.glob('**/*'):
-                if not file_path.is_file():
-                    continue
-
-                try:
-                    import_meegqc_file(env, import_env, subject_label, file_path, kind)
-                except Exception as exception:
-                    log_error(env, f"Error while importing MEEGqc file {file_path}. Error message:\n{exception}")
+        import_meegqc_files(env, importer, kind_path, kind)
 
 
-def import_meegqc_file(
-    env: Env,
-    import_env: BidsImportEnv,
-    subject_label: str,
-    meegqc_file_path: Path,
-    kind: MeegqcFileKind,
-):
-    log(env, f"Importing MEEGqc {kind.value} file '{meegqc_file_path}'.")
+def import_meegqc_files(env: Env, importer: BidsImporter, kind_path: Path, kind: str):
+    print(f"Importing MEEGqc files for kind '{kind}'")
 
-    # TODO: Make a general function for PSCID and CandID.
-    candidate = try_get_candidate_with_psc_id(env.db, subject_label)
-    if candidate is None:
-        raise Exception(
-            f"Could not find candidate with PSCID {subject_label} in the database. Skipping.",
-        )
+    for file_path in iter_all_dir_files(kind_path):
+        try:
+            import_meegqc_file(env, importer, file_path, kind)
+        except Exception as exception:
+            log_error(env, f"Error while importing MEEGqc file '{file_path}'. Error message:\n{exception}")
 
-    candidate_acquisition_files = get_candidate_ephys_files(env.db, candidate.id)
 
-    acquisition_file = find_acquisition_file(candidate_acquisition_files, meegqc_file_path)
+def import_meegqc_file(env: Env, importer: BidsImporter, meegqc_file_path: Path, kind: str):
+    log(env, f"Importing MEEGqc {kind} file '{meegqc_file_path}'.")
 
-    blake2b_hash = compute_file_blake2b_hash(meegqc_file_path)
+    full_file_path = importer.args.source_bids_path / meegqc_file_path
 
-    loris_file_path = (
-        meegqc_file_path.relative_to(import_env.data_dir_path)
-        if import_env.loris_bids_path is None else
-        Path('derivatives') / 'MEG_QC' / f'sub-{candidate.psc_id}' / kind.value / meegqc_file_path
-    )
+    acquisition_file = find_acquisition_file(env, importer, full_file_path)
+
+    blake2b_hash = compute_file_blake2b_hash(full_file_path)
+
+    loris_file_path = get_loris_bids_root_file_path(importer, full_file_path)
 
     current_meegqc_file = try_get_meegqc_file_with_path(env.db, loris_file_path)
     if current_meegqc_file is not None:
         log(env, f"A MEEGqc file with path {loris_file_path} already exists in the database. Skipping.")
         return
 
-    copy_loris_bids_file(import_env, meegqc_file_path, loris_file_path)
+    copy_loris_bids_file(importer, meegqc_file_path, loris_file_path)
 
     env.db.add(DbMeegqcFile(
         acquisition_file_id=acquisition_file.id,
-        file_path=loris_file_path,
-        kind=kind.value,
-        blake2b_hash=blake2b_hash
+        path=loris_file_path,
+        kind=kind,
+        blake2b_hash=blake2b_hash,
     ))
 
     env.db.commit()
 
 
-def find_acquisition_file(acquisition_files: Sequence[DbPhysioFile], meegqc_file_path: Path) -> DbPhysioFile:
+def find_acquisition_file(env: Env, importer: BidsImporter, meegqc_file_path: Path) -> DbPhysioFile:
     # TODO: Use a general BIDS file name abstraction.
-    meegqc_file_pattern = re.sub(r'desc-[^_]+', '*', meegqc_file_path.stem)
-    matching_acquisition_files: list[DbPhysioFile] = []
-    for acquisition_file in acquisition_files:
-        if re.match(meegqc_file_pattern, acquisition_file.path.stem):
-            matching_acquisition_files.append(acquisition_file)
+    meegqc_file_pattern = re.sub(r'_run-(\d)', r'_run-0+\1', meegqc_file_path.stem)
+    meegqc_file_pattern = re.sub(r'_desc-.+_meg', r'(_.*)?_meg', meegqc_file_pattern)
+    entry = find(importer.files_dict.items(), lambda entry: re.match(meegqc_file_pattern, entry[0].stem) is not None)
+    if entry is None:
+        raise Exception(f"TODO 1 cannot match {meegqc_file_path.stem} ({meegqc_file_pattern})")
 
-    match matching_acquisition_files:
-        case []:
-            raise Exception(
-                f"Could not find any acquisition file for MEEGqc file {meegqc_file_path}.",
-            )
-        case [acquisition_file]:
-            return acquisition_file
-        case _:
-            matching_files_string = "\n- ".join(file.path.name for file in matching_acquisition_files)
-            raise Exception(
-                f"Found multiple acquisition files for MEEGqc file {meegqc_file_path}:{matching_files_string}"
-            )
+    file_path = (
+        importer.loris_bids_path / entry[1]
+        if importer.loris_bids_path is not None
+        else (importer.args.source_bids_path / entry[1]).relative_to(importer.data_dir_path)
+    )
+
+    file = try_get_physio_file_with_path(env.db, file_path)
+    if file is None:
+        raise Exception(f"TODO 2 {entry}")
+
+    return file

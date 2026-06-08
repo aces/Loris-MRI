@@ -8,6 +8,7 @@ from lib.config import (
 from lib.db.models.meg_ctf_head_shape_file import DbMegCtfHeadShapeFile
 from lib.db.models.session import DbSession
 from lib.db.queries.hed_schema_node import get_all_hed_schema_nodes
+from lib.db.queries.meg_ctf_head_shape import try_get_meg_ctf_head_shape_file_with_path
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
 from lib.logging import log, log_warning
@@ -22,12 +23,11 @@ from loris_utils.error import group_errors_tuple
 from loris_utils.path import add_path_extension
 
 from loris_bids_importer.acquisitions import import_bids_acquisitions
-from loris_bids_importer.args import Args
 from loris_bids_importer.channels import insert_bids_channels_file
 from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_file_path
-from loris_bids_importer.env import BidsImportEnv
 from loris_bids_importer.events import insert_bids_event_dict_file, insert_bids_events_file
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type
+from loris_bids_importer.importer import BidsImporter
 from loris_bids_importer.meg.ctf_head_shape import insert_head_shape_file
 from loris_bids_importer.physio import (
     get_check_bids_physio_file_hash,
@@ -38,32 +38,32 @@ from loris_bids_importer.physio import (
 
 def import_bids_meg_data_type(
     env: Env,
-    import_env: BidsImportEnv,
-    args: Args,
+    importer: BidsImporter,
     session: DbSession,
     data_type: BidsMegDataTypeReader,
 ):
     if data_type.head_shape_file is not None:
         head_shape_file_path = get_loris_bids_file_path(
-            import_env,
+            importer,
             session,
             data_type.name,
             data_type.head_shape_file.path,
         )
 
-        head_shape_file = insert_head_shape_file(env, data_type.head_shape_file, head_shape_file_path)
-        copy_loris_bids_file(import_env, data_type.head_shape_file.path, head_shape_file_path)
+        head_shape_file = try_get_meg_ctf_head_shape_file_with_path(env.db, head_shape_file_path)
+        if head_shape_file is None:
+            head_shape_file = insert_head_shape_file(env, data_type.head_shape_file, head_shape_file_path)
+            copy_loris_bids_file(importer, data_type.head_shape_file.path, head_shape_file_path)
     else:
         head_shape_file = None
 
     import_bids_acquisitions(
         env,
-        import_env,
+        importer,
         data_type.acquisitions,
         lambda acquisition, bids_info: import_bids_meg_acquisition(
             env,
-            import_env,
-            args,
+            importer,
             session,
             acquisition,
             bids_info,
@@ -74,17 +74,39 @@ def import_bids_meg_data_type(
 
 def import_bids_meg_acquisition(
     env: Env,
-    import_env: BidsImportEnv,
-    args: Args,
+    importer: BidsImporter,
     session: DbSession,
     acquisition: MegAcquisition,
     bids_info: BidsAcquisitionInfo,
     head_shape_file: DbMegCtfHeadShapeFile | None,
 ):
+    # MEG CTF directories should not be renamed,
+    if importer.loris_bids_path is not None:
+        loris_file_path = (
+            importer.loris_bids_path
+            / f'sub-{session.candidate.psc_id}'
+            / f'ses-{session.visit_label}'
+            / 'meg'
+            / acquisition.ctf_path.name
+        )
+    else:
+        loris_file_path = acquisition.ctf_path.relative_to(importer.data_dir_path)
+
+    loris_file = try_get_physio_file_with_path(env.db, loris_file_path)
+    if loris_file is not None:
+        log(env, f"File '{loris_file_path}' is already registered in LORIS. Skipping.")
+        importer.files_dict[acquisition.ctf_path.relative_to(importer.args.source_bids_path)] = (
+            loris_file_path.relative_to(importer.loris_bids_path)
+            if importer.loris_bids_path is not None
+            else loris_file_path.relative_to(importer.args.source_bids_path)
+        )
+        importer.ignored_acquisitions_count += 1
+        return
+
     modality, output_type, file_type, file_hash = group_errors_tuple(
         f"Error while checking database information for MEG acquisition '{bids_info.name}'.",
         lambda: get_check_bids_physio_modality(env, bids_info.data_type),
-        lambda: get_check_bids_physio_output_type(env, args.type or 'raw'),
+        lambda: get_check_bids_physio_output_type(env, importer.args.type or 'raw'),
         lambda: get_check_bids_imaging_file_type(env, 'ctf'),
         lambda: get_check_bids_physio_file_hash(env, acquisition.ctf_path),
     )
@@ -92,25 +114,7 @@ def import_bids_meg_acquisition(
     # The files to copy to LORIS, with the source path on the left and the LORIS path on the right.
     files_to_copy: list[tuple[Path, Path]] = []
 
-    # MEG CTF directories should not be renamed,
-    if import_env.loris_bids_path is not None:
-        loris_file_path = (
-            import_env.loris_bids_path
-            / f'sub-{session.candidate.psc_id}'
-            / f'ses-{session.visit_label}'
-            / 'meg'
-            / acquisition.ctf_path.name
-        )
-    else:
-        loris_file_path = acquisition.ctf_path.relative_to(import_env.data_dir_path)
-
     files_to_copy.append((acquisition.ctf_path, loris_file_path))
-
-    loris_file = try_get_physio_file_with_path(env.db, loris_file_path)
-    if loris_file is not None:
-        log(env, f"File '{loris_file_path}' is already registered in LORIS. Skipping.")
-        import_env.ignored_acquisitions_count += 1
-        return
 
     check_bids_meg_metadata_files(env, acquisition, bids_info)
 
@@ -133,14 +137,14 @@ def import_bids_meg_acquisition(
         hed_union = get_all_hed_schema_nodes(env.db)
 
         loris_events_file_path = get_loris_bids_file_path(
-            import_env, session, bids_info.data_type, acquisition.events_file.path
+            importer, session, bids_info.data_type, acquisition.events_file.path
         )
 
         insert_bids_events_file(env, physio_file, acquisition.events_file, loris_events_file_path, {}, {}, hed_union)
         files_to_copy.append((acquisition.events_file.path, loris_events_file_path))
         if acquisition.events_file.dictionary is not None:
             loris_event_dict_file_path = get_loris_bids_file_path(
-                import_env, session, bids_info.data_type, acquisition.events_file.dictionary.path
+                importer, session, bids_info.data_type, acquisition.events_file.dictionary.path
             )
 
             insert_bids_event_dict_file(
@@ -153,18 +157,18 @@ def import_bids_meg_acquisition(
             files_to_copy.append((acquisition.events_file.dictionary.path, loris_event_dict_file_path))
 
     if acquisition.channels_file is not None:
-        insert_bids_channels_file(env, import_env, physio_file, session, bids_info, acquisition.channels_file)
+        insert_bids_channels_file(env, importer, physio_file, session, bids_info, acquisition.channels_file)
         loris_channels_file_path = get_loris_bids_file_path(
-            import_env, session, bids_info.data_type, acquisition.channels_file.path
+            importer, session, bids_info.data_type, acquisition.channels_file.path
         )
         files_to_copy.append((acquisition.channels_file.path, loris_channels_file_path))
 
     for source_path, destination_path in files_to_copy:
-        copy_loris_bids_file(import_env, source_path, destination_path)
+        copy_loris_bids_file(importer, source_path, destination_path)
 
     env.db.commit()
 
-    log(env, f"MEG file succesfully imported with ID: {physio_file.id}.")
+    log(env, f"MEG file successfully imported with ID: {physio_file.id}.")
 
     if get_ephys_visualization_enabled_config(env):
         log(env, "Creating visualization chunks...")

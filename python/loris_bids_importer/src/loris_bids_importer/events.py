@@ -24,12 +24,12 @@ from loris_bids_utils.json import BidsJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash
 
 from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_root_file_path
-from loris_bids_importer.env import BidsImportEnv
+from loris_bids_importer.importer import BidsImporter
 
 
 def import_bids_root_event_dict_file(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BidsImporter,
     project: DbProject,
     bids_event_dict_file: BidsJsonFile,
 ) -> tuple[DbPhysioEventFile, dict[str, dict[str, list[list[TagGroupMember]]]]]:

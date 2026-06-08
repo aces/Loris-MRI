@@ -23,6 +23,6 @@ api.state.config = config
 api.add_api_route('/health', health, methods=['GET'])
 
 # Load the modules registered into the LORIS server.
-for module in entry_points(group='loris_server.loaders'):
-    print(f"Loading module '{module.name}'")
+for module in entry_points(group='loris-server.loaders'):
+    print(f"Loading server module '{module.name}'")
     module.load()(api)

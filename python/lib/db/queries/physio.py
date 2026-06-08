@@ -1,12 +1,8 @@
-from collections.abc import Sequence
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session as Database
 
-from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_modality import DbPhysioModality
 from lib.db.models.physio_output_type import DbPhysioOutputType
-from lib.db.models.session import DbSession
 
 
 def try_get_physio_modality_with_name(db: Database, name: str) -> DbPhysioModality | None:
@@ -29,14 +25,3 @@ def try_get_physio_output_type_with_name(db: Database, name: str) -> DbPhysioOut
     return db.execute(select(DbPhysioOutputType)
         .where(DbPhysioOutputType.name == name)
     ).scalar_one_or_none()
-
-
-def get_candidate_ephys_files(db: Database, candidate_id: int) -> Sequence[DbPhysioFile]:
-    """
-    Get the electrophysiology files associated with a candidate.
-    """
-
-    return db.execute(select(DbPhysioFile)
-        .join(DbPhysioFile.session)
-        .where(DbSession.candidate_id == candidate_id)
-    ).scalars().all()

@@ -10,7 +10,7 @@ from lib.env import Env
 from mne.io.constants import FIFF
 from pydantic import BaseModel
 
-from loris_ephys_server.jsonize import jsonize
+from loris_ephys_visualizer_module.jsonize import jsonize
 
 
 def get_ephys_unit_symbol(unit_code: int) -> str | None:

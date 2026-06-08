@@ -1,10 +1,10 @@
 from fastapi import APIRouter, FastAPI
 from loris_server.dependencies import EnvDep
 
-from loris_ephys_server.dependencies import PhysioFileDep
-from loris_ephys_server.endpoints.meg_head_shape import MegHeadShapeResponse, get_meg_head_shape
-from loris_ephys_server.endpoints.meg_sensors import MegSensorsResponse, get_meg_sensors
-from loris_ephys_server.endpoints.topographic_map import get_topographic_map
+from loris_ephys_visualizer_module.dependencies import PhysioFileDep
+from loris_ephys_visualizer_module.endpoints.meg_head_shape import MegHeadShapeResponse, get_meg_head_shape
+from loris_ephys_visualizer_module.endpoints.meg_sensors import MegSensorsResponse, get_meg_sensors
+from loris_ephys_visualizer_module.endpoints.topographic_map import get_topographic_map
 
 router = APIRouter(prefix='/ephys')
 

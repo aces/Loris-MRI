@@ -30,15 +30,15 @@ class DbMeegqcFile(Base):
     Path of the MEEGqc file relative to the LORIS data directory.
     """
 
-    kind: Mapped[str] = mapped_column('Kind', VARCHAR(255))
-    """
-    Kind of the MEEGqc file, which may be 'calculation', 'reports', or 'summary_reports'.
-    """
-
     blake2b_hash: Mapped[str] = mapped_column('Blake2bHash', VARCHAR(255))
     """
     Blake2B hash of the MEEGqc file, which may be used to check that the on-disk file data matches
     the file registered in the LORIS database.
+    """
+
+    category: Mapped[str] = mapped_column('Kind', VARCHAR(255))
+    """
+    Category of the MEEGqc file, which may be 'calculation', 'reports', or 'summary_reports'.
     """
 
     acquisition_file: Mapped['DbPhysioFile'] = relationship('DbPhysioFile')

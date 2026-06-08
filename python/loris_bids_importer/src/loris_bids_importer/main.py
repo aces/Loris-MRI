@@ -12,7 +12,6 @@ from loris_bids_utils.meg.reader import BidsMegDataTypeReader
 from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 from loris_bids_utils.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
 
-from loris_bids_importer.args import Args
 from loris_bids_importer.copy_files import (
     copy_bids_participants_file,
     copy_bids_scans_file,
@@ -22,8 +21,8 @@ from loris_bids_importer.copy_files import (
     get_loris_scans_path,
 )
 from loris_bids_importer.eeg.main import Eeg
-from loris_bids_importer.env import BidsImportEnv
 from loris_bids_importer.events import import_bids_root_event_dict_file
+from loris_bids_importer.importer import BidsImporter, BidsImporterArgs
 from loris_bids_importer.meg.ctf import import_bids_meg_data_type
 from loris_bids_importer.mri.main import import_bids_mri_data_type
 from loris_bids_importer.print import print_bids_import_summary, print_bids_info
@@ -31,12 +30,10 @@ from loris_bids_importer.validation.sessions import validate_bids_sessions
 from loris_bids_importer.validation.subjects import validate_bids_subjects
 
 
-def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
+def import_bids_dataset(env: Env, args: BidsImporterArgs, legacy_db: Database):
     """
     Read the provided BIDS dataset and import it into LORIS.
     """
-
-    data_dir_path = get_data_dir_path_config(env)
 
     log(env, "Parsing BIDS dataset...")
 
@@ -82,15 +79,18 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     else:
         loris_bids_path = None
 
-    import_env = BidsImportEnv(
-        data_dir_path     = data_dir_path,
-        loris_bids_path   = loris_bids_path.relative_to(data_dir_path) if loris_bids_path is not None else None,
-        source_bids_path  = args.source_bids_path,
+    data_dir_path = get_data_dir_path_config(env)
+
+    importer = BidsImporter(
+        data_dir_path   = data_dir_path,
+        args            = args,
+        loris_bids_path = loris_bids_path.relative_to(data_dir_path) if loris_bids_path is not None else None,
+        files_dict      = {},
     )
 
     # Copy the static BIDS files.
 
-    copy_bids_static_files(import_env)
+    copy_bids_static_files(importer)
 
     # Get the BIDS event dictionary.
 
@@ -100,7 +100,7 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     else:
         _, dataset_tag_dict = import_bids_root_event_dict_file(
             env,
-            import_env,
+            importer,
             single_project,
             bids.event_dict_file,
         )
@@ -108,35 +108,34 @@ def import_bids_dataset(env: Env, args: Args, legacy_db: Database):
     # Copy the `participants.tsv` file rows.
 
     if bids.participants_file is not None:
-        loris_participants_path = get_loris_bids_root_file_path(import_env, bids.participants_file.path)
-        copy_bids_participants_file(import_env, bids.participants_file, loris_participants_path)
+        loris_participants_path = get_loris_bids_root_file_path(importer, bids.participants_file.path)
+        copy_bids_participants_file(importer, bids.participants_file, loris_participants_path)
 
     # Process each session directory.
 
     for bids_session in bids.sessions:
-        import_bids_session(env, import_env, args, bids_session, dataset_tag_dict, legacy_db)
+        import_bids_session(env, importer, bids_session, dataset_tag_dict, legacy_db)
 
     # Run custom importers.
 
     for entry_point in entry_points(group='loris-bids-importer.loaders'):
         print(f"Loading importer '{entry_point.name}'")
         try:
-            importer = entry_point.load()
+            custom_importer = entry_point.load()
         except Exception as exception:
             log_error(env, f"Error loading importer '{entry_point.name}'. Skipping. Full error:\n{exception}")
             continue
 
-        importer(env, import_env, bids)
+        custom_importer(env, importer, bids)
 
     # Print import summary.
 
-    print_bids_import_summary(env, import_env)
+    print_bids_import_summary(env, importer)
 
 
 def import_bids_session(
     env: Env,
-    import_env: BidsImportEnv,
-    args: Args,
+    importer: BidsImporter,
     bids_session: BidsSessionReader,
     dataset_tag_dict: dict[Any, Any],
     legacy_db: Database,
@@ -170,8 +169,8 @@ def import_bids_session(
     try:
         # Read the scans.tsv property to raise an exception if the file is incorrect.
         if bids_session.scans_file is not None:
-            loris_scans_path = get_loris_scans_path(import_env, bids_session.scans_file, session)
-            copy_bids_scans_file(import_env, bids_session.scans_file, loris_scans_path)
+            loris_scans_path = get_loris_scans_path(importer, bids_session.scans_file, session)
+            copy_bids_scans_file(importer, bids_session.scans_file, loris_scans_path)
     except Exception as exception:
         log_warning(
             env,
@@ -181,13 +180,12 @@ def import_bids_session(
     # Process each data type directory.
 
     for data_type in bids_session.data_types:
-        import_bids_data_type(env, import_env, args, session, data_type, dataset_tag_dict, legacy_db)
+        import_bids_data_type(env, importer, session, data_type, dataset_tag_dict, legacy_db)
 
 
 def import_bids_data_type(
     env: Env,
-    import_env: BidsImportEnv,
-    args: Args,
+    importer: BidsImporter,
     session: DbSession,
     data_type: BidsDataTypeReader,
     dataset_tag_dict: dict[Any, Any],
@@ -204,17 +202,16 @@ def import_bids_data_type(
 
     match data_type:
         case BidsMriDataTypeReader():
-            import_bids_mri_data_type(env, import_env, session, data_type)
+            import_bids_mri_data_type(env, importer, session, data_type)
         case BidsMegDataTypeReader():
-            import_bids_meg_data_type(env, import_env, args, session, data_type)
+            import_bids_meg_data_type(env, importer, session, data_type)
         case BidsDataTypeReader():
-            import_bids_eeg_data_type_files(env, import_env, args, session, data_type, dataset_tag_dict, legacy_db)
+            import_bids_eeg_data_type_files(env, importer, session, data_type, dataset_tag_dict, legacy_db)
 
 
 def import_bids_eeg_data_type_files(
     env: Env,
-    import_env: BidsImportEnv,
-    args: Args,
+    importer: BidsImporter,
     session: DbSession,
     data_type: BidsDataTypeReader,
     dataset_tag_dict: dict[Any, Any],
@@ -227,13 +224,12 @@ def import_bids_eeg_data_type_files(
     try:
         Eeg(
             env              = env,
-            import_env       = import_env,
+            importer         = importer,
             bids_layout      = data_type.session.subject.dataset.layout,
             bids_info        = data_type.info,
             db               = legacy_db,
             session          = session,
             dataset_tag_dict = dataset_tag_dict,
-            dataset_type     = args.type,
         )
     except Exception as exception:
         log_error(
@@ -244,4 +240,4 @@ def import_bids_eeg_data_type_files(
                 "Skipping."
             )
         )
-        import_env.failed_acquisitions_count += 1
+        importer.failed_acquisitions_count += 1

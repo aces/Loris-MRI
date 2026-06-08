@@ -5,14 +5,14 @@ from lib.env import Env
 from lib.logging import log, log_error
 from loris_bids_utils.info import BidsAcquisitionInfo
 
-from loris_bids_importer.env import BidsImportEnv
+from loris_bids_importer.importer import BidsImporter
 
 T = TypeVar('T')
 
 
 def import_bids_acquisitions(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BidsImporter,
     acquisitions: list[tuple[T, BidsAcquisitionInfo]],
     importer: Callable[[T, BidsAcquisitionInfo], None]
 ):
@@ -32,6 +32,7 @@ def import_bids_acquisitions(
             log(env, f"Successfully imported acquisition '{bids_info.name}'.")
             import_env.imported_acquisitions_count += 1
         except Exception as exception:
+            import traceback
             log_error(
                 env,
                 (
@@ -40,4 +41,5 @@ def import_bids_acquisitions(
                     "Skipping."
                 )
             )
+            print(traceback.format_exc())
             import_env.failed_acquisitions_count += 1

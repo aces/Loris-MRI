@@ -10,8 +10,8 @@ dependencies = [
     "uvicorn[standard]",
 ]
 
-[project.entry-points."loris_server.loaders"]
-loris-tus-server = "loris_tus_server.main:load"
+[project.entry-points."loris-server.loaders"]
+tus = "loris_tus_server.main:load"
 
 [build-system]
 requires = ["hatchling"]

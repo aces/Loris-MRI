@@ -55,14 +55,14 @@ packages = [
 members = ["python/loris_*"]
 
 [tool.uv.sources]
-loris_bids_importer  = { workspace = true }
-loris_bids_utils     = { workspace = true }
-loris_dicom_importer = { workspace = true }
-loris_ephys_chunker  = { workspace = true }
-loris_ephys_server   = { workspace = true }
-loris_meegqc_module  = { workspace = true }
-loris_server         = { workspace = true }
-loris_utils          = { workspace = true }
+loris_bids_importer           = { workspace = true }
+loris_bids_utils              = { workspace = true }
+loris_dicom_importer          = { workspace = true }
+loris_ephys_chunker           = { workspace = true }
+loris_ephys_visualizer_module = { workspace = true }
+loris_meegqc_module           = { workspace = true }
+loris_server                  = { workspace = true }
+loris_utils                   = { workspace = true }
 
 [tool.ruff]
 src = ["python"]

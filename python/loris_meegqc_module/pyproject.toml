@@ -5,14 +5,18 @@ description = "The LORIS MEEGqc module."
 readme = "README.md"
 requires-python = ">= 3.11"
 dependencies = [
+    "fastapi",
     "loris-bids-importer",
-    "loris-bids-reader",
+    "loris-bids-utils",
     "loris-server",
     "loris-utils",
 ]
 
 [project.entry-points."loris-bids-importer.loaders"]
 meegqc = "loris_meegqc_module.importer:import_meegqc_derivatives"
+
+[project.entry-points."loris-server.loaders"]
+meegqc = "loris_meegqc_module.server:load"
 
 [build-system]
 requires = ["hatchling"]
