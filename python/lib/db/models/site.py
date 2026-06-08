@@ -19,5 +19,6 @@ class DbSite(Base):
     contact_1  : Mapped[str | None]  = mapped_column('Contact1')
     contact_2  : Mapped[str | None]  = mapped_column('Contact2')
     alias      : Mapped[str]         = mapped_column('Alias')
+    mri_alias  : Mapped[str]         = mapped_column('MRI_alias')
     account    : Mapped[str | None]  = mapped_column('Account')
     study_site : Mapped[bool | None] = mapped_column('Study_site', YNBool)
