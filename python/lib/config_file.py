@@ -6,6 +6,7 @@ import importlib.util
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy.orm import Session as Database
@@ -105,16 +106,29 @@ def load_config(arg: str | None) -> Any:
     error if that file is not found or cannot be loaded.
     """
 
-    config_dir_path = os.environ.get('LORIS_CONFIG')
-    if config_dir_path is None:
+    config_dir_path_value = os.environ.get('LORIS_CONFIG')
+    if config_dir_path_value is None:
         print("ERROR: Environment variable 'LORIS_CONFIG' not set.", file=sys.stderr)
         sys.exit(lib.exitcode.INVALID_ENVIRONMENT_VAR)
 
     # Get the name of the configuration file from the argument or use the default name.
     config_file_name = arg if arg is not None else 'config.py'
 
-    config_file_path = os.path.join(config_dir_path, config_file_name)
-    if not os.path.exists(config_file_path):
+    config_dir_path = Path(config_dir_path_value).resolve()
+    config_file_path = (config_dir_path / config_file_name).resolve()
+
+    if not config_file_path.is_relative_to(config_dir_path):
+        print(
+            (
+                f"ERROR: The configuration file value '{config_file_name}' is outside of the LORIS configuration"
+                " directory."
+            ),
+            file=sys.stderr,
+        )
+
+        sys.exit(lib.exitcode.INVALID_PATH)
+
+    if not config_file_path.exists():
         print(
             f"ERROR: No configuration file '{config_file_name}' found in the '{config_dir_path}' directory.",
             file=sys.stderr,
@@ -122,10 +136,8 @@ def load_config(arg: str | None) -> Any:
 
         sys.exit(lib.exitcode.INVALID_PATH)
 
-    # Get the name of the configuration module from its file name.
-    module_name = os.path.splitext(os.path.basename(config_file_path))[0]
-
-    spec = importlib.util.spec_from_file_location(module_name, config_file_path)
+    # Use the stem of the configuration file as the module name.
+    spec = importlib.util.spec_from_file_location(config_file_path.stem, config_file_path)
     if spec is None or spec.loader is None:
         print(f"ERROR: Cannot load module specification for configuration file '{config_file_name}'.", file=sys.stderr)
         sys.exit(lib.exitcode.INVALID_IMPORT)
