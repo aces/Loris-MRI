@@ -115,6 +115,14 @@ class BidsDatasetReader:
         return self.layout.get_sessions()  # type: ignore
 
     @cached_property
+    def data_type_names(self) -> list[str]:
+        """
+        The names of the data types present in this BIDS dataset.
+        """
+
+        return self.layout.get_datatypes()  # type: ignore
+
+    @cached_property
     def subjects(self) -> list['BidsSubjectReader']:
         """
         Get the subject directory readers of this BIDS dataset.
