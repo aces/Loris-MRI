@@ -23,6 +23,7 @@ RUN ( \
         0000-00-03-ConfigTables.sql \
         0000-00-04-Help.sql \
         0000-00-05-ElectrophysiologyTables.sql \
+        0000-00-06-BiobankTables.sql \
         raisinbread/instruments/*.sql \
         raisinbread/*.sql \
     ) > source.sql
