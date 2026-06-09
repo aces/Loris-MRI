@@ -6,8 +6,8 @@ from lib.db.queries.cohort import try_get_cohort_with_name
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.env import Env
 from lib.logging import log
-from loris_bids_reader.files.participants import BidsParticipantTsvRow
-from loris_bids_reader.info import BidsSessionInfo
+from loris_bids_utils.files.participants import BidsParticipantTsvRow
+from loris_bids_utils.info import BidsSessionInfo
 from loris_utils.error import group_errors
 
 from loris_bids_importer.validation.subjects import validate_bids_subject

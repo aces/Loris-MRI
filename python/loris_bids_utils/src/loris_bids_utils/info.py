@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from loris_bids_reader.files.participants import BidsParticipantTsvRow
-from loris_bids_reader.files.scans import BidsScansTsvFile, BidsScanTsvRow
+from loris_bids_utils.files.participants import BidsParticipantTsvRow
+from loris_bids_utils.files.scans import BidsScansTsvFile, BidsScanTsvRow
 
 
 @dataclass

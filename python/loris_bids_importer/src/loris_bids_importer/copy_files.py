@@ -5,9 +5,9 @@ from pathlib import Path
 from lib.config import get_data_dir_path_config
 from lib.db.models.session import DbSession
 from lib.env import Env
-from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
-from loris_bids_reader.files.participants import BidsParticipantsTsvFile
-from loris_bids_reader.files.scans import BidsScansTsvFile
+from loris_bids_utils.files.dataset_description import BidsDatasetDescriptionJsonFile
+from loris_bids_utils.files.participants import BidsParticipantsTsvFile
+from loris_bids_utils.files.scans import BidsScansTsvFile
 
 from loris_bids_importer.env import BidsImportEnv
 

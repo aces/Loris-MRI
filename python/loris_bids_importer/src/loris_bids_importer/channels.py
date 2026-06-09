@@ -8,8 +8,8 @@ from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_ge
 from lib.env import Env
 from lib.physio.channels import insert_physio_channel
 from lib.physio.parameters import insert_physio_file_parameter
-from loris_bids_reader.eeg.channels import BidsEegChannelsTsvFile, BidsEegChannelTsvRow
-from loris_bids_reader.info import BidsAcquisitionInfo
+from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile, BidsEegChannelTsvRow
+from loris_bids_utils.info import BidsAcquisitionInfo
 from loris_utils.crypto import compute_file_blake2b_hash
 from loris_utils.error import group_errors, group_errors_tuple
 

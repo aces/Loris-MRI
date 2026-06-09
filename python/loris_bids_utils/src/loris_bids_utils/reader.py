@@ -7,16 +7,16 @@ from typing import TYPE_CHECKING
 
 from bids import BIDSLayout, BIDSLayoutIndexer
 
-from loris_bids_reader.files.dataset_description import BidsDatasetDescriptionJsonFile
-from loris_bids_reader.files.participants import BidsParticipantsTsvFile, BidsParticipantTsvRow
-from loris_bids_reader.files.scans import BidsScansTsvFile
-from loris_bids_reader.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
-from loris_bids_reader.json import BidsJsonFile
-from loris_bids_reader.utils import get_pybids_file_path
+from loris_bids_utils.files.dataset_description import BidsDatasetDescriptionJsonFile
+from loris_bids_utils.files.participants import BidsParticipantsTsvFile, BidsParticipantTsvRow
+from loris_bids_utils.files.scans import BidsScansTsvFile
+from loris_bids_utils.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
+from loris_bids_utils.json import BidsJsonFile
+from loris_bids_utils.utils import get_pybids_file_path
 
 # Circular imports
 if TYPE_CHECKING:
-    from loris_bids_reader.mri.reader import BidsMriDataTypeReader
+    from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 
 PYBIDS_IGNORE = ['.git', 'code/', 'log/', 'sourcedata/']
 PYBIDS_FORCE_INDEX = [re.compile(r"_annotations\.(tsv|json)$")]
@@ -267,7 +267,7 @@ class BidsSessionReader:
         Get the MRI data type directory readers of this session.
         """
 
-        from loris_bids_reader.mri.reader import BidsMriDataTypeReader
+        from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 
         return [
             BidsMriDataTypeReader(

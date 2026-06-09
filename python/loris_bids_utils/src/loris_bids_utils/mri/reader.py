@@ -6,11 +6,11 @@ from pathlib import Path
 from bids.layout import BIDSFile
 from loris_utils.path import remove_path_extension
 
-from loris_bids_reader.info import BidsAcquisitionInfo
-from loris_bids_reader.mri.acquisition import MriAcquisition
-from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
-from loris_bids_reader.reader import BidsDataTypeReader
-from loris_bids_reader.utils import find_pybids_file_path, get_pybids_file_path
+from loris_bids_utils.info import BidsAcquisitionInfo
+from loris_bids_utils.mri.acquisition import MriAcquisition
+from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
+from loris_bids_utils.reader import BidsDataTypeReader
+from loris_bids_utils.utils import find_pybids_file_path, get_pybids_file_path
 
 
 @dataclass

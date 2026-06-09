@@ -12,9 +12,9 @@ from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.imaging_lib.scan_type import create_mri_scan_type
 from lib.logging import log
-from loris_bids_reader.info import BidsAcquisitionInfo
-from loris_bids_reader.mri.acquisition import MriAcquisition
-from loris_bids_reader.mri.reader import BidsMriDataTypeReader
+from loris_bids_utils.info import BidsAcquisitionInfo
+from loris_bids_utils.mri.acquisition import MriAcquisition
+from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 from loris_utils.crypto import compute_file_blake2b_hash
 from loris_utils.error import group_errors_tuple
 

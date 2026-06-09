@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
 
 
 @dataclass
