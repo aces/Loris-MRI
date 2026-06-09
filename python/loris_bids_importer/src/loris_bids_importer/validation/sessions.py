@@ -100,7 +100,6 @@ def create_bids_session(
         site_id          = candidate.registration_site_id,
         project_id       = candidate.registration_project_id,
         cohort_id        = cohort.id,
-        scan_done        = True,
         submitted        = False,
         active           = True,
         user_id          = '',

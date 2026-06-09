@@ -43,7 +43,6 @@ class DbSession(Base):
     bvl_qc_type              : Mapped[str | None]      = mapped_column('BVLQCType')
     bvl_qc_exclusion         : Mapped[str | None]      = mapped_column('BVLQCExclusion')
     qcd                      : Mapped[str | None]      = mapped_column('QCd')
-    scan_done                : Mapped[bool | None]     = mapped_column('Scan_done', YNBool)
     mri_qc_status            : Mapped[str]             = mapped_column('MRIQCStatus')
     mri_qc_pending           : Mapped[bool]            = mapped_column('MRIQCPending', YNBool)
     mri_qc_first_change_time : Mapped[datetime | None] = mapped_column('MRIQCFirstChangeTime')
