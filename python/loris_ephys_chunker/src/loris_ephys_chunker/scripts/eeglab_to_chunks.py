@@ -18,7 +18,7 @@ def load_channels(path: Path) -> RawEEGLAB:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Convert .set files to chunks for browser based visualisation.')
+        description='Convert .set files to chunks for browser based visualization.')
     parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help='one or more .set files to convert to a directory of chunks next to the input file')
     parser.add_argument('--channel_index', '-i', dest='channel_index', type=int, default=0,

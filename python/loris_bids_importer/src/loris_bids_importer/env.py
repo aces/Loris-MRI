@@ -25,7 +25,7 @@ class BidsImportEnv:
 
     imported_acquisitions_count: int = 0
     """
-    The number of succesfully imported BIDS acquisitions.
+    The number of successfully imported BIDS acquisitions.
     """
 
     ignored_acquisitions_count: int = 0

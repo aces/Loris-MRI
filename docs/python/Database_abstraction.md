@@ -4,7 +4,7 @@ LORIS-MRI Python interacts extensively with the LORIS database. As such, several
 
 ## SQLAlchemy database abstraction
 
-The SQLAlchemy database abstraction is the latest and preferred method to interract with the database in LORIS-MRI Python. As its name implies, it uses the SQLAlchemy 2 Python library, which is an ORM library that allows to map SQL tables with Python classes. Compared to the older database abstractions, it is notably statically typed and has a flexible module structure that separates models and queries.
+The SQLAlchemy database abstraction is the latest and preferred method to interact with the database in LORIS-MRI Python. As its name implies, it uses the SQLAlchemy 2 Python library, which is an ORM library that allows to map SQL tables with Python classes. Compared to the older database abstractions, it is notably statically typed and has a flexible module structure that separates models and queries.
 
 ### Module organization
 
@@ -50,7 +50,7 @@ def foo(db: Database):
 
 The changes made in a database session are not sent to the database until `db.flush()` or `db.commit()` is called. Be mindful of this behavior when reading database-populated fields such as auto-incremented numbers or before exiting a script.
 
-Finally, a database session is **transactional**, that is, the changes made in a session are not visible by other sessions and do not persist in the database unless they are commited. Use `db.commit()` to commit the current changes or `db.rollback()` to discard them and go back to the latest database commit. There may be several database sessions living simultaneously to handle independent transactions.
+Finally, a database session is **transactional**, that is, the changes made in a session are not visible by other sessions and do not persist in the database unless they are committed. Use `db.commit()` to commit the current changes or `db.rollback()` to discard them and go back to the latest database commit. There may be several database sessions living simultaneously to handle independent transactions.
 
 [^2]: Code that interacts with advanced SQLAlchemy APIs should not use these renamings but instead stick to the SQLAlchemy naming convention.
 

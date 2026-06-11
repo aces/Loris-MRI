@@ -59,7 +59,7 @@ class ParameterType:
     @deprecated('Use `lib.imaging_lib.file_parameter.get_bids_to_loris_parameter_types_dict` instead')
     def get_bids_to_minc_mapping_dict(self):
         """
-        Queries the BIDS to MINC mapping dictionary stored in the paramater_type table and returns a
+        Queries the BIDS to MINC mapping dictionary stored in the parameter_type table and returns a
         dictionary with the BIDS term as keys and the MINC terms as values.
 
         :return: BIDS to MINC mapping dictionary

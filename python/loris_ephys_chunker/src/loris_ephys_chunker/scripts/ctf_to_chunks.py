@@ -24,7 +24,7 @@ def load_channels(path: Path) -> RawCTF:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Convert CTF MEG files (.ds directories) to chunks for browser based visualisation.")
+        description="Convert CTF MEG files (.ds directories) to chunks for browser based visualization.")
     parser.add_argument('files', metavar='FILE', type=Path, nargs='+',
                         help="one or more CTF .ds directories to convert to a directory of chunks")
     parser.add_argument('--channel-index', '-i', type=int, default=0,

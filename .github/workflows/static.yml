@@ -10,6 +10,21 @@ on:
     - cron: '30 0 * * *'
 
 jobs:
+  typos:
+    name: Typos
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out LORIS-MRI
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: ./.github/actions/setup-python
+    - name: Run Typos
+      run:  |
+        set -o pipefail
+        typos --format=json | test/typos_to_github.sh
+
   ruff:
     name: Ruff
     runs-on: ubuntu-latest

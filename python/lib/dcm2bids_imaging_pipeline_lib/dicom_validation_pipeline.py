@@ -74,7 +74,7 @@ def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dico
     This function validates that the md5sum of the DICOM archive on the filesystem is the same
     as the md5sum of the registered entry in the tarchive table.
 
-    Retrun `true` if the MD5 sums match, or `false` if they don't.
+    Return `true` if the MD5 sums match, or `false` if they don't.
     """
 
     # compute the md5sum of the tarchive file

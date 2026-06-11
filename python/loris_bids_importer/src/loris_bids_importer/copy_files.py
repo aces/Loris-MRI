@@ -64,7 +64,7 @@ def get_loris_bids_file_path(
     if derivative:
         return import_env.loris_bids_path / file_path.relative_to(import_env.source_bids_path)
 
-    # Otherwise, normalize the subject and session directrory names using the LORIS session
+    # Otherwise, normalize the subject and session directory names using the LORIS session
     # information.
     loris_file_name = get_loris_bids_file_name(file_path.name, session)
 

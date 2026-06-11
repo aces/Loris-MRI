@@ -168,7 +168,7 @@ In general, to re-load an imaging dataset through the pipeline from the start
 - `files` (best to delete from this table last)
 - `mri_upload`
 - `session` - not recommended - only if necessary, and only if no other data is
-    associated to this session (*e.g.* on the Behavioural side of LORIS).
+    associated to this session (*e.g.* on the Behavioral side of LORIS).
 - `tarchive`
 
 It is also recommended to remove from the `tarchive` directory the last generated
@@ -181,7 +181,7 @@ If any Quality Control flags or comments exist for these scans, you may also
 **A script has been created in order to perform a safe deletion of an upload. Please,
 see section 4.4 for instructions on how to use the script.**
 
-For backing up, re-labelling and re-loading MRI datasets with QC information,
+For backing up, re-labeling and re-loading MRI datasets with QC information,
   see [Beta Tutorial](https://github.com/aces/Loris/wiki/Reloading-MRI-data-for-mislabelled-session)
 
 ### 4.3.3 Multiple scanner datasets per session
@@ -203,5 +203,5 @@ from the MRI upload. Note that by default, all removed data will be backed up.
 Detailed information about the script can be found in:
 https://github.com/aces/Loris-MRI/blob/21.0-dev/docs/scripts_md/delete_imaging_upload.md
 
-> Accordng to chosen options, deleting values can generate backup files with `mysqldump`.
+> According to chosen options, deleting values can generate backup files with `mysqldump`.
 > To allow `mysqldump` to work properly, be sure the user accessing the database has the `RELOAD` privilege.

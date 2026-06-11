@@ -11,7 +11,7 @@ from lib.imaging_lib.parameter import get_or_create_parameter_type
 
 def register_mri_file_parameters(env: Env, file: DbFile, file_parameters: dict[str, Any]):
     """
-    Insert or upate some MRI file parameters with the provided parameter names and values.
+    Insert or update some MRI file parameters with the provided parameter names and values.
     """
 
     for parameter_name, parameter_value in file_parameters.items():
@@ -20,7 +20,7 @@ def register_mri_file_parameters(env: Env, file: DbFile, file_parameters: dict[s
 
 def register_mri_file_parameter(env: Env, file: DbFile, parameter_name: str, parameter_value: Any):
     """
-    Insert or upate an MRI file parameter with the provided parameter name and value.
+    Insert or update an MRI file parameter with the provided parameter name and value.
     """
 
     if isinstance(parameter_value, list):

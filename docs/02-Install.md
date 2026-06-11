@@ -59,7 +59,7 @@ identified with the `mri_protocol` table to be a `t1`. Additional headers could
 be checked in order to flag with a caveat or exclude the scan based on the value
 of that header.
 
-**Behaviour of the `*Min` and `*Max` columns of the `mri_protocol` and
+**Behavior of the `*Min` and `*Max` columns of the `mri_protocol` and
 `mri_protocol_checks` tables:**
 
 > - if for a given parameter (*e.g.* TR) a `*Min` **AND** a `*Max` value have
@@ -84,7 +84,7 @@ there will be no constraint on that header.
 The following tables are used by pipelines generating BIDS files either directly from DICOM files
 (using dcm2niix as a converter) or from the MINC files already inserted into the database.
 
-> - `bids_mri_scan_type_rel`: this table maps a given scan type with BIDS labelling convention
+> - `bids_mri_scan_type_rel`: this table maps a given scan type with BIDS labeling convention
 that should be used to determine the name of the NIfTI and JSON files. This table also links
 to the `mri_scan_type`, `bids_category`, `bids_phase_encoding_direction`, `bids_scan_type`
 and `bids_scan_type_subcategory` tables.
@@ -308,7 +308,7 @@ scripts (in the `python` directory). It accesses data stored in the
     * By default, any scan will be inserted if it matches an `mri_protocol`
     table entry.
     * To **whitelist/blacklist** specific scan types -- *e.g.* in the case of
-    protocol exclusion, case sensitivity or labelling variance -- modify the
+    protocol exclusion, case sensitivity or labeling variance -- modify the
     subroutine, *e.g.*:
 
 ```perl

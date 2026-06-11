@@ -33,7 +33,7 @@ then
   exit 125
 fi
 
-# Start finding and transfering data
+# Start finding and transferring data
 echo "#### FIND NEW IMAGING FILES ON BIC (newer than ${daysSince} days ago) ####" >&2 &&
 echo "#### OUTPUT RESULTS TO ${uploadList} ####" >&2 &&
 # Connect to BIC and run find_hrrt
