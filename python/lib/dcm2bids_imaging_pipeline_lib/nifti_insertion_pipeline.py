@@ -6,7 +6,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from loris_bids_reader.mri.sidecar import BidsMriSidecarJsonFile
+from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
+from loris_bids_importer.mri.sidecar import add_bids_mri_sidecar_file_parameters, get_bids_mri_sidecar_session_info
+from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash, compute_file_md5_hash
 
 import lib.exitcode
@@ -16,11 +18,9 @@ from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_
 from lib.dcm2bids_imaging_pipeline_lib.base_pipeline import BasePipeline
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
+from lib.imaging_lib.file_parameter import register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
-from lib.import_bids_dataset.file_type import get_check_bids_imaging_file_type_from_extension
-from lib.import_bids_dataset.mri_sidecar import add_bids_mri_sidecar_file_parameters, get_bids_mri_sidecar_session_info
 from lib.logging import log_error_exit, log_verbose
 
 
@@ -190,7 +190,7 @@ class NiftiInsertionPipeline(BasePipeline):
         # Create the pic images
         # ------------------------------------------------------------------------------------------
         if self.create_pic_bool:
-            self._create_pic_image()
+            create_nifti_preview_picture(self.env, self.file)
 
         # ------------------------------------------------------------------------------------------
         # Remove the tmp directory from the file system
@@ -692,15 +692,6 @@ class NiftiInsertionPipeline(BasePipeline):
         self.env.db.commit()
 
         return file
-
-    def _create_pic_image(self):
-        """
-        Creates the pic image of the NIfTI file.
-        """
-
-        pic_rel_path = create_nifti_preview_picture(self.env, self.file)
-        register_mri_file_parameter(self.env, self.file, 'check_pic_filename', str(pic_rel_path))
-        self.env.db.commit()
 
     def _run_push_to_s3_pipeline(self):
         """

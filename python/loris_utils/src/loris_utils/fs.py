@@ -27,11 +27,9 @@ def iter_all_dir_files(dir_path: Path) -> Iterator[Path]:
     relative to that directory.
     """
 
-    for item_path in dir_path.iterdir():
-        if item_path.is_dir():
-            yield from iter_all_dir_files(item_path)
-        elif item_path.is_file():
-            yield item_path.relative_to(dir_path)
+    for file_path in dir_path.rglob('*'):
+        if file_path.is_file():
+            yield file_path
 
 
 def is_directory_empty(dir_path: Path) -> bool:

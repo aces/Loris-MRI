@@ -153,7 +153,7 @@ def main():
 
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
-        command = 'import_bids_dataset.py -p ' + profile + ' -d ' + eeg_path + ' --nobidsvalidation --nocopy --type raw'
+        command = 'import-bids-dataset -p ' + profile + ' -d ' + eeg_path + ' --no-bids-validation --no-copy --type raw'
 
         try:
             result = subprocess.run(command, shell = True, capture_output=True)
@@ -176,7 +176,7 @@ def main():
                 continue
 
         except OSError:
-            print('ERROR: error while executing import_bids_dataset.py')
+            print('ERROR: error while executing import-bids-dataset')
 
         db.update(
             "UPDATE electrophysiology_uploader SET Status = 'Failed' WHERE UploadID = %s",

@@ -14,7 +14,7 @@ from lib.db.models.physio_event_file import DbPhysioEventFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.project import DbProject
 from lib.env import Env
-from lib.physiological import Physiological
+from lib.physio.hed import TagGroupMember, build_hed_tag_groups
 
 
 @dataclass
@@ -72,7 +72,7 @@ def insert_bids_event_mapping(
     property_name: str,
     property_value: str,
     level_description: str | None,
-    hed_tag_group: list[Physiological.TagGroupMember],
+    hed_tag_group: list[TagGroupMember],
 ) -> None:
     """
     Insert BIDS event mappings into the LORIS database.
@@ -105,7 +105,7 @@ def insert_bids_dataset_event_mapping(
     property_name: str,
     property_value: str,
     level_description: str | None,
-    hed_tag_member: Physiological.TagGroupMember,
+    hed_tag_member: TagGroupMember,
 ) -> DbBidsEventDatasetMapping:
     """
     Insert a dataset-wide BIDS event mapping into the LORIS database.
@@ -133,7 +133,7 @@ def insert_bids_file_event_mapping(
     property_name: str,
     property_value: str,
     level_description: str | None,
-    hed_tag_member: Physiological.TagGroupMember,
+    hed_tag_member: TagGroupMember,
 ) -> DbBidsEventFileMapping:
     """
     Insert a acquisition-specific BIDS event mapping into the LORIS database.
@@ -159,22 +159,16 @@ def parse_and_insert_event_dict(
     env: Env,
     event_dict: dict[str, Any],
     source: EventDictFileSource,
-) -> dict[str, dict[str, list[list[Physiological.TagGroupMember]]]]:
+) -> dict[str, dict[str, list[list[TagGroupMember]]]]:
     """
     Parse a BIDS event dictionary and insert its mappings into the LORIS database.
     """
 
-    # This function uses a lot of legacy code and is copied from the `Physiological` class.
+    # This function uses a lot of legacy code and was copied from the `Physiological` class.
 
-    hed_schema_nodes = get_all_hed_schema_nodes(env.db)
+    hed_union = get_all_hed_schema_nodes(env.db)
 
-    # Format the HED nodes to be compatible with the legacy HED reader.
-    hed_union: list[dict[str, Any]] = list(map(lambda node: {
-        'ID': node.id,
-        'Name': node.name,
-    }, hed_schema_nodes))
-
-    tag_dict: dict[str, dict[str, list[list[Physiological.TagGroupMember]]]] = {}
+    tag_dict: dict[str, dict[str, list[list[TagGroupMember]]]] = {}
 
     for event_name, event in event_dict.items():
         tag_dict[event_name] = {}
@@ -192,16 +186,15 @@ def parse_and_insert_event_dict(
             # value_hed = event_metadata[parameter]['HED'] if 'HED' in event_metadata[parameter] else None
 
         if is_categorical == 'Y':
-            for level in event['Levels']:
-                level_name = level
+            for level_name in event['Levels']:
                 tag_dict[event_name][level_name] = []
-                level_description = event['Levels'][level]
-                level_hed = event['HED'][level] \
-                    if 'HED' in event and level in event['HED'] \
+                level_description = event['Levels'][level_name]
+                level_hed = event['HED'][level_name] \
+                    if 'HED' in event and level_name in event['HED'] \
                     else None
 
                 if level_hed:
-                    tag_groups: list[list[Physiological.TagGroupMember]] = Physiological.build_hed_tag_groups(hed_union, level_hed)  # type: ignore
+                    tag_groups: list[list[TagGroupMember]] = build_hed_tag_groups(hed_union, level_hed)
                     for tag_group in tag_groups:
                         insert_bids_event_mapping(env, source, event_name, level_name, level_description, tag_group)
                     tag_dict[event_name][level_name] = tag_groups
@@ -266,7 +259,7 @@ def insert_physio_task_event(
 def insert_physio_task_event_hed(
     env: Env,
     task_event: DbPhysioTaskEvent,
-    hed_tag_member: Physiological.TagGroupMember,
+    hed_tag_member: TagGroupMember,
 ) -> DbPhysioTaskEventHed:
     """
     Insert a physiological task event HED into the LORIS database.

@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 
 def try_parse_decimal(string: str) -> Decimal | None:
@@ -11,7 +11,7 @@ def try_parse_decimal(string: str) -> Decimal | None:
 
     try:
         return Decimal(string)
-    except ValueError:
+    except InvalidOperation:
         return None
 
 
