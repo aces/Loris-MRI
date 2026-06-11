@@ -7,7 +7,7 @@ from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_path
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_name
 from lib.env import Env
 from lib.imaging_lib.file import register_mri_file
-from lib.imaging_lib.file_parameter import register_mri_file_parameter, register_mri_file_parameters
+from lib.imaging_lib.file_parameter import register_mri_file_parameters
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.imaging_lib.scan_type import create_mri_scan_type
@@ -176,11 +176,7 @@ def import_bids_mri_acquisition(
 
     # Create and register the file picture.
 
-    pic_rel_path = create_nifti_preview_picture(env, file)
-
-    register_mri_file_parameter(env, file, 'check_pic_filename', str(pic_rel_path))
-
-    env.db.commit()
+    create_nifti_preview_picture(env, file)
 
 
 def get_check_bids_nifti_file_hash(env: Env, acquisition: MriAcquisition) -> str:
