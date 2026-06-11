@@ -159,7 +159,5 @@ def try_get_site_id_with_patient_id_heuristic(db: Database, patient_id: str) -> 
     for site in sites:
         if site.alias in patient_id:
             return site.id
-        elif site.mri_alias in patient_id:
-            return site.id
 
     return None
