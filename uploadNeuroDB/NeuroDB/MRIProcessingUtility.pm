@@ -2335,7 +2335,7 @@ sub getCenterNameFromCenterID {
            $alias = $sth->fetchrow_array;
         }
     }
-    return $alias;
+    return $alias[0];
 }
 
 
