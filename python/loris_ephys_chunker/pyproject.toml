@@ -12,6 +12,7 @@ dependencies = [
     "numpy",
     "protobuf>=3.0.0",
     "scipy",
+    "loris-server",
 ]
 
 [project.scripts]

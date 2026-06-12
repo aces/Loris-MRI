@@ -30,9 +30,9 @@ from loris_bids_importer.archive import import_physio_event_archive, import_phys
 from loris_bids_importer.channels import insert_bids_channels_file
 from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_file_path, get_loris_scans_path
 from loris_bids_importer.eeg.physiological import Physiological
-from loris_bids_importer.env import BidsImportEnv
 from loris_bids_importer.events import insert_bids_event_dict_file, insert_bids_events_file
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
+from loris_bids_importer.importer import BidsImporter
 from loris_bids_importer.physio import (
     get_check_bids_physio_file_hash,
     get_check_bids_physio_modality,
@@ -46,22 +46,18 @@ class Eeg:
     into the database by calling the loris_bids_importer.eeg.physiological class.
     """
 
-    def __init__(self, env: Env, import_env: BidsImportEnv, bids_layout, bids_info: BidsDataTypeInfo,
-                 session: DbSession, db, dataset_tag_dict, dataset_type):
+    def __init__(self, env: Env, importer: BidsImporter, bids_layout, bids_info: BidsDataTypeInfo,
+                 session: DbSession, db, dataset_tag_dict):
         """
         Constructor method for the Eeg class.
 
-        :param bids_reader  : dictionary with BIDS reader information
-         :type bids_reader  : dict
+        :param bids_layout  : PyBIDS layout
         :param bids_info    : the BIDS data type information
         :param session      : The LORIS session the EEG datasets are linked to
         :param db           : Database class object
          :type db           : object
         :param info         : The BIDS import pipeline information
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
-         :type dataset_tag_dict      : dict
-        :param dataset_type          : raw | derivative. Type of the dataset
-         :type dataset_type          : string
         """
 
         self.env = env
@@ -71,7 +67,7 @@ class Eeg:
 
         # load the LORIS BIDS import root directory where the eeg files will
         # be copied
-        self.info                = import_env
+        self.info                = importer
         self.data_dir            = self.info.data_dir_path
 
         # load bids subject, visit and modality
@@ -99,13 +95,14 @@ class Eeg:
             self.scans_file = BidsScansTsvFile(Path(scans_file_path))
 
         # register the data into LORIS
-        if (dataset_type and dataset_type == 'raw'):
-            self.register_data(detect=False)
-        elif (dataset_type and dataset_type == 'derivative'):
-            self.register_data(derivatives=True, detect=False)
-        else:
-            self.register_data()
-            self.register_data(derivatives=True)
+        match importer.args.type:
+            case 'raw':
+                self.register_data(detect=False)
+            case 'derivative':
+                self.register_data(derivatives=True, detect=False)
+            case None:
+                self.register_data()
+                self.register_data(derivatives=True)
 
         env.db.commit()
 

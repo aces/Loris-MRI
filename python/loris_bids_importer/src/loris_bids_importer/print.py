@@ -2,7 +2,7 @@ from lib.env import Env
 from lib.logging import log
 from loris_bids_utils.reader import BidsDatasetReader
 
-from loris_bids_importer.env import BidsImportEnv
+from loris_bids_importer.importer import BidsImporter
 
 
 def print_bids_info(env: Env, bids: BidsDatasetReader):
@@ -23,7 +23,7 @@ def print_bids_info(env: Env, bids: BidsDatasetReader):
         log(env, f"- {data_type_name}")
 
 
-def print_bids_import_summary(env: Env, import_env: BidsImportEnv):
+def print_bids_import_summary(env: Env, import_env: BidsImporter):
     """
     Print a summary of this BIDS import process.
     """

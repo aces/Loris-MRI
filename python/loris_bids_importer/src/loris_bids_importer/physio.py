@@ -5,7 +5,7 @@ from lib.db.models.physio_output_type import DbPhysioOutputType
 from lib.db.queries.physio import try_get_physio_modality_with_name, try_get_physio_output_type_with_name
 from lib.db.queries.physio_file import try_get_physio_file_with_hash
 from lib.env import Env
-from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.crypto import compute_directory_blake2b_hash, compute_file_blake2b_hash
 
 
 def get_check_bids_physio_modality(env: Env, data_type_name: str) -> DbPhysioModality:
@@ -40,7 +40,10 @@ def get_check_bids_physio_file_hash(env: Env, file_path: Path) -> str:
     registered in the database.
     """
 
-    file_hash = compute_file_blake2b_hash(file_path)
+    if file_path.is_dir():
+        file_hash = compute_directory_blake2b_hash(file_path)
+    else:
+        file_hash = compute_file_blake2b_hash(file_path)
 
     file = try_get_physio_file_with_hash(env.db, file_hash)
     if file is not None:

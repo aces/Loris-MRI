@@ -20,8 +20,8 @@ from loris_utils.error import group_errors_tuple
 
 from loris_bids_importer.acquisitions import import_bids_acquisitions
 from loris_bids_importer.copy_files import copy_loris_bids_file, get_loris_bids_file_path
-from loris_bids_importer.env import BidsImportEnv
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
+from loris_bids_importer.importer import BidsImporter
 from loris_bids_importer.mri.sidecar import add_bids_mri_sidecar_file_parameters
 from loris_bids_importer.scans import add_bids_scans_file_parameters
 
@@ -44,7 +44,7 @@ KNOWN_SUFFIXES_PER_MRI_DATA_TYPE = {
 
 def import_bids_mri_data_type(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BidsImporter,
     session: DbSession,
     data_type: BidsMriDataTypeReader,
 ):
@@ -68,7 +68,7 @@ def import_bids_mri_data_type(
 
 def import_bids_mri_acquisition(
     env: Env,
-    import_env: BidsImportEnv,
+    import_env: BidsImporter,
     session: DbSession,
     acquisition: MriAcquisition,
     bids_info: BidsAcquisitionInfo,
