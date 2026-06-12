@@ -82,29 +82,40 @@ max-doc-length = 100
 # additional basic type checking configuration to type check legacy modules can be found in the
 # `test` directory.
 [tool.pyright]
-include = [
-    "python/tests",
-    "python/lib/db",
-    "python/lib/imaging_lib",
-    "python/lib/physio",
-    "python/lib/config.py",
-    "python/lib/config_file.py",
-    "python/lib/env.py",
-    "python/lib/get_session_info.py",
-    "python/lib/logging.py",
-    "python/lib/make_env.py",
-    "python/scripts/mass_electrophysiology_chunking.py",
-    "python/scripts/mass_nifti_pic.py",
-    "python/loris_bids_importer",
-    "python/loris_bids_utils",
-    "python/loris_dicom_importer",
-    "python/loris_ephys_chunker",
-    "python/loris_utils",
-]
+include = ["python"]
 exclude = [
-    # Legacy EEG BIDS import code.
+    # Default Pyright ignores (needed for Pylance warning)
+    ".venv",
+    "**/.*",
+    "**/__pycache__",
+    "**/node_modules",
+    # Deprecated modules (to be deleted)
+    "python/lib/candidate.py",
+    "python/lib/dicom_archive.py",
+    "python/lib/imaging_io.py",
+    "python/lib/imaging_upload.py",
+    "python/lib/session.py",
+    "python/lib/log.py",
+    # Untyped modules
+    "python/lib/database_lib",
+    "python/lib/aws_s3.py",
+    "python/lib/database.py",
+    "python/lib/imaging.py",
+    "python/lib/lorisgetopt.py",
+    "python/lib/utilities.py",
+    # Untyped scripts
+    "python/scripts/delete_physiological_file.py",
+    "python/scripts/extract_eeg_bids_archive.py",
+    "python/scripts/ingest_eeg_bids_datasets.py",
+    # DICOM to BIDS converter pipeline
+    "python/lib/dcm2bids_imaging_pipeline_lib",
+    "python/scripts/run_dicom_archive_loader.py",
+    "python/scripts/run_dicom_archive_validation.py",
+    "python/scripts/run_nifti_insertion.py",
+    "python/scripts/run_push_imaging_files_to_s3_pipeline.py",
+    # Untyped EEG BIDS import code
     "python/loris_bids_importer/src/loris_bids_importer/eeg",
-    # Generated protocol buffer code.
+    # Generated protocol buffer code
     "python/loris_ephys_chunker/src/loris_ephys_chunker/protocol_buffers",
 ]
 typeCheckingMode = "strict"
