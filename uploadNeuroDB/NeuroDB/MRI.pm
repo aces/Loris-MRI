@@ -1084,19 +1084,18 @@ sub createNewCandID {
 
 =head3 getPSC($patientName, $dbhr, $db)
 
-Looks for the site alias using the C<session> table C<CenterID> as
-a first resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually C<patient_name>
-or C<patient_id>) is provided, and return the C<MRI_alias> and C<CenterID>.
+Looks for the C<CenterID> of a scan. If the configuration already provides a
+C<CenterID>, it is validated against the C<psc> table. Otherwise, the C<CenterID>
+is looked up using the C<session> table (for cases where it is created using the
+front-end), and as a last resort by matching the site alias against whatever field
+(usually C<patient_name> or C<patient_id>) is provided.
 
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
   - $db         : database object
 
-RETURNS: a two element array:
-  - first is the MRI alias of the PSC or "UNKN"
-  - second is the C<CenterID> or 0
+RETURNS: the C<CenterID> or 0 if no center could be found
 
 =cut
 
@@ -1110,6 +1109,20 @@ sub getPSC {
                             $dbhr,
                             $db
                         );
+    ## If the configuration (e.g. the prod file) already provides a CenterID,
+    ## validate it against the psc table rather than trusting it blindly or
+    ## falling through to the error-prone patient-name matching below.
+    if ($subjectIDsref->{'CenterID'}) {
+        my $centerID = $subjectIDsref->{'CenterID'};
+        my $sth = $${dbhr}->prepare("SELECT CenterID FROM psc WHERE CenterID = ?");
+        $sth->execute($centerID);
+        if ($sth->rows > 0) {
+            return $centerID;
+        }
+        die "ERROR: CenterID $centerID provided by the configuration "
+          . "does not exist in the psc table.\n";
+    }
+
     my $PSCID = $subjectIDsref->{'PSCID'};
     my $visitLabel = $subjectIDsref->{'visitLabel'};
 
