@@ -1086,8 +1086,7 @@ sub createNewCandID {
 
 Looks for the C<CenterID> of a scan. If the configuration already provides a
 C<CenterID>, it is validated against the C<psc> table. Otherwise, the C<CenterID>
-is looked up using the C<session> table (for cases where it is created using the
-front-end), and as a last resort by matching the site alias against whatever field
+is looked up using the C<session> table, and as a last resort by matching the site alias against whatever field
 (usually C<patient_name> or C<patient_id>) is provided.
 
 INPUTS:
