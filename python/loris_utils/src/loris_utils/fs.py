@@ -12,7 +12,8 @@ def extract_archive(tar_path: str, prefix: str, dir_path: str) -> str:
     the new directory location.
     """
 
-    date_string = datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss')
+    # Use system timezone for log file name.
+    date_string = datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss')  # noqa: DTZ005
     full_prefix = f'{prefix}_DIR_{date_string}_'
     extract_path = tempfile.mkdtemp(prefix=full_prefix, dir=dir_path)
     with tarfile.open(tar_path) as tar_file:

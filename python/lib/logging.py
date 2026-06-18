@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Never
 
 from lib.db.models.notification_spool import DbNotificationSpool
@@ -80,7 +80,7 @@ def register_notification(env: Env, message: str, is_error: bool, is_verbose: bo
 
     notification = DbNotificationSpool(
         type_id      = env.notifier.type_id,
-        time_spooled = datetime.now(),
+        time_spooled = datetime.now(UTC),
         message      = message,
         origin       = env.notifier.origin,
         process_id   = env.notifier.process_id,

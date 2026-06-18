@@ -2,7 +2,7 @@ import getpass
 import os
 import socket
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from loris_dicom_importer.text_dict import DictWriter
@@ -69,7 +69,7 @@ def make_dicom_study_import_log(source: Path, target: Path, tarball_md5_sum: str
         socket.gethostname(),
         os.uname().sysname,
         getpass.getuser(),
-        datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"),
+        datetime.strftime(datetime.now(UTC), "%Y-%m-%d %H:%M:%S"),
         2,
         2,
         tarball_md5_sum,

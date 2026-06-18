@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import cmp_to_key
 from pathlib import Path
 
@@ -26,7 +26,7 @@ def insert_dicom_archive(
 
     dicom_archive = DbDicomArchive()
     populate_dicom_archive(dicom_archive, dicom_summary, dicom_import_log, archive_path)
-    dicom_archive.date_first_archived = datetime.now()
+    dicom_archive.date_first_archived = datetime.now(UTC)
     db.add(dicom_archive)
     db.commit()
     insert_files_series(db, dicom_archive, dicom_summary)
@@ -75,7 +75,7 @@ def populate_dicom_archive(
     dicom_archive.center_name              = dicom_summary.info.institution or ''
     dicom_archive.last_update              = None
     dicom_archive.date_acquired            = dicom_summary.info.scan_date
-    dicom_archive.date_last_archived       = datetime.now()
+    dicom_archive.date_last_archived       = datetime.now(UTC)
     dicom_archive.acquisition_count        = len(dicom_summary.dicom_series_files)
     dicom_archive.dicom_file_count         = count(flatten(dicom_summary.dicom_series_files.values()))
     dicom_archive.non_dicom_file_count     = len(dicom_summary.other_files)

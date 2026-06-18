@@ -42,14 +42,16 @@ def read_date_none(string: str | None):
     if string is None:
         return None
 
-    return datetime.strptime(string, '%Y-%m-%d').date()
+    # User-supplied date: no timezone.
+    return datetime.strptime(string, '%Y-%m-%d').date()  # noqa: DTZ007
 
 
 def read_dicom_date_none(string: str | None):
     if string is None:
         return None
 
-    return datetime.strptime(string, '%Y%m%d').date()
+    # User-supplied date: no timezone.
+    return datetime.strptime(string, '%Y%m%d').date()  # noqa: DTZ007
 
 
 def read_int_none(string: str | None):

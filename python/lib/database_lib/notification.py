@@ -1,6 +1,6 @@
 """This class performs database queries for the notification_spool table"""
 
-import datetime
+from datetime import UTC, datetime
 
 from typing_extensions import deprecated
 
@@ -76,7 +76,7 @@ class Notification:
             'ProcessID',          'Error',       'Verbose'
         )
         values = (
-            type_id,         datetime.datetime.now(),  message,   self.notification_origin,
+            type_id,         datetime.now(UTC),  message,   self.notification_origin,
             self.process_id, is_error,                 is_verbose
         )
 

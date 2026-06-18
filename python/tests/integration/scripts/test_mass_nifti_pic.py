@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from lib.db.models.file import DbFile
@@ -127,7 +127,7 @@ def test_running_on_a_text_file():
         file_type           = 'txt',
         session_id          = 564,
         output_type         = 'native',
-        insert_time         = datetime.now(),
+        insert_time         = datetime.now(UTC),
         inserted_by_user_id = 'test'
     )
 
@@ -175,7 +175,7 @@ def test_successful_run():
     file_pic_data = try_get_parameter_value_with_file_id_parameter_name(db, 2, 'check_pic_filename')
     assert file_pic_data is None
 
-    current_time = datetime.now()
+    current_time = datetime.now(UTC)
 
     process = run_integration_script([
         'mass_nifti_pic.py',

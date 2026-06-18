@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import Integer
 from sqlalchemy.engine import Dialect
@@ -24,4 +24,4 @@ class IntDatetime(TypeDecorator[datetime]):
         if value is None:
             return None
 
-        return datetime.fromtimestamp(value)
+        return datetime.fromtimestamp(value, tz=UTC)

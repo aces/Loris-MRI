@@ -1,9 +1,9 @@
-import datetime
 import os
 import shutil
 import sys
 import tarfile
 import tempfile
+from datetime import UTC, datetime
 
 from typing_extensions import deprecated
 
@@ -27,7 +27,7 @@ class ImagingIO:
             :rtype: str
         """
 
-        now = datetime.datetime.now()
+        now = datetime.now(UTC)
         upload_prefix = f'{prefix}_DIR_{now.strftime("%Y-%m-%d_%Hh%Mm%Ss")}_'
         extract_location = tempfile.mkdtemp(prefix=upload_prefix, dir=tmp_dir)
         tar_file = tarfile.open(location)

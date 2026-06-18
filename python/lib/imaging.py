@@ -1,10 +1,10 @@
 """This class performs database queries and common imaging checks (MRI...)"""
 
-import datetime
 import json
 import os
 import re
 import tarfile
+from datetime import UTC, datetime
 
 import nibabel as nib
 from loris_utils.crypto import compute_file_blake2b_hash
@@ -184,7 +184,7 @@ class Imaging:
             'ParameterTypeID': param_type_id,
             'FileID': file_id,
             'Value': value,
-            'InsertTime': datetime.datetime.now().timestamp()
+            'InsertTime': datetime.now(UTC).timestamp()
         }
 
         pf_entry = self.param_file_db_obj.get_parameter_file_for_file_id_param_type_id(file_id, param_type_id)
@@ -222,7 +222,7 @@ class Imaging:
                 return
 
         info_to_insert_dict = {
-            "TimeRun": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "TimeRun": datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'),
             "SeriesUID": series_uid,
             "TarchiveID": tarchive_id,
             "MincFile": file_rel_path,
@@ -277,7 +277,7 @@ class Imaging:
             "CandidateID": candidate_id,
             "PSCID": psc_id,
             "TarchiveID": tarchive_id,
-            "time_run": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "time_run": datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'),
             "series_description": scan_param["SeriesDescription"] if "SeriesDescription" in scan_param.keys() else None,
             "minc_location": file_rel_path,
             "PatientName": patient_name,

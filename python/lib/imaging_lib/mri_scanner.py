@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from lib.candidate import generate_new_cand_id
 from lib.db.models.candidate import DbCandidate
@@ -43,7 +43,7 @@ def get_or_create_scanner(
         return mri_scanner
 
     cand_id = generate_new_cand_id(env)
-    now = datetime.now()
+    now = datetime.now(UTC)
 
     candidate = DbCandidate(
         cand_id                 = cand_id,

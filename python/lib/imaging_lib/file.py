@@ -1,5 +1,5 @@
 import getpass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from lib.db.models.dicom_archive import DbDicomArchive
@@ -31,7 +31,7 @@ def register_mri_file(
     """
 
     user = getpass.getuser()
-    time = datetime.now()
+    time = datetime.now(UTC)
 
     file = DbFile(
         path                     = file_path,

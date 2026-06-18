@@ -1,11 +1,12 @@
-import datetime
 import json
 import os
 import re
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
+import dateutil
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
 from loris_bids_importer.mri.sidecar import add_bids_mri_sidecar_file_parameters, get_bids_mri_sidecar_session_info
 from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
@@ -635,7 +636,7 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_param = self.json_file_dict
         phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
         base_info_dict = {
-            'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'TimeRun': datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S'),
             'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
             'TarchiveID': self.dicom_archive.id,
             'MincFile': file_rel_path,
@@ -666,9 +667,7 @@ class NiftiInsertionPipeline(BasePipeline):
         scan_param = self.json_file_dict
         acquisition_date = None
         if "AcquisitionDateTime" in scan_param.keys():
-            acquisition_date = datetime.datetime.strptime(
-                scan_param['AcquisitionDateTime'], '%Y-%m-%dT%H:%M:%S.%f'
-            ).date()
+            acquisition_date = dateutil.parser.parse(scan_param['AcquisitionDateTime']).date()
         file_type = get_check_bids_imaging_file_type_from_extension(self.env, Path(nifti_rel_path))
 
         file = register_mri_file(

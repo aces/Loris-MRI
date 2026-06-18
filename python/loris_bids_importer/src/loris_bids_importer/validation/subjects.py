@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from lib.candidate import generate_new_cand_id
 from lib.db.models.candidate import DbCandidate
@@ -103,7 +103,7 @@ def create_bids_candidate(env: Env, participant: BidsParticipantTsvRow) -> DbCan
         )
     )
 
-    now = datetime.now()
+    now = datetime.now(UTC)
 
     candidate = DbCandidate(
         cand_id                 = cand_id,

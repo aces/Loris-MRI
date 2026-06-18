@@ -7,7 +7,7 @@ import shutil
 import sys
 import tarfile
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 
 import loris_utils.crypto
 import mat73
@@ -250,7 +250,7 @@ def create_processing_tmp_dir(template_prefix):
     env_tmp_dir = os.environ.get("TMPDIR")
 
     # append date and time information to the prefix name for the tmp dir
-    now = datetime.now()
+    now = datetime.now(UTC)
     template_prefix += f"_{now.strftime('%Y-%m-%d_%Hh%Mm%Ss_')}"
 
     # create the temporary directory and return it

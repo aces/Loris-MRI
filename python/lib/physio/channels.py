@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -36,7 +36,7 @@ def insert_physio_channel(
         file_path          = file_path,
         channel_type_id    = channel_type.id,
         status_type_id     = status_type.id if status_type is not None else None,
-        insert_time        = datetime.now(),
+        insert_time        = datetime.now(UTC),
         name               = name,
         description        = description,
         sampling_frequency = sampling_frequency,

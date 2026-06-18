@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from lib.db.models.file import DbFile
@@ -31,7 +31,7 @@ def register_mri_file_parameter(env: Env, file: DbFile, parameter_name: str, par
 
     parameter = try_get_file_parameter_with_file_id_type_id(env.db, file.id, parameter_type.id)
     if parameter is None:
-        time = datetime.now()
+        time = datetime.now(UTC)
 
         parameter = DbFileParameter(
             type_id     = parameter_type.id,

@@ -1,6 +1,6 @@
 """This class performs database queries for the mri_scanner table"""
 
-import datetime
+from datetime import UTC, datetime
 
 from typing_extensions import deprecated
 
@@ -114,8 +114,8 @@ class MriScanner:
             'UserID', 'Entity_type', 'RegistrationProjectID', 'Date_registered',
         )
         values = (
-            new_cand_id,  'scanner', center_id,  datetime.datetime.now(),
-            'imaging.py', 'Scanner', project_id, datetime.datetime.now()
+            new_cand_id,  'scanner', center_id,  datetime.now(UTC),
+            'imaging.py', 'Scanner', project_id, datetime.now(UTC),
         )
 
         candidate_id = self.db.insert(

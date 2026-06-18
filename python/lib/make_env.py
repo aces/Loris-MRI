@@ -1,6 +1,6 @@
 import sys
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -104,7 +104,7 @@ def create_script_tmp_dir(script_name: str) -> Path:
     env_tmp_dir = tempfile.gettempdir()
 
     # Create a recognizable temporary directory name for this pipeline.
-    date_string = datetime.now().strftime('%Y-%m-%d_%Hh%Mm%Ss_')
+    date_string = datetime.now(UTC).strftime('%Y-%m-%d_%Hh%Mm%Ss_')
     tmp_dir_prefix = f'{script_name}_{date_string}'
 
     # Create and return the pipeline temporary directory.
