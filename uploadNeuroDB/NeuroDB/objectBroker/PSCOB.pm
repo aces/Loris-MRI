@@ -43,7 +43,7 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table C<p
   my $pscRef;
   try {
       $pscRef = $pscOB->get(
-          { MRI_alias => 'my_alias' }
+          { Alias => 'my_alias' }
       );
       foreach (@$pscRef) {
           printf "ID for PSC named $_->{'Name'} is $_->{'ID'}\n";
@@ -86,7 +86,7 @@ use TryCatch;
 
 my $TABLE_NAME = "psc";
 
-my @COLUMN_NAMES = qw(CenterID Name Alias MRI_alias);
+my @COLUMN_NAMES = qw(CenterID Name Alias);
 
 =pod
 

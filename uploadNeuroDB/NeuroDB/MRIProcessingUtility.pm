@@ -2311,11 +2311,12 @@ sub getUploadIDUsingTarchiveSrcLoc {
 
 =head3 getCenterNameFromCenterID($centerID)
 
-Gets the MRI ALIAS form the C<psc> table using the center ID.
+Gets the human-readable center C<Name> from the C<psc> table using the center ID.
+Used to display a readable center name (rather than a numeric ID) in the logs.
 
 INPUT: Center ID
 
-RETURNS: MRI ALIAS
+RETURNS: center Name
 
 =cut
 
@@ -2325,17 +2326,17 @@ sub getCenterNameFromCenterID {
 
     my $centerID = shift;
     my $query = '';
-    my $alias = undef;
+    my $name = undef;
 
     if ($centerID) {
-        $query = "SELECT MRI_alias FROM psc WHERE CenterID =?";
+        $query = "SELECT Name FROM psc WHERE CenterID =?";
         my $sth = $dbh->prepare($query);
         $sth->execute($centerID);
         if ( $sth->rows > 0 ) {
-           $alias = $sth->fetchrow_array;
+           $name = $sth->fetchrow_array;
         }
     }
-    return $alias[0];
+    return $name;
 }
 
 

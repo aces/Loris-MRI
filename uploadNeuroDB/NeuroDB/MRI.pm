@@ -1119,8 +1119,7 @@ sub getPSC {
         if ($sth->rows > 0) {
             return $centerID;
         }
-        die "ERROR: CenterID $centerID provided by the configuration "
-          . "does not exist in the psc table.\n";
+        return 0;
     }
 
     my $PSCID = $subjectIDsref->{'PSCID'};
@@ -1129,8 +1128,7 @@ sub getPSC {
     ## Get the CenterID from the session table, if the PSCID and visit labels exist
     ## and could be extracted
     if ($PSCID && $visitLabel) {
-        my $query = "SELECT s.CenterID, p.MRI_alias FROM session s
-                    JOIN psc p on p.CenterID=s.CenterID
+        my $query = "SELECT s.CenterID FROM session s
                     JOIN candidate c on c.ID=s.CandidateID
                     WHERE c.PSCID = ? AND s.Visit_label = ?";
 
@@ -1138,21 +1136,21 @@ sub getPSC {
         $sth->execute($PSCID, $visitLabel);
         if ($sth->rows > 0) {
             my $row = $sth->fetchrow_hashref();
-            return ($row->{'MRI_alias'},$row->{'CenterID'});
+            return $row->{'CenterID'};
         }
     }
 
-    ## Otherwise, use the patient name to match it to the site alias or MRI alias
+    ## Otherwise, use the patient name to match it to the site alias
     my $pscOB   = NeuroDB::objectBroker::PSCOB->new( db => $db );
-    my $pscsRef = $pscOB->get({ MRI_alias => { NOT => '' } });
+    my $pscsRef = $pscOB->get({ Alias => { NOT => '' } });
 
     foreach my $psc (@$pscsRef) {
-        if ($patientName =~ /$psc->{'Alias'}/i || $patientName =~ /$psc->{'MRI_alias'}/i) {
-            return ($psc->{'MRI_alias'}, $psc->{'CenterID'});
+        if ($patientName =~ /$psc->{'Alias'}/i) {
+            return $psc->{'CenterID'};
         }
     }
 
-    return ("UNKN", 0);
+    return 0;
 }
 
 =pod
