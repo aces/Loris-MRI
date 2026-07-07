@@ -135,6 +135,7 @@ locale = "en-us"
 Centre = "Centre"  # McGill Centre for Integrative Neuroscience
 HED = "HED"  # Hierarchical Event Descriptors
 ND = "ND"  # Image Type DICOM attribute
+Colour = "Colour"  # SQL column name in sex table
 
 [tool.typos.default.extend-identifiers]
 ba = "ba"  # A CLI option of dcm2niix
