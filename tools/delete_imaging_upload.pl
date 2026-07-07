@@ -1802,8 +1802,6 @@ sub deleteUploadsInDatabase {
         $nbRecordsDeleted += &deleteTableData($dbh, 'tarchive', 'TarchiveID', [$tarchiveID], $tmpSQLFile, $optionsRef) if defined $tarchiveID;
     }
 
-    &updateSessionTable($dbh, $filesRef->{'mri_upload'}, $tmpSQLFile) unless @$scanTypesToDeleteRef || $optionsRef->{'BASENAME'} ne '';
-
     $dbh->commit;
 
     # If the SQL restore file should be produced
@@ -1852,54 +1850,6 @@ sub gzipBackupFile {
         or die "Failed running command $cmd. Aborting\n";
 
     print "Wrote $backupPath.tar.gz\n";
-}
-
-=pod
-
-=head3 updateSessionTable($dbh, $mriUploadsRef, $tmpSQLFile)
-
-Sets to C<N> the C<Scan_done> column of all C<sessions> in the database that do not have an associated upload
-after the script has deleted those whose IDs are passed on the command line. The script also adds an SQL statement
-in the SQL file whose path is passed as argument to restore the state that the C<session> table had before the deletions.
-
-INPUTS:
-   - $dbh       : database handle.
-   - $mriUploadsRef: reference on an array of hashes containing the uploads to delete. Accessed like this:
-                 C<< $mriUploadsRef->[0]->{'TarchiveID'} >>(this would return the C<TarchiveID> of the first C<mri_upload>
-                 in the array. The properties stored for each hash are: C<UploadID>, C<TarchiveID>, C<FullPath>
-                 C<Inserting>, C<InsertionComplete> and C<SessionID>.
-   - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-
-=cut
-sub updateSessionTable {
-    my($dbh, $mriUploadsRef, $tmpSQLFile) = @_;
-
-    # If any of the uploads to delete is the last upload that was part of the
-    # session associated to it, then set the session's 'Scan_done' flag
-    # to 'N'.
-    my @sessionIDs = map { $_->{'SessionID'} } @$mriUploadsRef;
-    @sessionIDs = grep(defined $_, @sessionIDs);
-
-    return if !@sessionIDs;
-
-    my $query = "UPDATE session s SET Scan_done = 'N'"
-              . " WHERE s.ID IN ("
-              . join(',', ('?') x @sessionIDs)
-              . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) = 0";
-    $dbh->do($query, undef, @sessionIDs );
-
-    if($tmpSQLFile) {
-        # Write an SQL statement to restore the 'Scan_done' column of the deleted uploads
-        # to their appropriate values. This statement needs to be after the statement that
-        # restores table mri_upload (at the end of the file is good enough).
-        open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
-        print SQL "\n\n";
-        print SQL "UPDATE session s SET Scan_done = 'Y'"
-                . " WHERE s.ID IN ("
-                . join(',', @sessionIDs)
-                . ") AND (SELECT COUNT(*) FROM mri_upload m WHERE m.SessionID=s.ID) > 0;\n";
-        close(SQL);
-    }
 }
 
 =pod
