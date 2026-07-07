@@ -31,7 +31,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Clone the LORIS core repository
-      run: git clone -b 29.0-release https://github.com/aces/Loris.git ./test/Loris
+      # Use the corresponding LORIS branch for integration tests.
+      # The branch name is either the target branch for PRs, or the current branch otherwise.
+      run: |
+        BRANCH_NAME="${{ github.base_ref || github.ref_name }}"
+        git clone --branch "$BRANCH_NAME" --single-branch https://github.com/aces/Loris.git ./test/Loris
 
     - name: Overwrite Raisinbread SQL files
       run: cp -f ./test/RB_SQL/*.sql ./test/Loris/raisinbread/RB_files/
