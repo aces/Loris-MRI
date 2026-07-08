@@ -1,7 +1,7 @@
 PROJECT=%PROJECT%
 MINC_TOOLKIT_DIR=%MINC_TOOLKIT_DIR%
 
-# for the Python scripts
+# source the Python environment first so that other environment variables are added to this environment
 export LORIS_MRI=/opt/${PROJECT}/bin/mri
 source /opt/${PROJECT}/bin/mri/.venv/bin/activate
 
