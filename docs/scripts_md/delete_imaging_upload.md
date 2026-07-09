@@ -478,20 +478,6 @@ from the file system and the database, using `gzip`.
 INPUTS:
   - $backupPath: path of the backup file to compress (without the .tar.gz extension).
 
-### updateSessionTable($dbh, $mriUploadsRef, $tmpSQLFile)
-
-Sets to `N` the `Scan_done` column of all `sessions` in the database that do not have an associated upload
-after the script has deleted those whose IDs are passed on the command line. The script also adds an SQL statement
-in the SQL file whose path is passed as argument to restore the state that the `session` table had before the deletions.
-
-INPUTS:
-   - $dbh       : database handle.
-   - $mriUploadsRef: reference on an array of hashes containing the uploads to delete. Accessed like this:
-                 `$mriUploadsRef->[0]->{'TarchiveID'}`(this would return the `TarchiveID` of the first `mri_upload`
-                 in the array. The properties stored for each hash are: `UploadID`, `TarchiveID`, `FullPath`
-                 `Inserting`, `InsertionComplete` and `SessionID`.
-   - $tmpSQLFile: path of the SQL file that contains the SQL statements used to restore the deleted records.
-
 ### updateFilesIntermediaryTable($dbh, $filesRef, $tmpSQLFile)
 
 Sets the `TarchiveSource` and `SourceFileID` columns of all the defaced files to `$tarchiveID` and `NULL`
