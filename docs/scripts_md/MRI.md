@@ -231,19 +231,17 @@ RETURNS: `CandID` (int)
 
 ### getPSC($patientName, $dbhr, $db)
 
-Looks for the site alias using the `session` table `CenterID` as
-a first resource, for the cases where it is created using the front-end,
-otherwise, find the site alias in whatever field (usually `patient_name`
-or `patient_id`) is provided, and return the `MRI_alias` and `CenterID`.
+Looks for the `CenterID` of a scan. If the configuration already provides a
+`CenterID`, it is validated against the `psc` table. Otherwise, the `CenterID`
+is looked up using the `session` table, and as a last resort by matching the site alias against whatever field
+(usually `patient_name` or `patient_id`) is provided.
 
 INPUTS:
   - $patientName: patient name
   - $dbhr       : database handle reference
   - $db         : database object
 
-RETURNS: a two element array:
-  - first is the MRI alias of the PSC or "UNKN"
-  - second is the `CenterID` or 0
+RETURNS: the `CenterID` or 0 if no center could be found
 
 ### getProject($subjectIDsref, $dbhr, $db)
 

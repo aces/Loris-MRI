@@ -377,7 +377,6 @@ if (($output != 0)  && ($force==0)) {
 ################################################################
 my $centerID =
      $utility->determinePSC(\%tarchiveInfo, 0, $upload_id);
-my $center_name = $utility->getCenterNameFromCenterID($centerID);
 
 ################################################################
 ######### Determine the ScannerID ##############################
@@ -602,6 +601,11 @@ if ($valid_study) {
 		    'tarchiveLoader.pl', $upload_id, 'Y',
 		    $notify_notsummary);
 }
+
+################################################################
+#################### Get the center name #######################
+################################################################
+my $center_name = $utility->getCenterNameFromCenterID($centerID);
 
 ################################################################
 # make final logfile name without overwriting phantom logs #####

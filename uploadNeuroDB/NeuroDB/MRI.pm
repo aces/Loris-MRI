@@ -1113,9 +1113,9 @@ sub getPSC {
     ## falling through to the error-prone patient-name matching below.
     if ($subjectIDsref->{'CenterID'}) {
         my $centerID = $subjectIDsref->{'CenterID'};
-        my $sth = $${dbhr}->prepare("SELECT CenterID FROM psc WHERE CenterID = ?");
-        $sth->execute($centerID);
-        if ($sth->rows > 0) {
+        my $pscOB = NeuroDB::objectBroker::PSCOB->new( db => $db );
+        my $pscsRef = $pscOB->get({ CenterID => $centerID });
+        if (@$pscsRef) {
             return $centerID;
         }
         return 0;
