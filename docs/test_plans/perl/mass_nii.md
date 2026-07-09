@@ -7,7 +7,7 @@
 - run `mass_nii.pl -help` and ensure the help for the script gets printed
 
 - remove NIfTI images for UploadID 106 (linked to TarchiveID 56)
-     - remove pics from the filesytem using `rm /data/Loris-MRI/data/assembly/400168/V2/mri/native/*nii  /data/Loris-MRI/data/assembly/400168/V2/mri/native/*bval  /data/Loris-MRI/data/assembly/400168/V2/mri/native/*bvec`
+     - remove pics from the filesystem using `rm /data/Loris-MRI/data/assembly/400168/V2/mri/native/*nii  /data/Loris-MRI/data/assembly/400168/V2/mri/native/*bval  /data/Loris-MRI/data/assembly/400168/V2/mri/native/*bvec`
      - in MySQL run the following query to delete path to pic images in `parameter_file`: `DELETE parameter_file FROM parameter_file JOIN files USING (FileID) WHERE TarchiveSource=56 AND Value like "%nii";` (should delete 5 rows)
      - check that the following query returns no results: `SELECT FileID, Value FROM parameter_file JOIN files USING (FileID) WHERE TarchiveSource=56 AND Value like "%nii";`
      - go to the imaging browser for CandID 400168 V2 and check that the buttons "download NIfTI" does not show up anymore under the image's screenshot"
