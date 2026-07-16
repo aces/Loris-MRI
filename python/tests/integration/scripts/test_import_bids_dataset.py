@@ -1,7 +1,8 @@
+import json
 from datetime import datetime
 from pathlib import Path
 
-from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.crypto import compute_directory_blake2b_hash, compute_file_blake2b_hash
 from loris_utils.fs import iter_all_dir_files
 from sqlalchemy.orm import Session as Database
 
@@ -10,6 +11,7 @@ from lib.db.queries.bids_event_dataset_mapping import get_bids_event_dataset_map
 from lib.db.queries.bids_file import try_get_bids_file_with_dataset_id_path
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
+from lib.db.queries.meg_ctf_head_shape import try_get_meg_ctf_head_shape_file_with_path
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
 from lib.physio.parameters import get_physio_file_parameters_dict
@@ -210,6 +212,161 @@ def test_import_mri_bids_dataset():
         db,
         Path('bids_imports/DCC090_587630_V2_BIDSVersion_1.8.0'),
     )
+
+
+def test_import_meg_ctf_bids_dataset():
+    db = get_integration_database_session()
+
+    # ds000246 has no session entity, so select the visit used when creating its LORIS session.
+    set_config_with_setting_name(db, 'default_bids_vl', 'V1')
+    # Enable MEG chunking.
+    set_config_with_setting_name(db, 'useEEGBrowserVisualizationComponents', 'true')
+    db.commit()
+
+    process = run_integration_script([
+        'import-bids-dataset',
+        '--type', 'raw',
+        '--directory', '/data/loris/incoming/ds000246',
+    ])
+
+    assert process.returncode == 0
+    assert "No events dictionary files (events.json) in root directory." in process.stderr
+    assert "No events file found for acquisition 'sub-BS0001_task-AEF_meg.ds'." in process.stderr
+
+    candidate = try_get_candidate_with_psc_id(db, 'BS0001')
+    assert candidate is not None
+    session = try_get_session_with_cand_id_visit_label(db, candidate.cand_id, 'V1')
+    assert session is not None
+    assert session.project.name == 'Brainstorm'
+
+    dataset_path = Path('bids_imports/MEG_BIDS_Brainstorm_data_sample_BIDSVersion_1.4.1')
+    meg_path = dataset_path / 'sub-BS0001/ses-V1/meg'
+    ctf_path = meg_path / 'sub-BS0001_ses-V1_task-AEF_meg.ds'
+
+    file = try_get_physio_file_with_path(db, ctf_path)
+    assert file is not None
+    assert file.type == 'ctf'
+    assert file.modality is not None
+    assert file.modality.name == 'meg'
+    assert file.output_type.name == 'raw'
+    assert file.acquisition_time == datetime(1925, 1, 1, 9, 43)
+    assert len(file.channels) == 340
+
+    parameters = get_physio_file_parameters_dict(db, file.id)
+    assert parameters == {
+        'InstitutionName': 'McConnell Brain Imaging Centre, McGill University',
+        'InstitutionAddress': '3801 University St., Montreal, QC, Canada',
+        'Manufacturer': 'CTF',
+        'ManufacturersModelName': 'CTF-275: OMEGA 2000',
+        'SoftwareVersions': 'Acq 5.4.2-linux-20070507',
+        'TaskName': 'AEF',
+        'SamplingFrequency': '2400',
+        'PowerLineFrequency': '60',
+        'MEGChannelCount': '274',
+        'MEGREFChannelCount': '26',
+        'EEGChannelCount': '2',
+        'EOGChannelCount': '2',
+        'ECGChannelCount': '1',
+        'EMGChannelCount': '0',
+        'MiscChannelCount': '0',
+        'SoftwareFilters': "{'SpatialCompensation': {'GradientOrder': '3rd'}}",
+        'DewarPosition': 'Upright',
+        'RecordingDuration': '10',
+        'RecordingType': 'continuous',
+        'EpochLength': '0',
+        'ContinuousHeadLocalization': 'True',
+        'HeadCoilFrequency': '[1470, 1530, 1590]',
+        'MaxMovement': '0.000803443395641537',
+        'DigitizedLandmarks': 'True',
+        'DigitizedHeadPoints': 'True',
+        'electrophysiology_chunked_dataset_path': 'chunks/MEG_BIDS_Brainstorm_data_sample_BIDSVersion_1.4.1_chunks/sub-BS0001_ses-V1_task-AEF_meg.chunks',  # ruff: ignore[line-too-long]
+        'physiological_file_blake2b_hash': 'e5b46912d50420a269cfafdca35a94001b57c7ff93753d03cdfd8ba28178bd74da308810ecae244d061fb40d5cd17e25920680bcaa886260edb7b40d5b2c421b',  # ruff: ignore[line-too-long]
+        'channel_file_blake2b_hash': '9b294f17ea6497d58f91ff303ddafec3e643d415718ac04b0dcfe5f6e6c7355f06005ee876d9ad374eee6ca5416e3b957fb6baebd3caebd806c9477475c66222',  # ruff: ignore[line-too-long]
+    }
+
+    chunk_path = Path(
+        'chunks/MEG_BIDS_Brainstorm_data_sample_BIDSVersion_1.4.1_chunks/'
+        'sub-BS0001_ses-V1_task-AEF_meg.chunks'
+    )
+    assert parameters['electrophysiology_chunked_dataset_path'] == str(chunk_path)
+
+    full_chunk_path = Path('/data/loris') / chunk_path
+    with (full_chunk_path / 'index.json').open() as index_file:
+        chunk_index = json.load(index_file)
+
+    assert chunk_index['chunkSize'] == 5000
+    assert len(chunk_index['channelMetadata']) == 340
+    assert chunk_index['shapes'][0][0] == 340
+    assert (full_chunk_path / 'raw/0/0/0/0.buf').is_file()
+    assert (full_chunk_path / 'raw/0/339/0/0.buf').is_file()
+
+    head_shape_path = meg_path / 'sub-BS0001_ses-V1_headshape.pos'
+    head_shape = try_get_meg_ctf_head_shape_file_with_path(db, head_shape_path)
+    assert head_shape is not None
+    assert file.head_shape_file_id == head_shape.id
+    assert len(head_shape.points) == 255
+    assert head_shape.blake2b_hash == compute_file_blake2b_hash(
+        Path('/data/loris') / head_shape_path
+    )
+
+    assert_files_exist('/data/loris/bids_imports', {
+        'MEG_BIDS_Brainstorm_data_sample_BIDSVersion_1.4.1': {
+            'README': None,
+            'dataset_description.json': None,
+            'participants.tsv': None,
+            'sub-BS0001': {
+                'ses-V1': {
+                    'sub-BS0001_ses-V1_scans.tsv': None,
+                    'meg': {
+                        'sub-BS0001_ses-V1_headshape.pos': None,
+                        'sub-BS0001_ses-V1_task-AEF_channels.tsv': None,
+                        'sub-BS0001_ses-V1_task-AEF_meg.json': None,
+                        'sub-BS0001_ses-V1_task-AEF_meg.ds': {
+                            'BadChannels': None,
+                            'ChannelGroupSet.cfg': None,
+                            'ClassFile.cls': None,
+                            'MarkerFile.mrk': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.acq': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.eeg': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.hc': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.hist': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.infods': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.meg4': None,
+                            'sub-BS0001_ses-V1_task-AEF_meg.res4': None,
+                        },
+                    },
+                },
+            },
+        },
+    })
+
+    dataset = try_get_bids_dataset_with_path(db, dataset_path)
+    assert dataset is not None
+    # BIDS storage paths are relative to the dataset, unlike physiological file paths.
+    ctf_bids_file = try_get_bids_file_with_dataset_id_path(db, dataset.id, ctf_path.relative_to(dataset_path))
+    assert ctf_bids_file is not None
+    assert file.bids_info_id == ctf_bids_file.id
+    assert ctf_bids_file.source_path == Path('sub-BS0001/meg/sub-BS0001_task-AEF_meg.ds')
+    assert not ctf_bids_file.derivative
+    assert ctf_bids_file.blake2b_hash == compute_directory_blake2b_hash(
+        Path('/data/loris') / ctf_path
+    )
+
+    for name in (
+        'sub-BS0001_ses-V1_task-AEF_meg.json',
+        'sub-BS0001_ses-V1_task-AEF_channels.tsv',
+        'sub-BS0001_ses-V1_headshape.pos',
+    ):
+        companion_path = meg_path / name
+        bids_file = try_get_bids_file_with_dataset_id_path(
+            db, dataset.id, companion_path.relative_to(dataset_path)
+        )
+        assert bids_file is not None, str(companion_path)
+        assert bids_file.source_path == Path('sub-BS0001/meg') / name.replace('_ses-V1', '')
+        assert not bids_file.derivative
+        assert bids_file.blake2b_hash == compute_file_blake2b_hash(Path('/data/loris') / companion_path)
+        if companion_path == head_shape_path:
+            assert head_shape.bids_info_id == bids_file.id
 
 
 def assert_bids_dataset_registered(db: Database, dataset_path: Path):
