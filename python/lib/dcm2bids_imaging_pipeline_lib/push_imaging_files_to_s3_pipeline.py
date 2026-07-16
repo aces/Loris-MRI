@@ -98,7 +98,7 @@ class PushImagingFilesToS3Pipeline(BasePipeline):
 
         for file in self.dicom_archive.mri_files:
             # Get the raw path of that file, without converting it to a Python path object.
-            raw_path: str = inspect(file).attrs.path.loaded_value
+            raw_path: str = str(inspect(file).attrs.path.loaded_value)
             if raw_path.startswith('s3://'):
                 # skip since file already pushed to S3
                 continue
