@@ -216,7 +216,7 @@ echo "Creating python config file with database credentials"
 cp $installdir/templates/config_template.py $mridir/config/config.py
 sudo chmod 640 $mridir/config/config.py
 sudo chgrp $group $mridir/config/config.py
-sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/database_config_template.py > $mridir/config/config.py
+sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $installdir/templates/config_template.py > $mridir/config/config.py
 echo "config file for python import scripts is located at $mridir/config/config.py"
 echo
 
