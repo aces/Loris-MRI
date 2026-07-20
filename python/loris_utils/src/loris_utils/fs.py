@@ -45,9 +45,6 @@ def remove_empty_directories(dir_path: Path):
     Recursively remove all the empty directories in a directory, including itself if needed.
     """
 
-    if not dir_path.exists():
-        return
-
     for sub_path in dir_path.iterdir():
         if not sub_path.is_dir():
             continue
