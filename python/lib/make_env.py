@@ -60,14 +60,14 @@ def make_env(
         log_file_path = None
 
     env = Env(
-        engine,
-        db,
-        script_name,
-        config_info,
-        tmp_dir_path,
-        log_file_path,
-        verbose,
-        [],
+        db_engine    = engine,
+        db           = db,
+        script_name  = script_name,
+        config_info  = config_info,
+        tmp_dir_path = tmp_dir_path,
+        log_file_path = log_file_path,
+        verbose      = verbose,
+        cleanups     = [],
     )
 
     if env.log_file_path is not None:
