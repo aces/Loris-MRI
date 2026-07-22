@@ -2,9 +2,36 @@ import os
 from pathlib import Path
 from typing import Literal
 
+from loris_utils.parse import try_parse_int
+
 from lib.db.queries.config import try_get_config_with_setting_name
 from lib.env import Env
 from lib.logging import log_error_exit
+
+
+def get_jwt_secret_key_config(env: Env) -> str:
+    """
+    Get the LORIS JWT secret key from the in-database configuration.
+    """
+
+    return _get_config_value(env, 'JWTKey')
+
+
+def get_user_maximum_days_inactive_config(env: Env) -> int | None:
+    """
+    Get the maximum number of days a user may remain inactive from the in-database configuration.
+    """
+
+    value = _try_get_config_value(env, 'UserMaximumDaysInactive')
+    if value is None or value == '':
+        return None
+
+    maximum_days = try_parse_int(value)
+
+    if maximum_days is None or maximum_days == 0:
+        return None
+
+    return maximum_days
 
 
 def get_patient_id_dicom_header_config(env: Env) -> Literal['PatientID', 'PatientName']:
