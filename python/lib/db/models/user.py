@@ -2,8 +2,10 @@ from datetime import date
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.permission as db_permission
 import lib.db.models.project as db_project
 import lib.db.models.site as db_site
+import lib.db.models.user_permission  # type: ignore  # ruff:ignore[unused-import]
 import lib.db.models.user_project  # type: ignore  # ruff:ignore[unused-import]
 import lib.db.models.user_site  # type: ignore  # ruff:ignore[unused-import]
 from lib.db.base import Base
@@ -54,4 +56,9 @@ class DbUser(Base):
     sites: Mapped[list['db_site.DbSite']] = relationship('DbSite', secondary='user_psc_rel')
     """
     The sites to which this user belongs to.
+    """
+
+    permissions: Mapped[list['db_permission.DbPermission']] = relationship('DbPermission', secondary='user_perm_rel')
+    """
+    The permissions granted to this user.
     """

@@ -79,6 +79,8 @@ max-doc-length = 100
 [tool.ruff.lint.per-file-ignores]
 # ORM models often have very long lines.
 "python/lib/db/models/*.py" = ["E501"]
+# ORM queries can use booleans and `None` in comparisons.
+"python/lib/db/queries/*.py" = ["E711", "E712"]
 
 # The strict type checking configuration is used to type check only the modern (typed) modules. An
 # additional basic type checking configuration to type check legacy modules can be found in the
