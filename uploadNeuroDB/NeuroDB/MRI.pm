@@ -257,7 +257,6 @@ sub getSessionInformation {
            . "    CenterID      = ?, "
            . "    VisitNo       = ?, "
            . "    Current_stage = 'Not Started', "
-           . "    Scan_done     = 'Y', "
            . "    Submitted     = 'N', "
            . "    CohortID  = ?, "
            . "    ProjectID     = ?";

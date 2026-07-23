@@ -39,7 +39,7 @@ NeuroDB::objectBroker::PSCOB -- An object broker for records stored in table `ps
     my $pscRef;
     try {
         $pscRef = $pscOB->get(
-            { MRI_alias => 'my_alias' }
+            { Alias => 'my_alias' }
         );
         foreach (@$pscRef) {
             printf "ID for PSC named $_->{'Name'} is $_->{'ID'}\n";

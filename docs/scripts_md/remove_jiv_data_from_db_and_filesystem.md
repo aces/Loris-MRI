@@ -9,7 +9,7 @@ perl remove\_jiv\_data\_from\_db\_and\_filesystem.pl `[options]`
 
 Available option is:
 
-\-profile: name of the config file in ../dicom-archive/.loris\_mri
+\-profile: name of the config file in ../config
 
 # DESCRIPTION
 

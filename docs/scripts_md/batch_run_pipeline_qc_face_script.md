@@ -8,7 +8,7 @@ perl batch\_run\_pipeline\_qc\_face\_script.pl \[-profile file\] \[-out\_basedir
 
 Available options are:
 
-\-profile: name of config file in ../dicom-archive/.loris\_mri (typically called prod)
+\-profile: name of config file in ../config (typically called prod)
 
 \-out\_basedir: path to the output base directory where the jpg will be created
 
