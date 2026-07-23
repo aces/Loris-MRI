@@ -1879,12 +1879,14 @@ sub updateFilesIntermediaryTable {
                   . ")";
         $dbh->do($query, undef, $tarchiveID, keys %defacedFiles);
 
-        open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
-        print SQL "\n\n";
-        while(my($fileID, $sourceFileID) = each %defacedFiles) {
-            print SQL "UPDATE files SET TarchiveSource = NULL, SourceFileID = $sourceFileID WHERE FileID = $fileID;\n";
+        if (defined $tmpSQLFile") {
+            open(SQL, ">>$tmpSQLFile") or die "Cannot append text to file $tmpSQLFile: $!. Aborting.\n";
+            print SQL "\n\n";
+            while(my($fileID, $sourceFileID) = each %defacedFiles) {
+                print SQL "UPDATE files SET TarchiveSource = NULL, SourceFileID = $sourceFileID WHERE FileID = $fileID;\n";
+            }
+            close(SQL);
         }
-        close(SQL);
     }
 }
 
