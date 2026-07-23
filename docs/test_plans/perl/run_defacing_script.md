@@ -19,4 +19,4 @@ SELECT COUNT(*) FROM files f JOIN mri_scan_type USING (MriScanTypeID) WHERE MriS
 
 # Bugs found
 
-
+1) the SYNOPSIS of this script still documents -tarchive_ids, but the script actually implements -sessionIDs. The docs should be updated.
