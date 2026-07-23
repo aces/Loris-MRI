@@ -17,6 +17,3 @@ SELECT COUNT(*) FROM files f JOIN mri_scan_type USING (MriScanTypeID) WHERE MriS
 SELECT COUNT(*) FROM files f JOIN mri_scan_type USING (MriScanTypeID) WHERE MriScanTypeName='t1-defaced' AND SessionID=2145;
 ```
 
-# Bugs found
-
-1) the SYNOPSIS of this script still documents -tarchive_ids, but the script actually implements -sessionIDs. The docs should be updated.
