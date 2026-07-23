@@ -97,8 +97,7 @@ All the deletions and modifications performed in the database are done as part o
 all succeed or a rollback is performed and the database is not modified in any way. The ID of the upload to delete
 is specified via option `-uploadID`. More than one upload can be deleted if they all have the same `TarchiveID`
 in table `mri_upload`: option `-uploadID` can take as argument a comma-separated list of upload IDs for this case.
-If an upload that is deleted is the only one that was associated to a given session, the script will set the `Scan_done`
-value for that session to 'N'. If option `-form` is used, the `mri_parameter_form` and its associated `flag` record
+If option `-form` is used, the `mri_parameter_form` and its associated `flag` record
 are also deleted, for each deleted upload. If option `-protocol` is used and if there is a record in table
 `mri_processing_protocol` that is tied only to the deleted upload(s), then that record is also deleted.
 
@@ -453,8 +452,7 @@ This method deletes all information in the database associated to the given uplo
 More specifically, it deletes records from tables `notification_spool`, `tarchive_files`, `tarchive_series`
 `files_intermediary`, `parameter_file`, `files`, `mri_protocol_violated_scans`, `mri_violations_log`
 `MRICandidateErrors`, `mri_upload`, `tarchive`, `mri_processing_protocol` and `mri_parameter_form`
-(the later is done only if requested). It will also set the `Scan_done` value of the scan's session to 'N' for
-each upload that is the last upload tied to that session. All the delete/update operations are done inside a single
+(the later is done only if requested). All the delete/update operations are done inside a single
 transaction so either they all succeed or they all fail (and a rollback is performed).
 
 INPUTS:

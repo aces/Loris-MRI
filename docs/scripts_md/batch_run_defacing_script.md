@@ -8,7 +8,7 @@ perl batch\_run\_defacing\_script.pl \[-profile file\] < list\_of\_session\_IDs.
 
 Available options are:
 
-\-profile: name of config file in ../dicom-archive/.loris\_mri (typically called prod)
+\-profile: name of config file in ../config (typically called prod)
 
 # DESCRIPTION
 

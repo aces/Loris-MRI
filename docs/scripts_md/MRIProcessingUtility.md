@@ -14,7 +14,7 @@ utilities
 
     %tarchiveInfo     = $utility->createTarchiveArray($ArchiveLocation);
 
-    my $centerID      = $utility->determinePSC(\%tarchiveInfo,0);
+    my $centerID = $utility->determinePSC(\%tarchiveInfo,0);
 
     my $projectID     = $utility->determineProjectID(\%tarchiveInfo);
     my $scannerID     = $utility->determineScannerID(\%tarchiveInfo, 0, $centerID, $projectID);
@@ -472,6 +472,15 @@ Gets the upload ID form the `mri_upload` table using the DICOM archive
 INPUT: DICOM archive's source location
 
 RETURNS: the found upload ID
+
+### getCenterNameFromCenterID($centerID)
+
+Gets the human-readable center `Name` from the `psc` table using the center ID.
+Used to display a readable center name (rather than a numeric ID) in the logs.
+
+INPUT: Center ID
+
+RETURNS: center Name
 
 ### spool($message, $error, $upload\_id, $verb)
 
