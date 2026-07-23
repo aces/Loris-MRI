@@ -14,11 +14,11 @@ C<perl tools/run_defacing_script.pl [options]>
 
 Available options are:
 
-C<-profile>     : name of the config file in C<../config>
+C<-profile>    : name of the config file in C<../config>
 
-C<-tarchive_ids>: comma-separated list of MySQL C<TarchiveID>s
+C<-sessionIDs> : comma-separated list of MySQL C<SessionID>s
 
-C<-verbose>     : be verbose
+C<-verbose>    : be verbose
 
 
 =head1 DESCRIPTION
