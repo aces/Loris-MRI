@@ -1916,7 +1916,8 @@ sub deleteMriParameterForm {
     my $query = "SELECT f.CommentID FROM flag f "
               . "JOIN session s ON (s.ID=f.SessionID) "
               . "JOIN mri_upload mu ON (s.ID=mu.SessionID) "
-              . "WHERE f.Test_name='mri_parameter_form' "
+              . "JOIN test_names tn ON tn.ID=f.TestID "
+              . "WHERE tn.Test_name='mri_parameter_form' "
               . "AND mu.UploadID IN ( "
               . join(',', ('?') x @uploadIDs)
               . ") ";
