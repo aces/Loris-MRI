@@ -10,7 +10,7 @@ from lib.db.queries.bids_file import try_get_bids_file_with_dataset_id_path
 from lib.env import Env
 from lib.logging import log_error_exit
 from loris_bids_utils.reader import BidsDatasetReader
-from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.crypto import compute_directory_blake2b_hash, compute_file_blake2b_hash
 
 from loris_bids_importer.importer import BidsImporter, BidsImporterArgs
 
@@ -122,7 +122,11 @@ def get_or_create_loris_bids_file(
         or source_bids_file_path.parts[0] == 'derivatives'
     )
 
-    blake2b_hash = compute_file_blake2b_hash(importer.data_dir_path / loris_file_path)
+    copied_file_path = importer.data_dir_path / loris_file_path
+    if copied_file_path.is_dir():
+        blake2b_hash = compute_directory_blake2b_hash(copied_file_path)
+    else:
+        blake2b_hash = compute_file_blake2b_hash(copied_file_path)
 
     bids_file = try_get_bids_file_with_dataset_id_path(env.db, importer.loris_bids_dataset.id, bids_file_path)
 
