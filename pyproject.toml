@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "loris"
-version = "27.0.0"
+version = "29.0.0"
 description = "The LORIS Python package"
 readme = "README.md"
 license = "GPL-3.0-or-later"
