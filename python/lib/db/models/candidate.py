@@ -22,6 +22,7 @@ class DbCandidate(Base):
     external_id             : Mapped[str | None]  = mapped_column('ExternalID')
     date_of_birth           : Mapped[date | None] = mapped_column('DoB')
     date_of_death           : Mapped[date | None] = mapped_column('DoD')
+    date_of_death_precision : Mapped[str | None]  = mapped_column('DoD_precision')
     edc                     : Mapped[date | None] = mapped_column('EDC')
     sex                     : Mapped[str | None]  = mapped_column('Sex')
     registration_site_id    : Mapped[int]         = mapped_column('RegistrationCenterID', ForeignKey('psc.CenterID'))
