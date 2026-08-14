@@ -13,7 +13,7 @@ def try_get_pybids_value(layout: BIDSLayout, **args: Any) -> Any | None:
     values are found.
     """
 
-    match layout.get(args):  # type: ignore
+    match layout.get(**args):  # type: ignore
         case []:
             return None
         case [value]:  # type: ignore
