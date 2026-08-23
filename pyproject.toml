@@ -109,8 +109,14 @@ exclude = [
     "python/scripts/delete_physiological_file.py",
     "python/scripts/extract_eeg_bids_archive.py",
     "python/scripts/ingest_eeg_bids_datasets.py",
-    # DICOM to BIDS converter pipeline
-    "python/loris_dicom_to_bids_converter",
+    # Untyped DICOM to BIDS converter pipelines
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/base_pipeline.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/dicom_archive_loader_pipeline.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/nifti_insertion_pipeline.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/push_imaging_files_to_s3_pipeline.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/scripts/convert_dicom_archive_to_bids.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/scripts/insert_nifti.py",
+    "python/loris_dicom_to_bids_converter/src/loris_dicom_to_bids_converter/scripts/push_imaging_files_to_s3.py",
     # Untyped EEG BIDS import code
     "python/loris_bids_importer/src/loris_bids_importer/eeg",
     # Generated protocol buffer code

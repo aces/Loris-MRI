@@ -1,5 +1,5 @@
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
-from lib.exitcode import GETOPT_FAILURE, INVALID_PATH, MISSING_ARG, SELECT_FAILURE, SUCCESS
+from lib.exitcode import SELECT_FAILURE, SUCCESS
 from tests.util.database import get_integration_database_session
 from tests.util.run_integration_script import run_integration_script
 
@@ -15,13 +15,13 @@ def test_missing_upload_id_arg():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--tarchive_path', VALID_TARCHIVE_PATH,
+        '--dicom-archive-path', VALID_TARCHIVE_PATH,
     ])
 
     # Check return code, STDOUT and STDERR
-    assert process.returncode == MISSING_ARG
-    assert "[ERROR   ] argument --upload_id is required" in process.stdout
-    assert process.stderr == ""
+    assert process.returncode == 2
+    assert process.stdout == ""
+    assert "the following arguments are required: -u/--upload-id" in process.stderr
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'OTT203_300203_V3')
@@ -37,13 +37,13 @@ def test_missing_tarchive_path_arg():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--upload_id', VALID_UPLOAD_ID,
+        '--upload-id', VALID_UPLOAD_ID,
     ])
 
     # Check return code, STDOUT and STDERR
-    assert process.returncode == MISSING_ARG
-    assert "[ERROR   ] argument --tarchive_path is required" in process.stdout
-    assert process.stderr == ""
+    assert process.returncode == 2
+    assert process.stdout == ""
+    assert "the following arguments are required: -t/--dicom-archive-path" in process.stderr
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'OTT203_300203_V3')
@@ -58,13 +58,15 @@ def test_invalid_arg():
 
     process = run_integration_script([
         'validate-dicom-archive',
-        '--invalid_arg',
+        '--dicom-archive-path', VALID_TARCHIVE_PATH,
+        '--upload-id', VALID_UPLOAD_ID,
+        '--invalid-arg',
     ])
 
     # Check return code, STDOUT and STDERR
-    assert process.returncode == GETOPT_FAILURE
-    assert "option --invalid_arg not recognized" in process.stdout
-    assert process.stderr == ""
+    assert process.returncode == 2
+    assert process.stdout == ""
+    assert "unrecognized arguments: --invalid-arg" in process.stderr
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'OTT203_300203_V3')
@@ -80,16 +82,14 @@ def test_invalid_tarchive_path_arg():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--tarchive_path', INVALID_TARCHIVE_PATH,
-        '--upload_id', VALID_UPLOAD_ID,
+        '--dicom-archive-path', INVALID_TARCHIVE_PATH,
+        '--upload-id', VALID_UPLOAD_ID,
     ])
 
     # Check return code, STDOUT and STDERR
-    expected_stdout = f"[ERROR   ] {INVALID_TARCHIVE_PATH} does not exist." \
-                      f" Please provide a valid path for --tarchive_path"
-    assert process.returncode == INVALID_PATH
-    assert expected_stdout in process.stdout
-    assert process.stderr == ""
+    assert process.returncode == 2
+    assert process.stdout == ""
+    assert f"argument -t/--dicom-archive-path: {INVALID_TARCHIVE_PATH} does not exist" in process.stderr
 
     # Check that the expected data has been inserted in the database
     mri_upload = get_mri_upload_with_patient_name(db, 'OTT203_300203_V3')
@@ -104,8 +104,8 @@ def test_non_existent_upload_id():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--tarchive_path', VALID_TARCHIVE_PATH,
-        '--upload_id', INVALID_UPLOAD_ID,
+        '--dicom-archive-path', VALID_TARCHIVE_PATH,
+        '--upload-id', INVALID_UPLOAD_ID,
     ])
 
     # Check return code, STDOUT and STDERR
@@ -120,8 +120,8 @@ def test_mixed_up_upload_id_tarchive_path():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--tarchive_path', VALID_TARCHIVE_PATH,
-        '--upload_id', '126',
+        '--dicom-archive-path', VALID_TARCHIVE_PATH,
+        '--upload-id', '126',
     ])
 
     # Check return code, STDOUT and STDERR
@@ -137,8 +137,8 @@ def test_successful_validation():
     # Run the script to test
     process = run_integration_script([
         'validate-dicom-archive',
-        '--tarchive_path', VALID_TARCHIVE_PATH,
-        '--upload_id', VALID_UPLOAD_ID,
+        '--dicom-archive-path', VALID_TARCHIVE_PATH,
+        '--upload-id', VALID_UPLOAD_ID,
     ])
 
     # Check return code, STDOUT and STDERR
