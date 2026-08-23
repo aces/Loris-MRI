@@ -111,8 +111,8 @@ class DicomArchiveLoaderPipeline(BasePipeline):
 
         validation_command = [
             "validate-dicom-archive",
-            "-t", self.tarchive_path,
-            "-u", str(self.mri_upload.id)
+            "--dicom-archive-path", self.tarchive_path,
+            "--upload-id", str(self.mri_upload.id)
         ]
         if self.options_dict["profile"]["value"] is not None:
             validation_command.extend(['-p', self.options_dict["profile"]["value"]])
