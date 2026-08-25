@@ -2,7 +2,6 @@ import json
 import math
 import sys
 from collections import OrderedDict
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 
@@ -159,8 +158,8 @@ def write_chunks(chunk_dir: Path, channel_chunks_list: list[ChannelArray], chann
 
 def mne_file_to_chunks(
     path: Path,
+    raw: BaseRaw,
     chunk_size: int,
-    loader: Callable[[Path], BaseRaw],
     from_channel_name: str | None,
     channel_count: int | None,
 ) -> tuple[
@@ -171,9 +170,8 @@ def mne_file_to_chunks(
     list[tuple[float, float]],
     list[int],
 ]:
-    parsed = loader(path)
-    time_interval: tuple[np.float64, np.float64] = (parsed.times[0], parsed.times[-1])
-    channel_names = cast(list[str], parsed.info["ch_names"])
+    time_interval: tuple[np.float64, np.float64] = (raw.times[0], raw.times[-1])
+    channel_names = cast(list[str], raw.info["ch_names"])
     channel_ranges: list[tuple[float, float]] = []
     signal_range = (np.inf, -np.inf)
     channel_chunks_list = []
@@ -189,7 +187,7 @@ def mne_file_to_chunks(
 
     for i, channel_name in enumerate(selected_channels, start=1):
         print(f"Processing channel {channel_name} ({i} / {len(selected_channels)})")
-        channel = cast(ChannelArray, parsed.get_data(channel_name))  # type: ignore
+        channel = cast(ChannelArray, raw.get_data(channel_name))  # type: ignore
         channel_min = np.amin(channel)
         channel_max = np.amax(channel)
         channel_ranges.append((channel_min, channel_max))
@@ -215,8 +213,8 @@ def mne_file_to_chunks(
 
 def write_chunk_directory(
     path: Path,
+    raw: BaseRaw,
     chunk_size: int,
-    loader: Callable[[Path], BaseRaw],
     from_channel_index: int = 0,
     from_channel_name: str | None = None,
     channel_count: int | None = None,
@@ -227,7 +225,7 @@ def write_chunk_directory(
     chunk_dir = chunk_dir_path(path, prefix=prefix, destination=destination)
     channel_chunks_list, time_interval, signal_range, \
         channel_names, channel_ranges, valid_samples_in_last_chunk = \
-        mne_file_to_chunks(path, chunk_size, loader, from_channel_name, channel_count)
+        mne_file_to_chunks(path, raw, chunk_size, from_channel_name, channel_count)
 
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]

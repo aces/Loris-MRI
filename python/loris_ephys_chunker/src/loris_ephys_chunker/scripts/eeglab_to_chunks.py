@@ -12,8 +12,12 @@ from mne.io.eeglab.eeglab import RawEEGLAB
 from loris_ephys_chunker.chunking import write_chunk_directory
 
 
-def load_channels(path: Path) -> RawEEGLAB:
-    return mne.io.read_raw_eeglab(path, preload=False)  # type: ignore
+def read_eeglab_raw(path: Path) -> RawEEGLAB:
+    """
+    Read the EEGLAB acquisition file into an MNE raw object.
+    """
+
+    return mne.io.read_raw_eeglab(path)  # type: ignore
 
 
 def main():
@@ -50,12 +54,13 @@ def main():
             sys.exit("Channel count must be a positive integer")
 
         print(f'Creating chunks for {path}')
+        raw = read_eeglab_raw(path)
         write_chunk_directory(
             path=path,
+            raw=raw,
             from_channel_index=args.channel_index,
             from_channel_name=channel_names[args.channel_index],  # type: ignore
             channel_count=args.channel_count,
-            loader=load_channels,
             chunk_size=args.chunk_size,
             destination=args.destination,
             prefix=args.prefix

@@ -2,7 +2,6 @@
 
 import argparse
 import sys
-from collections.abc import Callable
 from pathlib import Path
 from typing import cast
 
@@ -13,8 +12,12 @@ from mne.io.edf.edf import RawEDF
 from loris_ephys_chunker.chunking import write_chunk_directory
 
 
-def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:
-    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)  # type: ignore
+def read_edf_raw(path: Path, exclude: list[str]) -> RawEDF:
+    """
+    Read the EDF acquisition file into an MNE raw object.
+    """
+
+    return mne.io.read_raw_edf(path, exclude=exclude)  # type: ignore
 
 
 def main():
@@ -81,9 +84,10 @@ def main():
             # and avoid memory issues
             # we only load the channel at index channel_index+i
             exclude = channel_names[:channel_index] + channel_names[channel_index + 1:]
+            raw = read_edf_raw(path, exclude)
             write_chunk_directory(
                 path=path,
-                loader=load_channels(exclude),
+                raw=raw,
                 from_channel_index=channel_index,
                 from_channel_name=channel_names[channel_index],
                 channel_count=1,
