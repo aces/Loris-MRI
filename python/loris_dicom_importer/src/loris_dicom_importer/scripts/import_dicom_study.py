@@ -150,7 +150,7 @@ def main() -> None:
 
     log(env, "Checking if the DICOM study is already inserted in LORIS...")
 
-    dicom_archive = try_get_dicom_archive_with_study_uid(env.db, dicom_summary.info.study_uid)
+    dicom_archive = try_get_dicom_archive_with_study_uid(env.db, dicom_summary.info.study_instance_uid)
 
     if dicom_archive is not None:
         log(env, "Found the DICOM study in LORIS.")

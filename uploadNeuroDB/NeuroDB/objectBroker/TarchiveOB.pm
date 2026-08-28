@@ -71,9 +71,9 @@ use File::Basename;
 use TryCatch;
 
 my @TARCHIVE_FIELDS = qw(
-    DicomArchiveID TarchiveID ArchiveLocation PatientName PatientID PatientDoB md5sumArchive
+    StudyInstanceUID TarchiveID ArchiveLocation PatientName PatientID PatientDoB md5sumArchive
     ScannerManufacturer ScannerModel ScannerSerialNumber ScannerSoftwareVersion
-    neurodbCenterName SourceLocation DateAcquired
+    InstitutionName SourceLocation DateAcquired
 );
 
 =pod
