@@ -248,6 +248,7 @@ def write_chunk_directory(
 
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
+        valid_samples_in_last_chunk = valid_samples_in_last_chunk[:downsamplings]
 
     channel_metadata = [
         {
@@ -259,13 +260,13 @@ def write_chunk_directory(
     ]
 
     write_index_json(
-        chunk_dir,
-        time_interval,
-        signal_range,
-        channel_metadata,
-        chunk_size,
-        valid_samples_in_last_chunk,
-        list(range(len(channel_chunks_list))),
-        [list(downsampled.shape) for downsampled in channel_chunks_list]
+        chunk_dir=chunk_dir,
+        time_interval=time_interval,
+        series_range=signal_range,
+        channel_metadata=channel_metadata,
+        chunk_size=chunk_size,
+        downsamplings=list(range(len(channel_chunks_list))),
+        valid_samples_in_last_chunk=valid_samples_in_last_chunk,
+        shapes=[list(downsampled.shape) for downsampled in channel_chunks_list],
     )
     write_chunks(chunk_dir, channel_chunks_list, from_channel_index)
