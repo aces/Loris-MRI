@@ -88,6 +88,7 @@ def main():
                 from_channel_name=channel_names[channel_index],
                 channel_count=1,
                 chunk_size=args.chunk_size,
+                downsamplings=args.downsamplings,
                 destination=args.destination,
                 prefix=args.prefix
             )
