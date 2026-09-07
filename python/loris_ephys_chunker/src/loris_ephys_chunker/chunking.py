@@ -167,7 +167,7 @@ def write_chunks(chunk_dir: Path, channel_chunks_list: list[ChannelArray], chann
                     / str(trace_index)
                 )
 
-                trace_path.mkdir(parents=True)
+                trace_path.mkdir(parents=True, exist_ok=True)
                 for chunk_index, chunk in enumerate(trace):
                     encoded_chunk = encode_chunk(chunk, chunk_index, downsampling)
                     with open(trace_path / f'{chunk_index}.buf', 'w+b') as chunk_file:
