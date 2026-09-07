@@ -48,11 +48,28 @@ def create_chunks_from_values_lists(values_lists: list[ChannelArray], chunk_size
 def downsample_channel(channel: ChannelArray, chunk_size: int, downsampling: int) -> ChannelArray:
     if downsampling == 0:
         return channel
-    down = chunk_size**downsampling
-    downsampled_size = channel.shape[-1] / down
-    if downsampled_size <= chunk_size * 2:
-        downsampled_size = chunk_size * 2
-    return signal.resample(channel, downsampled_size, axis=-1)  # type: ignore
+
+    sample_count = channel.shape[-1]
+    requested_factor = chunk_size**downsampling
+    target_size = max(math.ceil(sample_count / requested_factor), chunk_size * 2)
+
+    # Keep the FIR filter reasonably sized even when the input and target lengths are relatively
+    # prime. Rounding down guarantees at least target_size output samples; chunk padding handles
+    # the small excess.
+    effective_factor = max(1, sample_count // target_size)
+    if effective_factor == 1:
+        return channel
+
+    # FFT resampling treats the recording as periodic and rings where the final and first samples
+    # are implicitly joined. Polyphase FIR resampling avoids that wraparound, while linear boundary
+    # extension prevents zero/constant padding from introducing a new endpoint discontinuity.
+    return signal.resample_poly(  # type: ignore
+        channel,
+        up=1,
+        down=effective_factor,
+        axis=-1,
+        padtype='line',
+    )
 
 
 def create_downsampled_values_lists(channel: ChannelArray, chunk_size: int) -> list[ChannelArray]:
