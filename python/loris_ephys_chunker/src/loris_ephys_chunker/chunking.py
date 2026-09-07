@@ -194,12 +194,12 @@ def mne_file_to_chunks(
     channel_ranges: list[tuple[float, float]] = []
     signal_range = (np.inf, -np.inf)
     channel_chunks_list = []
-    selected_channels = []
+    selected_channels = channel_names
     valid_samples_in_last_chunk = []
 
-    if from_channel_name:
+    if from_channel_name is not None:
         from_channel_index = channel_names.index(from_channel_name)
-        if channel_count and from_channel_index + channel_count < len(channel_names):
+        if channel_count is not None:
             selected_channels = channel_names[from_channel_index:from_channel_index + channel_count]
         else:
             selected_channels = channel_names[from_channel_index:]
@@ -227,7 +227,14 @@ def mne_file_to_chunks(
             for j, chunk in enumerate(chunks):
                 channel_chunks_list[j] = np.append(channel_chunks_list[j], chunk, axis=0)
 
-    return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges, valid_samples_in_last_chunk
+    return (
+        channel_chunks_list,
+        time_interval,
+        signal_range,
+        selected_channels,
+        channel_ranges,
+        valid_samples_in_last_chunk,
+    )
 
 
 def write_chunk_directory(
