@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.bids_file as db_bids_file
 import lib.db.models.imaging_file_type as db_imaging_file_type
 import lib.db.models.physio_event_parameter as db_physio_event_parameter
 import lib.db.models.physio_file as db_physio_file
@@ -24,8 +25,18 @@ class DbPhysioEventFile(Base):
     last_update    : Mapped[datetime]    = mapped_column('LastUpdate', default=datetime.now)
     last_written   : Mapped[datetime]    = mapped_column('LastWritten', default=datetime.now)
 
+    bids_info_id: Mapped[int | None] = mapped_column('BidsInfoID', ForeignKey('bids_file.ID', ondelete='SET NULL'))
+    """
+    The ID of the BIDS information of this event file, if any.
+    """
+
     physio_file       : Mapped['db_physio_file.DbPhysioFile | None']                     = relationship('DbPhysioFile')
     project           : Mapped['db_project.DbProject | None']                            = relationship('DbProject')
     imaging_file_type : Mapped['db_imaging_file_type.DbImagingFileType | None']          = relationship('DbImagingFileType')
     task_events       : Mapped[list['db_physio_task_event.DbPhysioTaskEvent']]           = relationship('DbPhysioTaskEvent', back_populates='event_file')
     event_parameters  : Mapped[list['db_physio_event_parameter.DbPhysioEventParameter']] = relationship('DbPhysioEventParameter', back_populates='event_file')
+
+    bids_info: Mapped['db_bids_file.DbBidsFile | None'] = relationship('DbBidsFile')
+    """
+    The BIDS information of this event file, if any.
+    """

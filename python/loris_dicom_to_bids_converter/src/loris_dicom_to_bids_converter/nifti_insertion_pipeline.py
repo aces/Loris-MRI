@@ -657,6 +657,7 @@ class NiftiInsertionPipeline(BasePipeline):
             Path(nifti_rel_path),
             file_type,
             self.session,
+            None,
             self.scan_type,
             self.mri_scanner,
             self.dicom_archive,

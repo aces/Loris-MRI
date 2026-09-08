@@ -4,6 +4,7 @@ from pathlib import Path
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.bids_file as db_bids_file
 import lib.db.models.dicom_archive as db_dicom_archive
 import lib.db.models.file_parameter as db_file_parameter
 import lib.db.models.session as db_session
@@ -39,6 +40,16 @@ class DbFile(Base):
     scanner_id                     : Mapped[int | None]   = mapped_column('ScannerID')
     acquisition_order_per_modality : Mapped[int | None]   = mapped_column('AcqOrderPerModality')
     acquisition_date               : Mapped[date | None]  = mapped_column('AcquisitionDate')
+
+    bids_info_id: Mapped[int | None] = mapped_column('BidsInfoID', ForeignKey('bids_file.ID', ondelete='SET NULL'))
+    """
+    The ID of the BIDS information of this file, if any.
+    """
+
+    bids_info: Mapped['db_bids_file.DbBidsFile | None'] = relationship('DbBidsFile')
+    """
+    The BIDS information of this file, if any.
+    """
 
     session: Mapped['db_session.DbSession'] = relationship('DbSession', back_populates='files')
     """

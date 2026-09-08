@@ -1,7 +1,13 @@
 from datetime import datetime
 from pathlib import Path
 
+from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.fs import iter_all_dir_files
+from sqlalchemy.orm import Session as Database
+
+from lib.db.queries.bids_dataset import try_get_bids_dataset_with_path
 from lib.db.queries.bids_event_dataset_mapping import get_bids_event_dataset_mappings_with_project_id
+from lib.db.queries.bids_file import try_get_bids_file_with_dataset_id_path
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.config import set_config_with_setting_name
 from lib.db.queries.physio_file import try_get_physio_file_with_path
@@ -114,6 +120,11 @@ def test_import_eeg_bids_dataset():
         }
     })
 
+    assert_bids_dataset_registered(
+        db,
+        Path('bids_imports/Face13_BIDSVersion_1.1.0'),
+    )
+
     # Check that the chunk files have been created.
     assert_files_exist('/data/loris/chunks', {
         'Face13_BIDSVersion_1.1.0_chunks': {
@@ -194,3 +205,31 @@ def test_import_mri_bids_dataset():
             }
         }
     })
+
+    assert_bids_dataset_registered(
+        db,
+        Path('bids_imports/DCC090_587630_V2_BIDSVersion_1.8.0'),
+    )
+
+
+def assert_bids_dataset_registered(db: Database, dataset_path: Path):
+    """
+    Assert that the imported BIDS dataset and all its files are correctly registered in the BIDS
+    storage tables.
+    """
+
+    dataset = try_get_bids_dataset_with_path(db, dataset_path)
+    assert dataset is not None
+
+    full_dataset_path = Path('/data/loris') / dataset_path
+    for file_path in iter_all_dir_files(full_dataset_path):
+        # TODO: The LORIS BIDS electrophysiology import currently creates archives in the import
+        # LORIS BIDS datasets. This is undesirable as having these archives is not BIDS-compliant,
+        # the pipelines should be updated to always create these archives in another directory.
+        # These files are for now ignored in this test.
+        if file_path.suffix == '.tgz':
+            continue
+
+        file = try_get_bids_file_with_dataset_id_path(db, dataset.id, file_path)
+        assert file is not None
+        assert file.blake2b_hash == compute_file_blake2b_hash(full_dataset_path / file_path)

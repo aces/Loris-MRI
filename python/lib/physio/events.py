@@ -5,6 +5,7 @@ from typing import Any
 
 from lib.db.models.bids_event_dataset_mapping import DbBidsEventDatasetMapping
 from lib.db.models.bids_event_file_mapping import DbBidsEventFileMapping
+from lib.db.models.bids_file import DbBidsFile
 from lib.db.models.physio_event_file import DbPhysioEventFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_task_event import DbPhysioTaskEvent
@@ -49,7 +50,12 @@ class EventDictFileSource:
         )
 
 
-def insert_event_dict_file(env: Env, source: EventDictFileSource, event_file_path: Path) -> DbPhysioEventFile:
+def insert_event_dict_file(
+    env: Env,
+    bids_info: DbBidsFile,
+    source: EventDictFileSource,
+    event_file_path: Path,
+) -> DbPhysioEventFile:
     """
     Insert an event dictionary file into the LORIS database.
     """
@@ -59,6 +65,7 @@ def insert_event_dict_file(env: Env, source: EventDictFileSource, event_file_pat
         project_id     = source.project.id,
         file_type      = 'json',
         file_path      = event_file_path,
+        bids_info_id   = bids_info.id,
     )
 
     env.db.add(event_dict_file)
@@ -204,7 +211,12 @@ def parse_and_insert_event_dict(
     return tag_dict
 
 
-def insert_events_file(env: Env, physio_file: DbPhysioFile, event_file_path: Path) -> DbPhysioEventFile:
+def insert_events_file(
+    env: Env,
+    physio_file: DbPhysioFile,
+    bids_info: DbBidsFile,
+    event_file_path: Path,
+) -> DbPhysioEventFile:
     """
     Insert an events file into the LORIS database.
     """
@@ -214,6 +226,7 @@ def insert_events_file(env: Env, physio_file: DbPhysioFile, event_file_path: Pat
         project_id     = physio_file.session.project.id,
         file_type      = 'tsv',
         file_path      = event_file_path,
+        bids_info_id   = bids_info.id,
     )
 
     env.db.add(event_dict_file)

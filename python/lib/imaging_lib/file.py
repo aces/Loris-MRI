@@ -2,6 +2,7 @@ import getpass
 from datetime import date, datetime
 from pathlib import Path
 
+from lib.db.models.bids_file import DbBidsFile
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.file import DbFile
 from lib.db.models.imaging_file_type import DbImagingFileType
@@ -16,6 +17,7 @@ def register_mri_file(
     file_path: Path,
     file_type: DbImagingFileType,
     session: DbSession,
+    bids_info: DbBidsFile | None,
     scan_type: DbMriScanType | None,
     scanner: DbMriScanner | None,
     dicom_archive: DbDicomArchive | None,
@@ -43,6 +45,7 @@ def register_mri_file(
         echo_number              = echo_number,
         phase_encoding_direction = phase_encoding_direction,
         source_file_id           = None,
+        bids_info_id             = bids_info.id if bids_info is not None else None,
         scan_type_id             = scan_type.id if scan_type is not None else None,
         scanner_id               = scanner.id if scanner is not None else None,
         dicom_archive_id         = dicom_archive.id if dicom_archive is not None else None,

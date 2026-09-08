@@ -1,11 +1,34 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
+
+from lib.db.models.bids_dataset import DbBidsDataset
 
 
 @dataclass
-class BidsImportEnv:
+class BidsImporterArgs:
     """
-    Information about a specific BIDS import pipeline run.
+    The CLI arguments given to the BIDS importer.
+    """
+
+    source_bids_path: Path
+    type: Literal['raw', 'derivative', None]
+    bids_validation: bool
+    create_candidate: bool
+    create_session: bool
+    copy: bool
+    verbose: bool
+
+
+@dataclass
+class BidsImporter:
+    """
+    Information about the current BIDS import pipeline run.
+    """
+
+    args: BidsImporterArgs
+    """
+    The CLI arguments given to the BIDS importer.
     """
 
     data_dir_path: Path
@@ -13,14 +36,9 @@ class BidsImportEnv:
     The LORIS data directory path.
     """
 
-    source_bids_path: Path
+    loris_bids_dataset: DbBidsDataset
     """
-    The source BIDS directory path.
-    """
-
-    loris_bids_path: Path | None
-    """
-    The LORIS BIDS directory path for this import, relative to the LORIS data directory.
+    The LORIS BIDS dataset populated by this import.
     """
 
     imported_acquisitions_count: int = 0
