@@ -47,7 +47,7 @@ def write_dicom_study_info(info: DicomStudyInfo) -> str:
     """
 
     return '\n' + DictWriter([
-        ('Unique Study ID'          , info.study_uid),
+        ('Unique Study ID'          , info.study_instance_uid),
         ('Patient Name'             , info.patient.name),
         ('Patient ID'               , info.patient.id),
         ('Patient date of birth'    , write_date_none(info.patient.birth_date)),
@@ -57,7 +57,7 @@ def write_dicom_study_info(info: DicomStudyInfo) -> str:
         ('Scanner Model Name'       , info.scanner.model),
         ('Scanner Serial Number'    , info.scanner.serial_number),
         ('Scanner Software Version' , info.scanner.software_version),
-        ('Institution Name'         , info.institution),
+        ('Institution Name'         , info.institution_name),
         ('Modality'                 , info.modality),
     ]).write()
 
