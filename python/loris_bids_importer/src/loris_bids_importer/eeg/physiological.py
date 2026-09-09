@@ -4,7 +4,7 @@ from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.db.models.physio_file import DbPhysioFile
 from lib.env import Env
-from lib.physio.parameters import insert_physio_file_parameter
+from lib.physio.parameters import register_physio_file_parameter
 from lib.point_3d import Point3D
 
 
@@ -159,7 +159,7 @@ class Physiological:
             electrode_ids.append(inserted_electrode_id)
 
         # insert blake2b hash of electrode file into physiological_parameter_file
-        insert_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
+        register_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
         return electrode_ids
 
     def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
@@ -273,4 +273,4 @@ class Physiological:
 
         if blake2:
             # insert blake2b hash of task event file into physiological_parameter_file
-            insert_physio_file_parameter(self.env, physiological_file, 'coordsystem_file_json_blake2b_hash', blake2)
+            register_physio_file_parameter(self.env, physiological_file, 'coordsystem_file_json_blake2b_hash', blake2)

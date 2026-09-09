@@ -7,7 +7,7 @@ from lib.db.models.session import DbSession
 from lib.db.queries.physio_channel import try_get_channel_type_with_name, try_get_status_type_with_name
 from lib.env import Env
 from lib.physio.channels import insert_physio_channel
-from lib.physio.parameters import insert_physio_file_parameter
+from lib.physio.parameters import register_physio_file_parameter
 from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile, BidsEegChannelTsvRow
 from loris_bids_utils.info import BidsAcquisitionInfo
 from loris_utils.crypto import compute_file_blake2b_hash
@@ -50,7 +50,7 @@ def insert_bids_channels_file(
     )
 
     get_or_create_loris_bids_file(env, importer, channels_file.path, loris_channels_file_path)
-    insert_physio_file_parameter(env, physio_file, 'channel_file_blake2b_hash', blake2_hash)
+    register_physio_file_parameter(env, physio_file, 'channel_file_blake2b_hash', blake2_hash)
 
     env.db.flush()
 
