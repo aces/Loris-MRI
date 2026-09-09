@@ -57,13 +57,12 @@ def main():
         if args.channel_count and args.channel_count < 0:
             sys.exit("Channel count must be a positive integer")
 
-        if args.channel_index in edf_info['stim_channel_idxs']:
-            continue
+        channel_count = args.channel_count
+        if channel_count is None:
+            channel_count = len(channel_names) - args.channel_index
+        channel_count = min(channel_count, len(channel_names) - args.channel_index)
 
-        if not args.channel_count:
-            args.channel_count = len(channel_names) - args.channel_index
-
-        for i in range(args.channel_count):
+        for i in range(channel_count):
             channel_index: int = args.channel_index + i
 
             # check if channel_index is a stim channel
@@ -88,6 +87,7 @@ def main():
                 from_channel_name=channel_names[channel_index],
                 channel_count=1,
                 chunk_size=args.chunk_size,
+                downsamplings=args.downsamplings,
                 destination=args.destination,
                 prefix=args.prefix
             )

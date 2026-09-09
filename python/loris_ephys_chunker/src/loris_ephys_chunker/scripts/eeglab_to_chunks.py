@@ -57,6 +57,7 @@ def main():
             channel_count=args.channel_count,
             loader=load_channels,
             chunk_size=args.chunk_size,
+            downsamplings=args.downsamplings,
             destination=args.destination,
             prefix=args.prefix
         )

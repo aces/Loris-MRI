@@ -48,11 +48,28 @@ def create_chunks_from_values_lists(values_lists: list[ChannelArray], chunk_size
 def downsample_channel(channel: ChannelArray, chunk_size: int, downsampling: int) -> ChannelArray:
     if downsampling == 0:
         return channel
-    down = chunk_size**downsampling
-    downsampled_size = channel.shape[-1] / down
-    if downsampled_size <= chunk_size * 2:
-        downsampled_size = chunk_size * 2
-    return signal.resample(channel, downsampled_size, axis=-1)  # type: ignore
+
+    sample_count = channel.shape[-1]
+    requested_factor = chunk_size**downsampling
+    target_size = max(math.ceil(sample_count / requested_factor), chunk_size * 2)
+
+    # Keep the FIR filter reasonably sized even when the input and target lengths are relatively
+    # prime. Rounding down guarantees at least target_size output samples; chunk padding handles
+    # the small excess.
+    effective_factor = max(1, sample_count // target_size)
+    if effective_factor == 1:
+        return channel
+
+    # FFT resampling treats the recording as periodic and rings where the final and first samples
+    # are implicitly joined. Polyphase FIR resampling avoids that wraparound, while linear boundary
+    # extension prevents zero/constant padding from introducing a new endpoint discontinuity.
+    return signal.resample_poly(  # type: ignore
+        channel,
+        up=1,
+        down=effective_factor,
+        axis=-1,
+        padtype='line',
+    )
 
 
 def create_downsampled_values_lists(channel: ChannelArray, chunk_size: int) -> list[ChannelArray]:
@@ -150,7 +167,7 @@ def write_chunks(chunk_dir: Path, channel_chunks_list: list[ChannelArray], chann
                     / str(trace_index)
                 )
 
-                trace_path.mkdir(parents=True)
+                trace_path.mkdir(parents=True, exist_ok=True)
                 for chunk_index, chunk in enumerate(trace):
                     encoded_chunk = encode_chunk(chunk, chunk_index, downsampling)
                     with open(trace_path / f'{chunk_index}.buf', 'w+b') as chunk_file:
@@ -177,12 +194,12 @@ def mne_file_to_chunks(
     channel_ranges: list[tuple[float, float]] = []
     signal_range = (np.inf, -np.inf)
     channel_chunks_list = []
-    selected_channels = []
+    selected_channels = channel_names
     valid_samples_in_last_chunk = []
 
-    if from_channel_name:
+    if from_channel_name is not None:
         from_channel_index = channel_names.index(from_channel_name)
-        if channel_count and from_channel_index + channel_count < len(channel_names):
+        if channel_count is not None:
             selected_channels = channel_names[from_channel_index:from_channel_index + channel_count]
         else:
             selected_channels = channel_names[from_channel_index:]
@@ -210,7 +227,14 @@ def mne_file_to_chunks(
             for j, chunk in enumerate(chunks):
                 channel_chunks_list[j] = np.append(channel_chunks_list[j], chunk, axis=0)
 
-    return channel_chunks_list, time_interval, signal_range, channel_names, channel_ranges, valid_samples_in_last_chunk
+    return (
+        channel_chunks_list,
+        time_interval,
+        signal_range,
+        selected_channels,
+        channel_ranges,
+        valid_samples_in_last_chunk,
+    )
 
 
 def write_chunk_directory(
@@ -231,6 +255,7 @@ def write_chunk_directory(
 
     if downsamplings is not None:
         channel_chunks_list = channel_chunks_list[:downsamplings]
+        valid_samples_in_last_chunk = valid_samples_in_last_chunk[:downsamplings]
 
     channel_metadata = [
         {
@@ -242,13 +267,13 @@ def write_chunk_directory(
     ]
 
     write_index_json(
-        chunk_dir,
-        time_interval,
-        signal_range,
-        channel_metadata,
-        chunk_size,
-        valid_samples_in_last_chunk,
-        list(range(len(channel_chunks_list))),
-        [list(downsampled.shape) for downsampled in channel_chunks_list]
+        chunk_dir=chunk_dir,
+        time_interval=time_interval,
+        series_range=signal_range,
+        channel_metadata=channel_metadata,
+        chunk_size=chunk_size,
+        downsamplings=list(range(len(channel_chunks_list))),
+        valid_samples_in_last_chunk=valid_samples_in_last_chunk,
+        shapes=[list(downsampled.shape) for downsampled in channel_chunks_list],
     )
     write_chunks(chunk_dir, channel_chunks_list, from_channel_index)
