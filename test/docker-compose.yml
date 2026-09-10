@@ -1,8 +1,15 @@
 services:
   db:
     image: loris-db
-    volumes:
-      - ./test/mysql-config:/etc/mysql/conf.d
+    build:
+      context: ..
+      dockerfile: test/db.Dockerfile
+      additional_contexts:
+        loris_core: ${LORIS_CORE_DIR:?Set LORIS_CORE_DIR to a LORIS core checkout}
+      args:
+        DATABASE_NAME: ${DATABASE_NAME:-TestDatabase}
+        DATABASE_USER: ${DATABASE_USERNAME:-TestUsername}
+        DATABASE_PASS: ${DATABASE_PASSWORD:-TestPassword}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       start_period: 10s
@@ -11,8 +18,15 @@ services:
       retries: 5
   mri:
     image: loris-mri
+    build:
+      context: ..
+      dockerfile: test/mri.Dockerfile
+      args:
+        DATABASE_NAME: ${DATABASE_NAME:-TestDatabase}
+        DATABASE_USER: ${DATABASE_USERNAME:-TestUsername}
+        DATABASE_PASS: ${DATABASE_PASSWORD:-TestPassword}
     volumes:
-      - /data-imaging:/data-imaging
+      - ${LORIS_TEST_DATA:?Set LORIS_TEST_DATA to the imaging test dataset}:/data-loris:ro
     depends_on:
       db:
         condition: service_healthy
