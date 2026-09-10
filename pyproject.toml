@@ -124,6 +124,7 @@ reportMissingTypeStubs = "none"
 extend-exclude = [
     "*.al", "*.pl", "*.pm",
     "/docs/scripts_md",
+    "/test/loris-data.env",
 ]
 
 [tool.typos.default]
