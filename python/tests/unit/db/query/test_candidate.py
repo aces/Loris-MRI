@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session as Database
 
 from lib.db.models.candidate import DbCandidate
 from lib.db.queries.candidate import try_get_candidate_with_cand_id
-from tests.util.database import create_test_database
 
 
 @dataclass
@@ -16,9 +15,7 @@ class Setup:
 
 
 @pytest.fixture
-def setup():
-    db = create_test_database()
-
+def setup(db: Database):
     candidate_1 = DbCandidate(
         cand_id = 111111,
         psc_id='DCC001',
