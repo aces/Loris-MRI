@@ -1,19 +1,7 @@
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from lib.config_file import load_config
-from lib.db.base import Base
 from lib.db.connect import get_database_engine
-
-
-def create_test_database():
-    """
-    Create an empty in-memory database to be used for unit tests.
-    """
-
-    engine = create_engine('sqlite:///:memory:')
-    Base.metadata.create_all(engine)
-    return Session(engine)
 
 
 def get_integration_database_engine():
