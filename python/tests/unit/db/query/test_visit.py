@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session as Database
 
 from lib.db.models.visit_window import DbVisitWindow
 from lib.db.queries.visit import try_get_visit_window_with_visit_label
-from tests.util.database import create_test_database
 
 
 @dataclass
@@ -16,9 +15,7 @@ class Setup:
 
 
 @pytest.fixture
-def setup():
-    db = create_test_database()
-
+def setup(db: Database):
     visit_window_1 = DbVisitWindow(
         visit_label = 'V1'
     )
