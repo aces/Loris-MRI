@@ -9,7 +9,6 @@ from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
 from lib.db.queries.dicom_archive import delete_dicom_archive_file_series, try_get_dicom_archive_with_study_uid
-from tests.util.database import create_test_database
 
 
 @dataclass
@@ -20,9 +19,7 @@ class Setup:
 
 
 @pytest.fixture
-def setup():
-    db = create_test_database()
-
+def setup(db: Database):
     dicom_archive_1 = DbDicomArchive(
         study_uid                 = '1.2.256.100000.1.2.3.456789',
         patient_id                = 'DCC001_111111_V1',
