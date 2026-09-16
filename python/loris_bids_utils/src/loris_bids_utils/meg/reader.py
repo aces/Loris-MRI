@@ -66,7 +66,7 @@ class BidsMegDataTypeReader(BidsDataTypeReader):
 
 def find_dir_meg_acquisition_names(dir_path: Path) -> Iterator[str]:
     """
-    Iterate over the Path objects of the NIfTI files found in a directory.
+    Iterate over the file names of the MEG CTF acquisitions (.ds directories) found in a directory.
     """
 
     for item_path in dir_path.iterdir():
