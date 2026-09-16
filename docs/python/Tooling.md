@@ -43,11 +43,11 @@ To run the LORIS-MRI Python unit tests, use the command `pytest` in the root LOR
 The LORIS-MRI integration tests are located in the `python/tests/integration` directory.
 
 The LORIS-MRI integration tests require a more complex testing environment with the following:
-- A copy of the main LORIS repository.
-- A file system mount of the S3 LORIS-MRI test dataset.
+- A (partial) copy of the main LORIS repository.
+- A copy of the S3 LORIS-MRI test dataset.
 - A LORIS database Docker image with the LORIS-MRI test dataset.
 - A LORIS-MRI code Docker image with all the required dependencies installed.
 
-To run the LORIS-MRI integration tests, use the command `pytest python/tests/integration` in the root LORIS-MRI directory **inside the LORIS-MRI code Docker image**.
+To run the LORIS-MRI integration tests, use the command `test/run_integration_tests.sh` in the root LORIS-MRI directory.
 
-As of December 2024, there is no easy way to set up and run this environment locally. You can however use the LORIS-MRI GitHub Actions workflow (that is, create a pull request) to set up this environment and run the integration tests in GitHub.
+Note that the first run of the LORIS-MRI integration test run might take some time, as the test data must be downloaded and the Docker images must be created. However, much of this setup should be cached in the Docker cache as well as the LORIS-MRI test cache directory (by default `~/.cache/loris/test`), so further test runs should be much faster. To avoid downloading data and building images locally, it is also possible to run the LORIS-MRI integration tests remotely by simply creating a pull request, which will trigger the LORIS-MRI CI workflow.

@@ -1,9 +1,14 @@
 FROM mariadb:latest
 
-# Copy the SQL schema files and the Raisinbread data from the main LORIS repository.
-COPY test/Loris/SQL/*.sql .
-COPY test/Loris/raisinbread/instruments/instrument_sql/*.sql ./raisinbread/instruments/
-COPY test/Loris/raisinbread/RB_files/*.sql ./raisinbread/
+# Copy the SQL schema files and the Raisinbread data from the main LORIS repository. The
+# `loris_core` build context is supplied by Docker Compose, so it does not need to live inside this
+# repository.
+COPY --from=loris_core SQL/*.sql .
+COPY --from=loris_core raisinbread/instruments/instrument_sql/*.sql ./raisinbread/instruments/
+COPY --from=loris_core raisinbread/RB_files/*.sql ./raisinbread/
+
+# Override the LORIS core Raisinbread schema with the versions maintained by LORIS-MRI.
+COPY test/RB_SQL/*.sql ./raisinbread/
 
 # Usually, MariaDB creates the SQL user and database at runtime. Since we want to embed the
 # database in the image, we instead create them manually at build time.
