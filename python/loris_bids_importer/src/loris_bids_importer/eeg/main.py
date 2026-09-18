@@ -15,7 +15,7 @@ from lib.logging import log, log_warning
 from lib.physio.chunking import create_physio_channels_chunks
 from lib.physio.events import EventDictFileSource
 from lib.physio.file import insert_physio_file
-from lib.physio.parameters import insert_physio_file_parameters
+from lib.physio.parameters import register_physio_file_parameters
 from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_utils.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_utils.files.events import BidsEventsTsvFile
@@ -368,7 +368,7 @@ class Eeg:
                 bids_info=bids_info,
             )
 
-            insert_physio_file_parameters(self.env, physio_file, eeg_file_data)
+            register_physio_file_parameters(self.env, physio_file, eeg_file_data)
             self.env.db.commit()
 
             # Update the LORIS scans.tsv file.

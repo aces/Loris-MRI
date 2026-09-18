@@ -18,7 +18,7 @@ from lib.physio.events import (
     parse_and_insert_event_dict,
 )
 from lib.physio.hed import TagGroupMember, build_hed_tag_groups, filter_inherited_tags
-from lib.physio.parameters import insert_physio_file_parameter, insert_physio_project_parameter
+from lib.physio.parameters import insert_physio_project_parameter, register_physio_file_parameter
 from loris_bids_utils.files.events import OPTIONAL_EVENT_FIELDS, BidsEventsTsvFile
 from loris_bids_utils.json import BidsJsonFile
 from loris_utils.crypto import compute_file_blake2b_hash
@@ -74,7 +74,7 @@ def insert_bids_event_dict_file(
     hed_tags_dict = parse_and_insert_event_dict(env, bids_event_dict_file.data, source)
 
     if source.physio_file is not None:
-        insert_physio_file_parameter(env, source.physio_file, 'event_file_json_blake2b_hash', blake2b_hash)
+        register_physio_file_parameter(env, source.physio_file, 'event_file_json_blake2b_hash', blake2b_hash)
     else:
         insert_physio_project_parameter(env, source.project.id, 'event_file_json_blake2b_hash', blake2b_hash)
 
@@ -108,7 +108,7 @@ def insert_bids_events_file(
     event_file = insert_events_file(env, physio_file, bids_info, loris_events_file_path)
 
     # insert blake2b hash of task event file into physiological_parameter_file
-    insert_physio_file_parameter(env, physio_file, 'event_file_blake2b_hash', blake2_hash)
+    register_physio_file_parameter(env, physio_file, 'event_file_blake2b_hash', blake2_hash)
 
     event_fields = (
         'PhysiologicalFileID', 'Onset',     'Duration',   'TrialType',

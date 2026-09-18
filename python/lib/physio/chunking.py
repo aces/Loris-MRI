@@ -5,26 +5,15 @@ from loris_utils.path import get_path_stem
 import lib.exitcode
 from lib.config import get_data_dir_path_config, get_ephys_chunks_dir_path_config
 from lib.db.models.physio_file import DbPhysioFile
-from lib.db.queries.physio_parameter import try_get_physio_file_parameter_with_file_id_name
 from lib.env import Env
 from lib.logging import log, log_error_exit
-from lib.physio.parameters import insert_physio_file_parameter
+from lib.physio.parameters import register_physio_file_parameter
 
 
 def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
     """
     Create the channels chunks for a physiological file based on its source MEG CTF directory.
     """
-
-    chunk_path = try_get_physio_file_parameter_with_file_id_name(
-        env.db,
-        physio_file.id,
-        'electrophysiology_chunked_dataset_path',
-    )
-
-    if chunk_path is not None:
-        log(env, "Chunk path already exists for this file.")
-        return
 
     match physio_file.type:
         case 'ctf':
@@ -44,6 +33,7 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
     file_path = data_dir_path / physio_file.path
 
     chunk_root_dir_path = get_dataset_chunks_dir_path(env, physio_file)
+    chunk_path = chunk_root_dir_path / f'{get_path_stem(physio_file.path)}.chunks'
 
     command_parts = [script, str(file_path), '--destination', str(chunk_root_dir_path)]
 
@@ -68,7 +58,6 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
             lib.exitcode.CHUNK_CREATION_FAILURE,
         )
 
-    chunk_path = chunk_root_dir_path / f'{get_path_stem(physio_file.path)}.chunks'
     if not chunk_path.is_dir():
         log_error_exit(
             env,
@@ -76,7 +65,7 @@ def create_physio_channels_chunks(env: Env, physio_file: DbPhysioFile):
             lib.exitcode.CHUNK_CREATION_FAILURE,
         )
 
-    insert_physio_file_parameter(
+    register_physio_file_parameter(
         env,
         physio_file,
         'electrophysiology_chunked_dataset_path',

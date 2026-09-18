@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 
 import argparse
+import shutil
+
+from loris_utils.path import get_path_stem
 
 import lib.exitcode
 from lib.config_file import load_config
 from lib.db.queries.physio_file import try_get_physio_file_with_id
+from lib.db.queries.physio_parameter import try_get_physio_file_parameter_with_file_id_name
 from lib.env import Env
 from lib.logging import log, log_error_exit, log_warning
 from lib.make_env import make_env
-from lib.physio.chunking import create_physio_channels_chunks
+from lib.physio.chunking import create_physio_channels_chunks, get_dataset_chunks_dir_path
 
 
 def main():
@@ -36,6 +40,12 @@ def main():
     )
 
     parser.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help="Overwrite chunks already present for the physiological file."
+    )
+
+    parser.add_argument(
         '-v', '--verbose',
         action='store_true',
         help="If set, be verbose."
@@ -56,10 +66,10 @@ def main():
     # Run the chunking script on electrophysiology files with an ID between the smallest and largest
     # IDs.
     for file_id in range(args.smallest_id, args.largest_id + 1):
-        make_chunks(env, file_id)
+        make_chunks(env, file_id, args.force)
 
 
-def make_chunks(env: Env, physio_file_id: int):
+def make_chunks(env: Env, physio_file_id: int, force: bool):
     """
     Call the channel signal chunking script on the provided physiological file.
     """
@@ -68,6 +78,26 @@ def make_chunks(env: Env, physio_file_id: int):
     if physio_file is None:
         log_warning(env, f"No physiological file for ID {physio_file_id} in the database, skipping.")
         return
+
+    current_chunks = try_get_physio_file_parameter_with_file_id_name(
+        env.db,
+        physio_file.id,
+        'electrophysiology_chunked_dataset_path',
+    )
+
+    if current_chunks and not force:
+        log_warning(
+            env,
+            f"There are already chunks for physiological file ID {physio_file.id}. "
+            "Use -f or --force to overwrite them, skipping."
+        )
+        return
+
+    if force:
+        chunk_root_dir_path = get_dataset_chunks_dir_path(env, physio_file)
+        chunk_path = chunk_root_dir_path / f'{get_path_stem(physio_file.path)}.chunks'
+        if chunk_path.is_dir():
+            shutil.rmtree(chunk_path)
 
     log(env, f"Chunking physiological file ID {physio_file.id}")
     create_physio_channels_chunks(env, physio_file)

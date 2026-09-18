@@ -31,7 +31,7 @@ def try_get_physio_parameter_type_with_name(
     parameter is found.
     """
 
-    return try_get_parameter_type_with_name_source(db, name, 'physiological_file')
+    return try_get_parameter_type_with_name_source(db, name, 'physiological_parameter_file')
 
 
 def try_get_physio_file_parameter_with_file_id_type_id(
