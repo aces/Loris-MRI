@@ -10,6 +10,10 @@ dependencies = [
     "pybids",
 ]
 
+[project.scripts]
+copy-bids-ctf-ds = "loris_bids_utils.scripts.copy_bids_ctf_ds:main"
+copy-ctf-ds      = "loris_bids_utils.scripts.copy_ctf_ds:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

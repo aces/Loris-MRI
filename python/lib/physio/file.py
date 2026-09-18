@@ -4,6 +4,7 @@ from pathlib import Path
 
 from lib.db.models.bids_file import DbBidsFile
 from lib.db.models.imaging_file_type import DbImagingFileType
+from lib.db.models.meg_ctf_head_shape_file import DbMegCtfHeadShapeFile
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_modality import DbPhysioModality
 from lib.db.models.physio_output_type import DbPhysioOutputType
@@ -20,20 +21,22 @@ def insert_physio_file(
     output_type: DbPhysioOutputType,
     acquisition_time: datetime | None,
     bids_info: DbBidsFile | None,
+    head_shape_file: DbMegCtfHeadShapeFile | None = None,
 ) -> DbPhysioFile:
     """
     Insert a physiological file into the database.
     """
 
     file = DbPhysioFile(
-        path             = file_path,
-        type             = file_type.name,
-        session_id       = session.id,
-        modality_id      = modality.id,
-        output_type_id   = output_type.id,
-        acquisition_time = acquisition_time,
-        inserted_by_user = getpass.getuser(),
-        bids_info_id     = bids_info.id if bids_info is not None else None,
+        path               = file_path,
+        type               = file_type.name,
+        session_id         = session.id,
+        modality_id        = modality.id,
+        output_type_id     = output_type.id,
+        acquisition_time   = acquisition_time,
+        inserted_by_user   = getpass.getuser(),
+        bids_info_id       = bids_info.id if bids_info is not None else None,
+        head_shape_file_id = head_shape_file.id if head_shape_file is not None else None,
     )
 
     env.db.add(file)
