@@ -1,66 +1,65 @@
 #!/usr/bin/env python
 
-"""Script to validate a DICOM archive from the filesystem against the one stored in the database"""
+"""Validate a DICOM archive from the filesystem against its database record."""
 
-import os
+import argparse
+from pathlib import Path
 
-from lib.lorisgetopt import LorisGetOpt
+from lib.config_file import load_config
+from lib.make_env import make_env
 
-from loris_dicom_to_bids_converter.dicom_validation_pipeline import DicomValidationPipeline
+from loris_dicom_to_bids_converter.dicom_archive_validation import validate_dicom_archive
+
+
+def existing_path(value: str) -> Path:
+    """
+    Parse an existing filesystem path for a CLI argument.
+    """
+
+    path = Path(value)
+    if not path.exists():
+        raise argparse.ArgumentTypeError(f"{path} does not exist")
+
+    return path
 
 
 def main():
-    usage = (
-        "\n"
-
-        "********************************************************************\n"
-        " DICOM ARCHIVE VALIDATOR\n"
-        "********************************************************************\n\n"
-        "The program does the following validations on a DICOM archive given as an argument:\n"
-        "\t- Verify the PSC information using either PatientName or PatientID DICOM header\n"
-        "\t- Verify/determine the ScannerID (optionally create a new one if necessary)\n"
-        "\t- Verify the candidate IDs are valid\n"
-        "\t- Verify the session is valid\n"
-        "\t- Verify the DICOM archive against the checksum stored in the database\n"
-        "\t- Update the mri_upload's 'isTarchiveValidated' field if above validations were successful\n\n"
-
-        "usage  : validate-dicom-archive -p <profile> -t <tarchive_path> -u <upload_id>\n\n"
-
-        "options: \n"
-        "\t-p, --profile      : Name of the python database config file in config\n"
-        "\t-t, --tarchive_path: Absolute path to the DICOM archive to validate\n"
-        "\t-u, --upload_id    : ID of the upload (from mri_upload) associated with the DICOM archive to validate\n"
-        "\t-v, --verbose      : If set, be verbose\n\n"
-
-        "required options are: \n"
-        "\t--tarchive_path\n"
-        "\t--upload_id\n\n"
+    parser = argparse.ArgumentParser(
+        description="Validate a DICOM archive and update its MRI upload record.",
     )
 
-    options_dict = {
-        "profile": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
-        },
-        "tarchive_path": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "t", "is_path": True
-        },
-        "upload_id": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "u", "is_path": False
-        },
-        "verbose": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "v", "is_path": False
-        },
-        "help": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "h", "is_path": False
-        },
-    }
+    parser.add_argument('-p', '--profile',
+        help="Name of the Python database config file in the config directory.")
 
-    # get the options provided by the user
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, os.path.basename(__file__[:-3]))
+    parser.add_argument('-t', '--dicom-archive-path',
+        type=existing_path,
+        required=True,
+        help="Absolute path to the DICOM archive to validate.")
 
-    # validate the DICOM archive
-    DicomValidationPipeline(loris_getopt_obj, os.path.basename(__file__[:-3]))
+    parser.add_argument('-u', '--upload-id',
+        type=int,
+        required=True,
+        help="ID of the MRI upload associated with the DICOM archive.")
+
+    parser.add_argument('-v', '--verbose',
+        action="store_true",
+        help="Print verbose progress information.")
+
+    args = parser.parse_args()
+
+    profile: str | None = args.profile
+    dicom_archive_path: Path = args.dicom_archive_path
+    upload_id: int = args.upload_id
+    verbose: bool = args.verbose
+
+    config = load_config(profile)
+    env = make_env('validate_dicom_archive', {}, config, verbose)
+
+    try:
+        validate_dicom_archive(env, dicom_archive_path, upload_id)
+    finally:
+        env.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

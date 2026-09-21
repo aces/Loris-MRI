@@ -87,7 +87,7 @@ class DicomArchive:
             self.populate_tarchive_info_dict_from_tarchive_id(tarchive_id=tarchive_id)
 
     @deprecated(
-        'Use `loris_dicom_to_bids_converter.dicom_validation_pipeline._validate_dicom_archive_md5sum` instead'
+        'Use `loris_dicom_to_bids_converter.dicom_archive_validation.validate_dicom_archive_md5_sum` instead'
     )
     def validate_dicom_archive_md5sum(self, tarchive_path):
         """
