@@ -61,10 +61,10 @@ def main():
         print(f'Creating chunks for {path}')
         write_chunk_directory(
             path=path,
+            raw=raw_ctf,
             from_channel_index=args.channel_index,
             from_channel_name=channel_names[args.channel_index],  # type: ignore
             channel_count=args.channel_count,
-            loader=load_channels,
             chunk_size=args.chunk_size,
             downsamplings=args.downsamplings,
             destination=args.destination,

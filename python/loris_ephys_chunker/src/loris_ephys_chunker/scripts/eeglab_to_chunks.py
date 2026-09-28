@@ -3,10 +3,8 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import cast
 
 import mne.io
-import mne.io.eeglab.eeglab as mne_eeglab
 from mne.io.eeglab.eeglab import RawEEGLAB
 
 from loris_ephys_chunker.chunking import write_chunk_directory
@@ -36,9 +34,8 @@ def main():
 
     args = parser.parse_args()
     for path in args.files:
-        eeg = mne_eeglab._check_load_mat(path, None)  # type: ignore
-        eeglab_info = mne_eeglab._get_info(eeg, eog=(), montage_units="auto")  # type: ignore
-        channel_names = cast(list[str], eeglab_info[0]['ch_names'])
+        raw_eeglab = load_channels(path)
+        channel_names = raw_eeglab.ch_names
 
         if args.channel_index < 0:
             sys.exit("Channel index must be a positive integer")
@@ -52,10 +49,10 @@ def main():
         print(f'Creating chunks for {path}')
         write_chunk_directory(
             path=path,
+            raw=raw_eeglab,
             from_channel_index=args.channel_index,
             from_channel_name=channel_names[args.channel_index],  # type: ignore
             channel_count=args.channel_count,
-            loader=load_channels,
             chunk_size=args.chunk_size,
             downsamplings=args.downsamplings,
             destination=args.destination,
