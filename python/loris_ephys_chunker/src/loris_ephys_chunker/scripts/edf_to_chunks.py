@@ -2,19 +2,16 @@
 
 import argparse
 import sys
-from collections.abc import Callable
 from pathlib import Path
-from typing import cast
 
 import mne.io
-import mne.io.edf.edf as mne_edf
 from mne.io.edf.edf import RawEDF
 
 from loris_ephys_chunker.chunking import write_chunk_directory
 
 
-def load_channels(exclude: list[str]) -> Callable[[Path], RawEDF]:
-    return lambda path : mne.io.read_raw_edf(path, exclude=exclude, preload=False)  # type: ignore
+def load_channels(path: Path) -> RawEDF:
+    return mne.io.read_raw_edf(path, preload=False)  # type: ignore
 
 
 def main():
@@ -37,16 +34,8 @@ def main():
 
     args = parser.parse_args()
     for path in args.files:
-        _, edf_info, _ = mne_edf._get_info(  # type: ignore
-            path,
-            stim_channel='auto',
-            eog=None,
-            misc=None,
-            exclude=(),
-            infer_types=False,
-            file_type=mne_edf.FileType.EDF,
-        )
-        channel_names = cast(list[str], edf_info['ch_names'])
+        raw_edf = load_channels(path)
+        channel_names = raw_edf.ch_names
 
         if args.channel_index < 0:
             sys.exit("Channel index must be a positive integer")
@@ -62,35 +51,25 @@ def main():
             channel_count = len(channel_names) - args.channel_index
         channel_count = min(channel_count, len(channel_names) - args.channel_index)
 
-        for i in range(channel_count):
-            channel_index: int = args.channel_index + i
+        requested_channel_indices = range(args.channel_index, args.channel_index + channel_count)
+        channel_indices = [
+            channel_index
+            for channel_index in requested_channel_indices
+            if raw_edf.get_channel_types(picks=[channel_index])[0] != 'stim'  # type: ignore
+        ]
+        if not channel_indices:
+            continue
 
-            # check if channel_index is a stim channel
-            # to avoid a bug in mne.io.edf.edf
-            # (see issue https://github.com/mne-tools/mne-python/issues/9811)
-            stim_channel_idxs, _ = mne_edf._check_stim_channel(  # type: ignore
-                'auto', [channel_names[channel_index]]
-            )
-            if len(stim_channel_idxs) == 1:
-                continue
-
-            print(f'Creating chunk for channel {i} for {path}')
-
-            # excluding channels in the loader reduce the time required to read the file
-            # and avoid memory issues
-            # we only load the channel at index channel_index+i
-            exclude = channel_names[:channel_index] + channel_names[channel_index + 1:]
-            write_chunk_directory(
-                path=path,
-                loader=load_channels(exclude),
-                from_channel_index=channel_index,
-                from_channel_name=channel_names[channel_index],
-                channel_count=1,
-                chunk_size=args.chunk_size,
-                downsamplings=args.downsamplings,
-                destination=args.destination,
-                prefix=args.prefix
-            )
+        print(f'Creating chunks for {path}')
+        write_chunk_directory(
+            path=path,
+            raw=raw_edf,
+            channel_indices=channel_indices,
+            chunk_size=args.chunk_size,
+            downsamplings=args.downsamplings,
+            destination=args.destination,
+            prefix=args.prefix
+        )
 
 
 if __name__ == '__main__':
