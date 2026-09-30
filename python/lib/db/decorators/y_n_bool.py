@@ -13,6 +13,7 @@ class YNBool(TypeDecorator[bool]):
     """
 
     impl = Enum('Y', 'N')
+    cache_ok = True
 
     def process_bind_param(self, value: bool | None, dialect: Dialect) -> Literal['Y', 'N'] | None:
         match value:
