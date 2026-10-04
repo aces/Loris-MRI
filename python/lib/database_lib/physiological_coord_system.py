@@ -124,7 +124,8 @@ class PhysiologicalCoordSystem:
         return c_mod[0]['PhysiologicalModalityID'] if c_mod else None
 
     def grep_coord_system(self, coord_mod_id: int, coord_name_id: int | None = None,
-                          coord_unit_id: int | None = None, coord_type_id: int | None = None):
+                          coord_unit_id: int | None = None, coord_type_id: int | None = None,
+                          coord_file: str | None = None):
         """
         Get a coordinate system by ID.
         Requires at least the modality.
@@ -157,6 +158,12 @@ class PhysiologicalCoordSystem:
         if coord_unit_id is not None:
             q_args += (coord_unit_id,)
             q_extra += " AND UnitID = %s"
+        # add coordinate system file path
+        if coord_file is None:
+            q_extra += " AND FilePath IS NULL"
+        else:
+            q_args += (coord_file,)
+            q_extra += " AND FilePath = %s"
         # execute query
         r_query = self.db.pselect(
             query = q_extra,
@@ -165,7 +172,7 @@ class PhysiologicalCoordSystem:
         return r_query[0]['PhysiologicalCoordSystemID'] if r_query else None
 
     def insert_coord_system(self, name_id: int, unit_id: int, type_id: int,
-                            mod_id: int, coord_file: str):
+                            mod_id: int, coord_file: str | None):
         """
         Inserts a new entry in the physiological_coord_system table.
         :param name_id     : coord system name id
@@ -201,7 +208,7 @@ class PhysiologicalCoordSystem:
         )
 
     def grep_or_insert_coord_system(self, name_id: int, unit_id: int, type_id: int,
-                                    mod_id: int, coord_file: str):
+                                    mod_id: int, coord_file: str | None):
         """
         Inserts a new entry in the physiological_coord_system table if it does not exist.
         :param name_id     : coord system name id
@@ -217,7 +224,7 @@ class PhysiologicalCoordSystem:
         :return            : The coordinate system ID or None
          :rtype            : int
         """
-        coord_system_id = self.grep_coord_system(mod_id, name_id, unit_id, type_id)
+        coord_system_id = self.grep_coord_system(mod_id, name_id, unit_id, type_id, coord_file)
         if coord_system_id is None:
             coord_system_id = self.insert_coord_system(name_id, unit_id, type_id, mod_id, coord_file)
         return coord_system_id
