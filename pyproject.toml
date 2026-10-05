@@ -131,12 +131,13 @@ locale = "en-us"
 
 [tool.typos.default.extend-words]
 Centre = "Centre"  # McGill Centre for Integrative Neuroscience
+Colour = "Colour"  # SQL column name in sex table
 HED = "HED"  # Hierarchical Event Descriptors
 ND = "ND"  # Image Type DICOM attribute
-Colour = "Colour"  # SQL column name in sex table
 
 [tool.typos.default.extend-identifiers]
 ba = "ba"  # A CLI option of dcm2niix
+CapTrak = "CapTrak"  # BrainVision CapTrak
 
 [tool.pytest.ini_options]
 # Integration tests are located in `python/tests/integration`, but they should be ran from the

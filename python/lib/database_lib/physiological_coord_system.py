@@ -8,10 +8,13 @@
 - physiological_coord_system_point_3d_rel
 """
 
+from typing_extensions import deprecated
+
 # from lib.point_3d import Point3D
 # from lib.database_lib.point_3d import Point3DDB
 
 
+@deprecated('Use `lib.db.models.physio_coord_system.DbPhysioCoordSystem` and `lib.physio.coord_system` instead.')
 class PhysiologicalCoordSystem:
 
     def __init__(self, db, verbose):

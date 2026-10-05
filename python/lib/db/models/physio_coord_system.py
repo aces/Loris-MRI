@@ -3,6 +3,7 @@ from pathlib import Path
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.bids_file as db_bids_file
 import lib.db.models.physio_coord_system_name as db_physio_coord_system_name
 import lib.db.models.physio_coord_system_type as db_physio_coord_system_type
 import lib.db.models.physio_coord_system_unit as db_physio_coord_system_unit
@@ -20,8 +21,10 @@ class DbPhysioCoordSystem(Base):
     unit_id     : Mapped[int]         = mapped_column('UnitID', ForeignKey('physiological_coord_system_unit.PhysiologicalCoordSystemUnitID'))
     modality_id : Mapped[int]         = mapped_column('ModalityID', ForeignKey('physiological_modality.PhysiologicalModalityID'))
     file_path   : Mapped[Path | None] = mapped_column('FilePath', StringPath)
+    bids_file_id: Mapped[int | None]  = mapped_column('BidsFileID', ForeignKey('bids_file.ID', ondelete='SET NULL'))
 
     name     : Mapped['db_physio_coord_system_name.DbPhysioCoordSystemName'] = relationship('DbPhysioCoordSystemName')
     type     : Mapped['db_physio_coord_system_type.DbPhysioCoordSystemType'] = relationship('DbPhysioCoordSystemType')
     unit     : Mapped['db_physio_coord_system_unit.DbPhysioCoordSystemUnit'] = relationship('DbPhysioCoordSystemUnit')
     modality : Mapped['db_physio_modality.DbPhysioModality']                 = relationship('DbPhysioModality')
+    bids_file: Mapped['db_bids_file.DbBidsFile | None']                      = relationship('DbBidsFile')
