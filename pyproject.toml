@@ -141,4 +141,8 @@ ba = "ba"  # A CLI option of dcm2niix
 [tool.pytest.ini_options]
 # Integration tests are located in `python/tests/integration`, but they should be ran from the
 # appropriate Docker image (usually using GitHub Actions).
-testpaths = ["python/tests/unit"]
+addopts = ["--import-mode=importlib"]
+testpaths = [
+    "python/tests/unit",
+    "python/loris_*/tests",
+]
