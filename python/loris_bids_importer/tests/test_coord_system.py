@@ -9,13 +9,19 @@ from lib.db.models.physio_coord_system_name import DbPhysioCoordSystemName
 from lib.db.models.physio_coord_system_point_3d import DbPhysioCoordSystemPoint3d
 from lib.db.models.physio_coord_system_type import DbPhysioCoordSystemType
 from lib.db.models.physio_coord_system_unit import DbPhysioCoordSystemUnit
+from lib.db.models.physio_electrode import DbPhysioElectrode
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.physio_modality import DbPhysioModality
+from lib.db.models.point_3d import DbPoint3D
 from lib.env import Env
 from loris_bids_utils.eeg.coord_system import BidsCoordSystemJsonFile
 from sqlalchemy import select
 
-from loris_bids_importer.coord_system import import_bids_coord_systems
+from loris_bids_importer.coord_system import (
+    get_or_create_bids_electrode_coord_system,
+    import_bids_coord_systems,
+    link_electrodes_to_coord_system,
+)
 
 
 def test_import_bids_coord_systems_deduplicates_within_bids_file(env: Env, tmp_path: Path):
@@ -32,18 +38,19 @@ def test_import_bids_coord_systems_deduplicates_within_bids_file(env: Env, tmp_p
         'HeadCoilCoordinates': {'coil1': [1, 2, 3]},
     })
 
-    first = import_bids_coord_systems(
-        env, coord_system_file, bids_file, first_physio_file, [101]
-    )
-    second = import_bids_coord_systems(
-        env, coord_system_file, bids_file, second_physio_file, [102]
-    )
+    first = import_bids_coord_systems(env, coord_system_file, bids_file, first_physio_file)
+    second = import_bids_coord_systems(env, coord_system_file, bids_file, second_physio_file)
+    first_electrode = _add_electrode(env, 101)
+    second_electrode = _add_electrode(env, 102)
+    link_electrodes_to_coord_system(env, first_physio_file, first['MEG'], [first_electrode])
+    link_electrodes_to_coord_system(env, second_physio_file, second['MEG'], [second_electrode])
 
-    assert [item.id for item in first] == [item.id for item in second]
+    assert first.keys() == second.keys()
+    assert [item.id for item in first.values()] == [item.id for item in second.values()]
     assert len(env.db.scalars(select(DbPhysioCoordSystem)).all()) == 2
     assert len(env.db.scalars(select(DbPhysioCoordSystemElectrode)).all()) == 2
     assert len(env.db.scalars(select(DbPhysioCoordSystemPoint3d)).all()) == 1
-    assert all(item.bids_file_id == bids_file.id for item in first)
+    assert all(item.bids_file_id == bids_file.id for item in first.values())
 
 
 def test_import_bids_coord_systems_keeps_different_bids_files_separate(env: Env, tmp_path: Path):
@@ -58,23 +65,26 @@ def test_import_bids_coord_systems_keeps_different_bids_files_separate(env: Env,
         {'MEGCoordinateSystem': 'CTF', 'MEGCoordinateUnits': 'm'},
     )
 
-    first = import_bids_coord_systems(env, coord_system_file, first_bids_file, first_physio_file, [101])
-    second = import_bids_coord_systems(env, coord_system_file, second_bids_file, second_physio_file, [102])
+    first = import_bids_coord_systems(env, coord_system_file, first_bids_file, first_physio_file)
+    second = import_bids_coord_systems(env, coord_system_file, second_bids_file, second_physio_file)
 
-    assert first[0].id != second[0].id
+    assert first['MEG'].id != second['MEG'].id
     assert len(env.db.scalars(select(DbPhysioCoordSystem)).all()) == 2
 
 
-def test_import_coord_systems_without_file_adds_default(env: Env):
+def test_electrode_import_creates_default_coord_system_when_required(env: Env):
     _add_lookups(env)
     physio_file = _add_physio_file(env, 1)
 
-    coord_systems = import_bids_coord_systems(env, None, None, physio_file, [101])
+    coord_systems = import_bids_coord_systems(env, None, None, physio_file)
 
-    assert len(coord_systems) == 1
-    assert coord_systems[0].name.name == 'Not registered'
-    assert coord_systems[0].type.name == 'Not registered'
-    assert coord_systems[0].unit.name == 'Not registered'
+    assert coord_systems == {}
+
+    electrode_system = get_or_create_bids_electrode_coord_system(env, physio_file, None, coord_systems)
+
+    assert electrode_system.name.name == 'Not registered'
+    assert electrode_system.type.name == 'Not registered'
+    assert electrode_system.unit.name == 'Not registered'
 
 
 def _make_coord_system_file(tmp_path: Path, metadata: dict[str, object]) -> BidsCoordSystemJsonFile:
@@ -137,3 +147,18 @@ def _add_physio_file(env: Env, physio_file_id: int) -> DbPhysioFile:
     env.db.add(physio_file)
     env.db.flush()
     return physio_file
+
+
+def _add_electrode(env: Env, electrode_id: int) -> DbPhysioElectrode:
+    point = DbPoint3D(x=float(electrode_id), y=None, z=None)
+    env.db.add(point)
+    env.db.flush()
+    electrode = DbPhysioElectrode(
+        id          = electrode_id,
+        name        = f'E{electrode_id}',
+        point_3d_id = point.id,
+        file_path   = Path('electrodes.tsv'),
+    )
+    env.db.add(electrode)
+    env.db.flush()
+    return electrode

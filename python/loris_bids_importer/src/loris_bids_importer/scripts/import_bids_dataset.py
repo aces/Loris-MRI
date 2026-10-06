@@ -90,12 +90,7 @@ def main():
 
     args = pack_args(loris_getopt_obj.options_dict)
 
-    # read and insert BIDS data
-    import_bids_dataset(
-        env,
-        args,
-        loris_getopt_obj.db,
-    )
+    import_bids_dataset(env, args)
 
     print("Success !")
 

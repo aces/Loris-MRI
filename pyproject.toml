@@ -112,7 +112,7 @@ exclude = [
     # DICOM to BIDS converter pipeline
     "python/loris_dicom_to_bids_converter",
     # Untyped EEG BIDS import code
-    "python/loris_bids_importer/src/loris_bids_importer/eeg",
+    "python/loris_bids_importer/src/loris_bids_importer/eeg/main.py",
     # Generated protocol buffer code
     "python/loris_ephys_chunker/src/loris_ephys_chunker/protocol_buffers",
 ]
