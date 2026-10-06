@@ -8,6 +8,7 @@ from lib.config import get_ephys_visualization_enabled_config
 from lib.db.models.physio_file import DbPhysioFile
 from lib.db.models.session import DbSession
 from lib.db.queries.hed_schema_node import get_all_hed_schema_nodes
+from lib.db.queries.physio_electrode import get_physio_electrodes_with_file_id
 from lib.db.queries.physio_file import try_get_physio_file_with_path
 from lib.env import Env
 from lib.logging import log, log_warning
@@ -17,6 +18,7 @@ from lib.physio.file import insert_physio_file
 from lib.physio.parameters import register_physio_file_parameters
 from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile
 from loris_bids_utils.eeg.coord_system import BidsCoordSystemJsonFile
+from loris_bids_utils.eeg.electrodes import BidsEegElectrodesTsvFile
 from loris_bids_utils.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_utils.files.events import BidsEventsTsvFile
 from loris_bids_utils.files.scans import BidsScansTsvFile
@@ -26,7 +28,10 @@ from loris_utils.crypto import compute_file_blake2b_hash
 
 from loris_bids_importer.archive import import_physio_event_archive, import_physio_file_archive
 from loris_bids_importer.channels import insert_bids_channels_file
-from loris_bids_importer.coord_system import import_bids_coord_systems
+from loris_bids_importer.coord_system import (
+    get_or_create_bids_electrode_coord_system,
+    import_bids_coord_systems,
+)
 from loris_bids_importer.copy_files import (
     add_bids_scan_row,
     copy_loris_bids_file,
@@ -34,7 +39,7 @@ from loris_bids_importer.copy_files import (
     get_loris_scans_path,
 )
 from loris_bids_importer.dataset import get_or_create_loris_bids_file
-from loris_bids_importer.eeg.physiological import Physiological
+from loris_bids_importer.electrodes import insert_bids_electrodes_file
 from loris_bids_importer.events import insert_bids_event_dict_file, insert_bids_events_file
 from loris_bids_importer.file_type import get_check_bids_imaging_file_type_from_extension
 from loris_bids_importer.importer import BidsImporter
@@ -48,12 +53,11 @@ from loris_bids_importer.scans import add_bids_scans_file_parameters
 
 class Eeg:
     """
-    This class reads the BIDS EEG data structure and register the EEG datasets
-    into the database by calling the loris_bids_importer.eeg.physiological class.
+    Read a BIDS electrophysiology data structure and register its datasets in LORIS.
     """
 
     def __init__(self, env: Env, importer: BidsImporter, bids_layout, bids_info: BidsDataTypeInfo,
-                 session: DbSession, db, dataset_tag_dict):
+                 session: DbSession, dataset_tag_dict):
         """
         Constructor method for the Eeg class.
 
@@ -61,8 +65,6 @@ class Eeg:
          :type bids_reader  : dict
         :param bids_info    : the BIDS data type information
         :param session      : The LORIS session the EEG datasets are linked to
-        :param db           : Database class object
-         :type db           : object
         :param info         : The BIDS import pipeline information
         :param dataset_tag_dict      : Dict of dataset-inherited HED tags
          :type dataset_tag_dict      : dict
@@ -83,9 +85,6 @@ class Eeg:
 
         # load dataset tag dict. Used to ensure HED tags aren't duplicated
         self.dataset_tag_dict = dataset_tag_dict
-
-        # load database handler object
-        self.db = db
 
         # find corresponding CandID and SessionID in LORIS
         self.session = session
@@ -423,91 +422,80 @@ class Eeg:
          :rtype: str
         """
 
-        # load the Physiological object that will be used to insert the
-        # physiological data into the database
-        physiological = Physiological(self.env, self.db, self.env.verbose)
-
-        electrode_files = self.bids_layout.get_nearest(
+        electrode_file = self.bids_layout.get_nearest(
             original_physiological_file_path,
             return_type = 'tuple',
             strict = False,
             extension = 'tsv',
             suffix = 'electrodes',
-            all_ = True,  # get all existing electrode files
+            all_ = False,
             full_search = False,
         )
 
-        if not electrode_files:
-            message = "WARNING: no electrode file associated with " \
-                      "physiological file ID " + str(physiological_file.id)
-            print(message)
+        if electrode_file is None:
+            print(f"WARNING: no electrode file associated with physiological file ID {physiological_file.id}")
             return None
+
+        existing_electrodes = get_physio_electrodes_with_file_id(self.env.db, physiological_file.id)
+        if existing_electrodes:
+            return existing_electrodes[0].file_path
+
+        electrodes_file = BidsEegElectrodesTsvFile(Path(electrode_file.path))
+        self.copy_file_to_loris_bids_dir(electrodes_file.path, derivatives)
+
+        coordsystem_metadata_file = self.bids_layout.get_nearest(
+            electrode_file.path,
+            return_type = 'tuple',
+            strict = False,
+            extension = 'json',
+            suffix = 'coordsystem',
+            all_ = False,
+            full_search = False,
+            subject=self.bids_info.subject,
+        )
+
+        if coordsystem_metadata_file is None:
+            print(
+                '\nWARNING: no electrode metadata files (coordsystem.json) '
+                f'associated with physiological file ID {physiological_file.id}'
+            )
+            coord_systems = import_bids_coord_systems(self.env, None, None, physiological_file)
+            coord_system_bids_file = None
         else:
-            # maybe several electrode files
-            for electrode_file in electrode_files:
-                result = physiological.grep_electrode_from_physiological_file_id(
-                    physiological_file.id
-                )
-                if not result:
-                    electrode_data = utilities.read_tsv_file(electrode_file.path)
-                    # copy the electrode file to the LORIS BIDS import directory
-                    electrode_path = self.copy_file_to_loris_bids_dir(
-                        electrode_file.path, derivatives
-                    )
-                    # get the blake2b hash of the electrode file
-                    blake2 = compute_file_blake2b_hash(electrode_file.path)
+            coord_system_file = BidsCoordSystemJsonFile(Path(coordsystem_metadata_file.path))
+            coord_system_path = self.copy_file_to_loris_bids_dir(coord_system_file.path, derivatives)
 
-                    get_or_create_loris_bids_file(self.env, self.importer, Path(electrode_file.path), electrode_path)
-                    # insert the electrode data in the database
-                    electrode_ids = physiological.insert_electrode_file(
-                        electrode_data, electrode_path, physiological_file, blake2
-                    )
+            coord_system_bids_file = get_or_create_loris_bids_file(
+                self.env,
+                self.importer,
+                coord_system_file.path,
+                coord_system_path,
+            )
 
-                    # get coordsystem.json file
-                    # subject-specific metadata
-                    coordsystem_metadata_file = self.bids_layout.get_nearest(
-                        electrode_file.path,
-                        return_type = 'tuple',
-                        strict = False,
-                        extension = 'json',
-                        suffix = 'coordsystem',
-                        all_ = False,
-                        full_search = False,
-                        subject=self.bids_info.subject,
-                    )
-                    if not coordsystem_metadata_file:
-                        message = '\nWARNING: no electrode metadata files (coordsystem.json) ' \
-                                  f'associated with physiological file ID {physiological_file.id}'
-                        print(message)
+            coord_systems = import_bids_coord_systems(
+                self.env,
+                coord_system_file,
+                coord_system_bids_file,
+                physiological_file,
+            )
 
-                        # insert default (not registered) coordsystem in the database
-                        import_bids_coord_systems(
-                            self.env,
-                            None,
-                            None,
-                            physiological_file,
-                            electrode_ids
-                        )
-                    else:
-                        # copy the electrode metadata file to the LORIS BIDS import directory
-                        electrode_metadata_path = self.copy_file_to_loris_bids_dir(
-                            coordsystem_metadata_file.path, derivatives
-                        )
-                        coord_system_file = BidsCoordSystemJsonFile(Path(coordsystem_metadata_file.path))
-                        coord_system_bids_info = get_or_create_loris_bids_file(
-                            self.env,
-                            self.importer,
-                            Path(coordsystem_metadata_file.path),
-                            electrode_metadata_path,
-                        )
+        electrode_coord_system = get_or_create_bids_electrode_coord_system(
+            self.env,
+            physiological_file,
+            coord_system_bids_file,
+            coord_systems,
+        )
 
-                        import_bids_coord_systems(
-                            self.env,
-                            coord_system_file,
-                            coord_system_bids_info,
-                            physiological_file,
-                            electrode_ids
-                        )
+        return insert_bids_electrodes_file(
+            self.env,
+            self.importer,
+            physiological_file,
+            self.session,
+            self.bids_info,
+            electrodes_file,
+            electrode_coord_system,
+            derivatives,
+        )
 
     def fetch_and_insert_channel_file(
             self, physiological_file: DbPhysioFile, original_physiological_file_path, derivatives=False) -> Path:

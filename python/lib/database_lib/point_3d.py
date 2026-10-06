@@ -1,8 +1,13 @@
 """This class performs database queries for point_3d table"""
 
+from typing_extensions import deprecated
+
 from lib.point_3d import Point3D
 
 
+@deprecated(
+    'Use `lib.db.models.point_3d.DbPoint3D` and `lib.physio.points.get_or_create_point` instead.'
+)
 class Point3DDB:
     def __init__(self, db, verbose):
         """
