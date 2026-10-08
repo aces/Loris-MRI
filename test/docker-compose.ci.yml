@@ -1,0 +1,17 @@
+# The GitHub Actions cache service is ephemeral-runner storage for BuildKit layers. These settings
+# live in an override so local Compose builds continue to use Docker's normal local cache and do not
+# require GitHub runtime credentials. Separate scopes prevent the two image caches overwriting one
+# another.
+services:
+  db:
+    build:
+      cache_from:
+        - type=gha,scope=loris-db
+      cache_to:
+        - type=gha,scope=loris-db,mode=max
+  mri:
+    build:
+      cache_from:
+        - type=gha,scope=loris-mri
+      cache_to:
+        - type=gha,scope=loris-mri,mode=max
