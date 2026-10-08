@@ -32,12 +32,12 @@ class DicomStudyInfo:
     General information about a DICOM study.
     """
 
-    study_uid:   str
-    patient:     DicomStudyPatient
-    scanner:     DicomStudyScanner
-    scan_date:   date | None
-    institution: str | None
-    modality:    str
+    study_instance_uid: str
+    patient:            DicomStudyPatient
+    scanner:            DicomStudyScanner
+    scan_date:          date | None
+    institution_name:   str | None
+    modality:           str
 
 
 @dataclass

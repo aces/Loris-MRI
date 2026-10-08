@@ -18,7 +18,6 @@ Available options are:
 
 -comparedir: path to another DICOM directory to compare with (implies -xdiff)
 
--dbcompare : run a comparison with entries in the database (implies -xdiff)
 
 -database  : use the database
 
@@ -78,7 +77,7 @@ my $diff;
 my @dcmDirs;
 
 # Declare vars for GETOPT
-my ($compare ,$dcm_folder, $databasecomp, $dbase, $dbreplace, $temp, $batch);
+my ($compare, $dcm_folder, $dbase, $dbreplace, $temp, $batch);
 
 my $Usage = "------------------------------------------
 
@@ -104,7 +103,6 @@ my @arg_table =
     (
      ["Main options","section"],
      ["-comparedir","string",1, \$compare, "Enter the PATH to the directory you want to compare to the above."],
-     ["-dbcompare","boolean",1, \$databasecomp, "Compare with database. Will only work if you actually archived your data using a database."],
      ["-database","boolean", 1, \$dbase, "Use a database if you have one set up for you. Just trying will fail miserably"],
      ["-dbreplace","boolean",1, \$dbreplace, "Use this option only if your dicom data changed and you want to re-insert the new summary"],
      ["-profile","string",1, \$profile, "Specify the name of the config file which resides in the config directory."],
@@ -138,21 +136,21 @@ if(scalar(@ARGV) != 1) { print $Usage; exit 1; } $dcm_folder = abs_path($ARGV[0]
 # basic checking for compare dir
 if ($compare && !-d $compare) { print $Usage; exit 1; } if ($compare) { $compare = abs_path($compare); }
 
-if (($compare || $databasecomp) && !$profile) {
-    print "-profile must be used if either option -database or -dbcompare are used. Aborting.\n";
+if ($compare && !$profile) {
+    print "-profile must be used with the -database option. Aborting.\n";
     exit $NeuroDB::ExitCodes::INVALID_ARG;
 }
 
 # Some combinations are just not possible
-if ($xdiff || $compare || $batch || $databasecomp || $dbase){ $screen = undef; } elsif (!$compare || !$databasecomp) { $xdiff = undef; }
+if ($xdiff || $compare || $batch || $dbase) { $screen = undef; } elsif (!$compare) { $xdiff = undef; }
 
 # you can't compare with db and a dir at the same time
-if (($compare || $databasecomp) && $dbase) { print $Usage;
+if ($compare && $dbase) { print $Usage;
     print "\t Please consider that some option combinations do not make sense. \n\n"; exit 1;
 }
 
-# If -comparedir or -dbcompare was used, -xdiff is turned on automatically
-$xdiff = 1 if $compare || $databasecomp;
+# If -comparedir was used, -xdiff is turned on automatically
+$xdiff = 1 if $compare;
 
 # get rid of the trailing slash of all given input dirs
 $dcm_folder =~ s/^(.*)\/$/$1/; $temp =~ s/^(.*)\/$/$1/ unless (!$temp); $compare =~ s/^(.*)\/$/$1/ unless (!$compare);
@@ -226,20 +224,6 @@ foreach $dcmdir (@dcmDirs) {
 
 my $returnVal = 0;
 
-# if -databasecompare has been given look for an entry based on unique studyID
-if ($databasecomp) {
-    my $conflict = &version_conflict($studyUnique);
-    if ($conflict) { print "\n\n\tWARNING: You are using Version: $versionInfo but archived with Version : $conflict\n\n"; }
-    $metaFiles[1] = &read_db_metadata($studyUnique);
-    if (!$metaFiles[1]) { print "\nYou never archived this study or you are looking in the wrong database.\n\n"; exit; }
-    if ($xdiff) { $diff = "sdiff $metaFiles[0] $metaFiles[1]"; system($diff); }
-    else {
-	$diff = "diff -q $metaFiles[0] $metaFiles[1]";
-	my $Comp = `$diff`;
-	if ($Comp ne "") { print "There are differences\n" if $verbose; $returnVal = 99; }
-	else { print "Comparing $dcm_folder with the database returned no differences. Smile :)\n" if $verbose; }
-    }
-}
 # if comparing to another directory in non batch mode
 if ($compare && !$batch) {
     $diff = "sdiff $metaFiles[0] $metaFiles[1]";
@@ -257,86 +241,6 @@ if ($batch && $metaFiles[1] && $returnVal == 99) {
 exit $returnVal;
 
 ######################################################################### end main ####################
-
-=pod
-
-=head3 read_db_metadata($StudyUID)
-
-Accesses the database and gets the path of the file containing the metadata for
-the given StudyUID.
-
-INPUT: the DICOM Study Instance UID (StudyUID)
-
-RETURNS: the path of the file containing the metadata for the given StudyUID or
-         undef if none is found.
-
-=cut
-
-sub read_db_metadata {
-# establish database connection if database option is set
-    my $dbh;
-    my $StudyUID = shift;
-    my $dbmeta;
-    my $dbcomparefile;
-    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    print "Getting data from database.\n" if $verbose;
-    (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT
-  AcquisitionMetadata
-FROM
-  tarchive
-WHERE
-  DicomArchiveID=?
-QUERY
-    my $sth = $dbh->prepare($query);
-    $sth->execute($StudyUID);
-    if($sth->rows > 0) {
-	my @row = $sth->fetchrow_array();
-	$dbmeta = $row[0];
-	$dbcomparefile = "$TmpDir/dbcompare.meta";
-	open(DBDATA,">$dbcomparefile") || die ("Cannot Open File");
-	print DBDATA "$dbmeta";
-	close(DBDATA);
-        return $dbcomparefile;
-    }
-    else { return undef; }
-}
-
-=pod
-
-=head3 version_conflict($StudyUID)
-
-Compares DICOM summary version numbers for a given StudyUID.
-
-INPUT: the DICOM Study Instance UID (StudyUID)
-
-RETURNS: the version number of the DICOM summary found in the database if the
-         version is different from the current version of the script, 0 otherwise
-
-=cut
-
-sub version_conflict {
-# establish database connection if database option is set
-    my $dbh;
-    my $StudyUID = shift;
-    my $AVersion;
-    my $NowVersion = $sumTypeVersion;
-    $dbh = &NeuroDB::DBI::connect_to_db(@Settings::db);
-    (my $query = <<QUERY) =~ s/\n/ /gm;
-SELECT
-  sumTypeVersion
-FROM
-  tarchive
-WHERE
-  DicomArchiveID=?
-QUERY
-    my $sth = $dbh->prepare($query);
-    $sth->execute($StudyUID);
-    my @row = $sth->fetchrow_array();
-    $AVersion = $row[0];
-    if ($AVersion ne $NowVersion) { return $AVersion; }
-    else { return 0; }
-}
 
 =pod
 

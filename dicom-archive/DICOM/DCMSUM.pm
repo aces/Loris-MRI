@@ -88,7 +88,7 @@ sub new {
 
 =pod 
 
-=head3 database($dbh, $meta, $update, $tarType, $tarLog, $DCMmd5, $Archivemd5, $Archive, $neurodbCenterName)
+=head3 database($dbh, $meta, $update, $tarLog, $DCMmd5, $Archivemd5, $Archive)
 
 Inserts or updates the C<tarchive> tables.
 
@@ -96,12 +96,10 @@ INPUTS:
   - $dbh              : database handle
   - $meta             : name of the .meta file
   - $update           : set to 1 to update C<tarchive> entry, 0 otherwise
-  - $tarType          : tar type version
   - $tarLog           : name of the .log file
   - $DCMmd5           : DICOM MD5SUM
   - $Archivemd5       : DICOM archive MD5 sum
   - $Archive          : archive location
-  - $neurodbCenterName: center name
 
 RETURNS: 1 on success
 
@@ -114,19 +112,10 @@ sub database {
     my $update = shift;
     
     # these are only available if you run dicomTar
-    my $tarType     = shift;
     my $tarLog      = shift;
     my $DCMmd5      = shift;
     my $Archivemd5  = shift;
     my $Archive     = shift;
-    my $neurodbCenterName = shift;
-
-    if(defined($neurodbCenterName)) {
-        $neurodbCenterName = "'$neurodbCenterName'";
-    } else {
-        $neurodbCenterName = "NULL";
-    }
-
     # whether the query worked fine
     my ($success, $error);
     # check if this StudyUID is already in your database
@@ -142,21 +131,16 @@ sub database {
 
 
     # INSERT or UPDATE 
-    # get acquisition metadata
-    my $sfile = "$self->{tmpdir}/$meta.meta";
-    my $metacontent = &read_file($sfile);
-    
     (my $common_query_part = <<QUERY) =~ s/\n/ /gm;  
       tarchive SET  
-        DicomArchiveID = ?,       PatientName = ?,
+        StudyInstanceUID = ?,     PatientName = ?,
         PatientID = ?,            PatientDoB = ?,
         PatientSex = ?,           DateAcquired = ?,
         ScannerManufacturer = ?,  ScannerModel = ?,
         ScannerSerialNumber = ?,  ScannerSoftwareVersion = ?,
-        CenterName = ?,           AcquisitionCount = ?,
+        InstitutionName = ?,      AcquisitionCount = ?,
         NonDicomFileCount = ?,    DicomFileCount = ?,
         CreatingUser = ?,         SourceLocation = ?,
-        sumTypeVersion = ?,       AcquisitionMetadata = ?,
         DateLastArchived = NOW()
 QUERY
 
@@ -201,6 +185,7 @@ QUERY
     # not be allowed anymore in MySQL 5.7 for date fields 
     $self->{header}->{birthdate} = undef if ($self->{header}->{birthdate} eq '');
     $self->{header}->{scandate}  = undef if ($self->{header}->{scandate} eq '');
+    $self->{header}->{institution} = undef if ($self->{header}->{institution} eq '');
 
     my @values = 
       (
@@ -211,21 +196,20 @@ QUERY
        $self->{header}->{scanner_serial}, $self->{header}->{software},      
        $self->{header}->{institution},    $self->{acquisition_count},          
        $self->{nondcmcount},              $self->{dcmcount},                  
-       $creating_user,                    $self->{dcmdir},                     
-       $self->{sumTypeVersion},           $metacontent   
+       $creating_user,                    $self->{dcmdir}
       );
     
     # this only applies if you are archiving your data
     if ($Archivemd5) { 
        ($common_query_part = <<QUERY) =~ s/\n/ /gm; 
-          $common_query_part,  tarTypeVersion = ?,  
-          md5sumArchive = ?,   md5sumDicomOnly = ?,  
+          $common_query_part,
+          md5sumArchive = ?,   md5sumDicomOnly = ?,
           ArchiveLocation = ?, CreateInfo = ? 
 QUERY
         my @new_vals = 
           (
-           $tarType, $Archivemd5, 
-           $DCMmd5,  $Archive, 
+           $Archivemd5, $DCMmd5,
+           $Archive,
            $tarLog
           );
         push(@values, @new_vals);
@@ -235,17 +219,15 @@ QUERY
     if (!$update) { 
         ($query = <<QUERY) =~ s/\n/ /gm;
           INSERT INTO 
-            $common_query_part, 
-            DateFirstArchived = NOW(), 
-            neurodbCenterName = ?
+            $common_query_part,
+            DateFirstArchived = NOW()
 QUERY
-        push(@values, $neurodbCenterName);
     } 
     else {  
         ($query = <<QUERY) =~ s/\n/ /gm;
           UPDATE 
             $common_query_part 
-          WHERE DicomArchiveID = ? 
+          WHERE StudyInstanceUID = ?
 QUERY
         push(@values, $self->{studyuid});
     }
@@ -269,7 +251,7 @@ QUERY
           FROM 
             tarchive 
           WHERE 
-            DicomArchiveID = ? 
+            StudyInstanceUID = ?
             AND SourceLocation= ?
 QUERY
         $sth = $dbh->prepare($query);
@@ -454,7 +436,7 @@ sub is_study_unique {
     # check if this StudyUID is already in your database
     (my $query = <<QUERY) =~ s/\n/ /gm;
       SELECT
-        DicomArchiveID,
+        StudyInstanceUID,
         CreateInfo,
         LastUpdate,
         CreatingUser,
@@ -462,7 +444,7 @@ sub is_study_unique {
       FROM
         tarchive
       WHERE
-        DicomArchiveID=?
+        StudyInstanceUID=?
 QUERY
     my $sth = $dbh->prepare($query);
     $sth->execute($self->{studyuid});

@@ -102,7 +102,7 @@ SELECT
 FROM
   tarchive
 WHERE
-  DicomArchiveID=?
+  StudyInstanceUID=?
   AND ArchiveLocation like ?
 QUERY
 my $sth   = $dbh->prepare($query);
