@@ -112,7 +112,7 @@ exclude = [
     # DICOM to BIDS converter pipeline
     "python/loris_dicom_to_bids_converter",
     # Untyped EEG BIDS import code
-    "python/loris_bids_importer/src/loris_bids_importer/eeg",
+    "python/loris_bids_importer/src/loris_bids_importer/eeg/main.py",
     # Generated protocol buffer code
     "python/loris_ephys_chunker/src/loris_ephys_chunker/protocol_buffers",
 ]
@@ -132,14 +132,19 @@ locale = "en-us"
 
 [tool.typos.default.extend-words]
 Centre = "Centre"  # McGill Centre for Integrative Neuroscience
+Colour = "Colour"  # SQL column name in sex table
 HED = "HED"  # Hierarchical Event Descriptors
 ND = "ND"  # Image Type DICOM attribute
-Colour = "Colour"  # SQL column name in sex table
 
 [tool.typos.default.extend-identifiers]
 ba = "ba"  # A CLI option of dcm2niix
+CapTrak = "CapTrak"  # BrainVision CapTrak
 
 [tool.pytest.ini_options]
 # Integration tests are located in `python/tests/integration`, but they should be ran from the
 # appropriate Docker image (usually using GitHub Actions).
-testpaths = ["python/tests/unit"]
+addopts = ["--import-mode=importlib"]
+testpaths = [
+    "python/tests/unit",
+    "python/loris_*/tests",
+]

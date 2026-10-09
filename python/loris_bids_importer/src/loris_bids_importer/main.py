@@ -1,7 +1,6 @@
 from typing import Any
 
 from lib.config import get_default_bids_visit_label_config
-from lib.database import Database
 from lib.db.models.session import DbSession
 from lib.db.queries.candidate import try_get_candidate_with_psc_id
 from lib.db.queries.session import try_get_session_with_cand_id_visit_label
@@ -25,7 +24,7 @@ from loris_bids_importer.validation.sessions import validate_bids_sessions
 from loris_bids_importer.validation.subjects import validate_bids_subjects
 
 
-def import_bids_dataset(env: Env, args: BidsImporterArgs, legacy_db: Database):
+def import_bids_dataset(env: Env, args: BidsImporterArgs):
     """
     Read the provided BIDS dataset and import it into LORIS.
     """
@@ -84,7 +83,7 @@ def import_bids_dataset(env: Env, args: BidsImporterArgs, legacy_db: Database):
     # Process each session directory.
 
     for bids_session in bids.sessions:
-        import_bids_session(env, importer, bids_session, dataset_tag_dict, legacy_db)
+        import_bids_session(env, importer, bids_session, dataset_tag_dict)
 
     # Print import summary.
 
@@ -96,7 +95,6 @@ def import_bids_session(
     importer: BidsImporter,
     bids_session: BidsSessionReader,
     dataset_tag_dict: dict[Any, Any],
-    legacy_db: Database,
 ):
     """
     Read the provided BIDS session directory and import it into LORIS.
@@ -127,7 +125,7 @@ def import_bids_session(
     # Process each data type directory.
 
     for data_type in bids_session.data_types:
-        import_bids_data_type(env, importer, session, data_type, dataset_tag_dict, legacy_db)
+        import_bids_data_type(env, importer, session, data_type, dataset_tag_dict)
 
 
 def import_bids_data_type(
@@ -136,7 +134,6 @@ def import_bids_data_type(
     session: DbSession,
     data_type: BidsDataTypeReader,
     dataset_tag_dict: dict[Any, Any],
-    legacy_db: Database,
 ):
     """
     Read the provided BIDS data type directory and import it into LORIS.
@@ -151,7 +148,7 @@ def import_bids_data_type(
         case BidsMriDataTypeReader():
             import_bids_mri_data_type(env, importer, session, data_type)
         case BidsDataTypeReader():
-            import_bids_eeg_data_type_files(env, importer, session, data_type, dataset_tag_dict, legacy_db)
+            import_bids_eeg_data_type_files(env, importer, session, data_type, dataset_tag_dict)
 
 
 def import_bids_eeg_data_type_files(
@@ -160,7 +157,6 @@ def import_bids_eeg_data_type_files(
     session: DbSession,
     data_type: BidsDataTypeReader,
     dataset_tag_dict: dict[Any, Any],
-    legacy_db: Database,
 ):
     """
     Read the provided BIDS EEG data type directory and import it into LORIS.
@@ -172,7 +168,6 @@ def import_bids_eeg_data_type_files(
             importer         = importer,
             bids_layout      = data_type.session.subject.dataset.layout,
             bids_info        = data_type.info,
-            db               = legacy_db,
             session          = session,
             dataset_tag_dict = dataset_tag_dict,
         )
