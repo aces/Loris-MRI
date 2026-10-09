@@ -3,15 +3,33 @@
 # require GitHub runtime credentials. Separate scopes prevent the two image caches overwriting one
 # another.
 services:
+  minc:
+    build:
+      cache_from:
+        - type=gha,scope=loris-minc
+      cache_to:
+        - type=gha,scope=loris-minc
+  perl:
+    build:
+      cache_from:
+        - type=gha,scope=loris-perl
+      cache_to:
+        - type=gha,scope=loris-perl
+  python:
+    build:
+      cache_from:
+        - type=gha,scope=loris-python
+      cache_to:
+        - type=gha,scope=loris-python
   db:
     build:
       cache_from:
         - type=gha,scope=loris-db
       cache_to:
-        - type=gha,scope=loris-db,mode=max
+        - type=gha,scope=loris-db
   mri:
     build:
       cache_from:
         - type=gha,scope=loris-mri
       cache_to:
-        - type=gha,scope=loris-mri,mode=max
+        - type=gha,scope=loris-mri

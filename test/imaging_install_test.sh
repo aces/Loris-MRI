@@ -10,28 +10,35 @@ prodfilename="prod"
 
 mridir="/opt/loris/bin/mri"
 
+minc_config=/opt/minc/1.9.18/minc-toolkit-config.sh
+if [ -f "$minc_config" ]; then
+  MINC_TOOLKIT_DIR=/opt/minc/1.9.18
+else
+  MINC_TOOLKIT_DIR=""
+fi
+
 #######################################################################################
 #############################Create directories########################################
 #######################################################################################
 echo "Creating the data directories"
-  sudo -S su $USER -c "mkdir -m 2770 -p /data/$PROJ/"
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/trashbin"         #holds mincs that didn't match protocol
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/tarchive"         #holds tared dicom-folder
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/chunks"           #holds electrophysiology chunks folder
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/hrrtarchive"      #holds tared hrrt-folder
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/pic"              #holds jpegs generated for the MRI-browser
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/logs"             #holds logs from pipeline script
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/assembly"         #holds the MINC files
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/assembly_bids"    #holds the BIDS files derived from DICOMs
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/batch_output"     #contains the result of the SGE (queue)
-  sudo -S su $USER -c "mkdir -m 770 -p /data/$PROJ/bids_imports"     #contains imported BIDS studies
-  sudo -S su $USER -c "mkdir -m 770 -p $mridir/config"
+  mkdir -m 2770 -p /data/$PROJ/
+  mkdir -m 770 -p /data/$PROJ/trashbin         #holds mincs that didn't match protocol
+  mkdir -m 770 -p /data/$PROJ/tarchive         #holds tared dicom-folder
+  mkdir -m 770 -p /data/$PROJ/chunks           #holds electrophysiology chunks folder
+  mkdir -m 770 -p /data/$PROJ/hrrtarchive      #holds tared hrrt-folder
+  mkdir -m 770 -p /data/$PROJ/pic              #holds jpegs generated for the MRI-browser
+  mkdir -m 770 -p /data/$PROJ/logs             #holds logs from pipeline script
+  mkdir -m 770 -p /data/$PROJ/assembly         #holds the MINC files
+  mkdir -m 770 -p /data/$PROJ/assembly_bids    #holds the BIDS files derived from DICOMs
+  mkdir -m 770 -p /data/$PROJ/batch_output     #contains the result of the SGE (queue)
+  mkdir -m 770 -p /data/$PROJ/bids_imports     #contains imported BIDS studies
+  mkdir -m 770 -p $mridir/config
 echo
 
 #####################################################################################
 ###############incoming directory ###################################################
 #####################################################################################
-sudo -S su $USER -c "mkdir -m 2770 -p /data/incoming/"
+mkdir -m 2770 -p /data/incoming/
 
 # Check if the incoming directory is successfully created. If not, instructions on
 # how to manually create the directory are provided.
@@ -63,26 +70,23 @@ group=root
 ######################change permissions ###########################################
 ####################################################################################
 #echo "Changing permissions"
-sudo chmod -R 770 /opt/$PROJ/
-sudo chmod -R 770 /data/$PROJ/
-
-# Making lorisadmin part of the apache group
-sudo usermod -a -G $group $USER
+chmod -R 770 /opt/$PROJ/
+chmod -R 770 /data/$PROJ/
 
 #Setting group permissions for all files/dirs under /data/$PROJ/ and /opt/$PROJ/
-sudo chgrp $group -R /opt/$PROJ/
-sudo chgrp $group -R /data/$PROJ/
+chgrp $group -R /opt/$PROJ/
+chgrp $group -R /data/$PROJ/
 
 #Setting group ID for all files/dirs under /data/$PROJ/
-sudo chmod -R g+s /data/$PROJ/
+chmod -R g+s /data/$PROJ/
 
 # Setting group permissions and group ID for all files/dirs under /data/incoming
 # If the directory was not created earlier, then instructions to do so manually are provided.
 if [ -d "/data/incoming/" ]
 then
-	sudo chmod -R 770 /data/incoming/
-	sudo chgrp $group -R /data/incoming/
-	sudo chmod -R g+s /data/incoming/
+	chmod -R 770 /data/incoming/
+	chgrp $group -R /data/incoming/
+	chmod -R g+s /data/incoming/
 else
 	echo "After manually creating /data/incoming/, run the commands below to set the permissions:"
 	echo "sudo chmod -R 770 /data/incoming/"
@@ -98,8 +102,8 @@ echo
 echo "Creating MRI config file"
 
 cp $mridir/install/templates/profileTemplate.pl $mridir/config/$prodfilename
-sudo chmod 640 $mridir/config/$prodfilename
-sudo chgrp $group $mridir/config/$prodfilename
+chmod 640 $mridir/config/$prodfilename
+chgrp $group $mridir/config/$prodfilename
 
 sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/profileTemplate.pl > $mridir/config/$prodfilename
 echo "config file is located at $mridir/config/$prodfilename"
@@ -107,7 +111,7 @@ echo
 
 echo "Creating python database config file with database credentials"
 cp $mridir/install/templates/config_template.py $mridir/config/config.py
-sudo chmod 640 $mridir/config/config.py
-sudo chgrp $group $mridir/config/config.py
+chmod 640 $mridir/config/config.py
+chgrp $group $mridir/config/config.py
 sed -e "s#DBNAME#$mysqldb#g" -e "s#DBUSER#$mysqluser#g" -e "s#DBPASS#$mysqlpass#g" -e "s#DBHOST#$mysqlhost#g" $mridir/install/templates/config_template.py > $mridir/config/config.py
 echo "config file for python import scripts is located at $mridir/config/config.py"
