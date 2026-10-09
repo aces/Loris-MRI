@@ -15,6 +15,7 @@ COPY test/RB_SQL/*.sql ./raisinbread/
 ARG DATABASE_NAME
 ARG DATABASE_USER
 ARG DATABASE_PASS
+ARG INCLUDE_MINC=false
 
 # Compile the SQL instructions into a single file that will be sourced by MariaDB.
 RUN ( \
@@ -35,7 +36,12 @@ RUN ( \
 
 # Copy the LORIS-MRI database installation script and add it to the compiled SQL file.
 COPY install/install_database.sql /tmp/install_database.sql
-RUN echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '/opt/minc/1.9.18';" >> source.sql
+RUN case "$INCLUDE_MINC" in \
+        false) minc_dir= ;; \
+        true) minc_dir=/opt/minc/1.9.18 ;; \
+        *) echo "INCLUDE_MINC must be 'true' or 'false'" >&2; exit 2 ;; \
+    esac \
+    && echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '$minc_dir';" >> source.sql
 RUN cat /tmp/install_database.sql >> source.sql
 
 # By default, MariaDB runs the SQL files provided by the user at the time of the first startup of
