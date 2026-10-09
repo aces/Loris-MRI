@@ -82,4 +82,4 @@ jobs:
       uses: ./.github/actions/setup-python
 
     - name: Run Pytest
-      run: pytest python/tests/unit
+      run: pytest

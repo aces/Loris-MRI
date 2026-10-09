@@ -1,6 +1,5 @@
 """Deals with EEG BIDS datasets and register them into the database."""
 
-import json
 import os
 from pathlib import Path
 
@@ -17,6 +16,7 @@ from lib.physio.events import EventDictFileSource
 from lib.physio.file import insert_physio_file
 from lib.physio.parameters import register_physio_file_parameters
 from loris_bids_utils.eeg.channels import BidsEegChannelsTsvFile
+from loris_bids_utils.eeg.coord_system import BidsCoordSystemJsonFile
 from loris_bids_utils.eeg.sidecar import BidsEegSidecarJsonFile
 from loris_bids_utils.files.events import BidsEventsTsvFile
 from loris_bids_utils.files.scans import BidsScansTsvFile
@@ -26,6 +26,7 @@ from loris_utils.crypto import compute_file_blake2b_hash
 
 from loris_bids_importer.archive import import_physio_event_archive, import_physio_file_archive
 from loris_bids_importer.channels import insert_bids_channels_file
+from loris_bids_importer.coord_system import import_bids_coord_systems
 from loris_bids_importer.copy_files import (
     add_bids_scan_row,
     copy_loris_bids_file,
@@ -480,11 +481,11 @@ class Eeg:
                         print(message)
 
                         # insert default (not registered) coordsystem in the database
-                        physiological.insert_electrode_metadata(
+                        import_bids_coord_systems(
+                            self.env,
                             None,
                             None,
                             physiological_file,
-                            None,
                             electrode_ids
                         )
                     else:
@@ -492,25 +493,19 @@ class Eeg:
                         electrode_metadata_path = self.copy_file_to_loris_bids_dir(
                             coordsystem_metadata_file.path, derivatives
                         )
-                        # load json data
-                        with open(coordsystem_metadata_file.path) as metadata_file:
-                            electrode_metadata = json.load(metadata_file)
-                        # get the blake2b hash of the json events file
-                        blake2 = compute_file_blake2b_hash(coordsystem_metadata_file.path)
-
-                        get_or_create_loris_bids_file(
+                        coord_system_file = BidsCoordSystemJsonFile(Path(coordsystem_metadata_file.path))
+                        coord_system_bids_info = get_or_create_loris_bids_file(
                             self.env,
                             self.importer,
                             Path(coordsystem_metadata_file.path),
                             electrode_metadata_path,
                         )
 
-                        # insert event metadata in the database
-                        physiological.insert_electrode_metadata(
-                            electrode_metadata,
-                            electrode_metadata_path,
+                        import_bids_coord_systems(
+                            self.env,
+                            coord_system_file,
+                            coord_system_bids_info,
                             physiological_file,
-                            blake2,
                             electrode_ids
                         )
 
