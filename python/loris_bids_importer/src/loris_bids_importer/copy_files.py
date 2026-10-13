@@ -143,7 +143,7 @@ def copy_bids_participants_file(
     if importer.args.copy:
         participants_path = importer.data_dir_path / loris_participants_path
         if participants_path.exists():
-            participants_file.merge(BidsParticipantsTsvFile(participants_path))
+            participants_file.merge(BidsParticipantsTsvFile.read(participants_path))
 
         participants_path.parent.mkdir(parents=True, exist_ok=True)
         participants_file.write(participants_path)
@@ -168,7 +168,7 @@ def add_bids_scan_row(
         # Create the LORIS scans.tsv file if it does not exist yet.
         scans_path.touch(exist_ok=True)
 
-        loris_scans_file = BidsScansTsvFile(scans_path)
+        loris_scans_file = BidsScansTsvFile.read(scans_path)
         loris_scans_file.set_row(scan_row)
         loris_scans_file.write()
 

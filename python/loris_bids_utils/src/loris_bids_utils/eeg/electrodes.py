@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from loris_utils.parse import try_parse_float, try_parse_int
 
 from loris_bids_utils.tsv import BidsTsvFile, BidsTsvRow
@@ -45,8 +43,7 @@ class BidsEegElectrodesTsvFile(BidsTsvFile[BidsEegElectrodeTsvRow]):
     Class representing a BIDS EEG or iEEG `electrodes.tsv` file.
     """
 
-    def __init__(self, path: Path):
-        super().__init__(BidsEegElectrodeTsvRow, path)
+    row_type = BidsEegElectrodeTsvRow
 
 
 def _try_parse_bids_float(value: str | None) -> float | None:
