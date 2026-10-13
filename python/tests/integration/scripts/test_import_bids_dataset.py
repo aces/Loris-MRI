@@ -29,7 +29,6 @@ def test_import_eeg_bids_dataset():
 
     process = run_integration_script([
         'import-bids-dataset',
-        '--create-candidate', '--create-session',
         '--type', 'raw',
         '--directory', '/data/loris/incoming/Face13',
     ])
@@ -159,7 +158,6 @@ def test_import_mri_bids_dataset():
 
     process = run_integration_script([
         'import-bids-dataset',
-        '--create-candidate', '--create-session',
         '--directory', '/data/loris/incoming/DCC090_587630_V2',
     ])
 
@@ -217,8 +215,6 @@ def test_import_mri_bids_dataset():
 def test_import_meg_ctf_bids_dataset():
     db = get_integration_database_session()
 
-    # ds000246 has no session entity, so select the visit used when creating its LORIS session.
-    set_config_with_setting_name(db, 'default_bids_vl', 'V1')
     # Enable MEG chunking.
     set_config_with_setting_name(db, 'useEEGBrowserVisualizationComponents', 'true')
     db.commit()
@@ -227,6 +223,7 @@ def test_import_meg_ctf_bids_dataset():
         'import-bids-dataset',
         '--type', 'raw',
         '--directory', '/data/loris/incoming/ds000246',
+        '--bids-config', '/data/loris/configs/brainstorm_bids_config.py',
     ])
 
     assert process.returncode == 0

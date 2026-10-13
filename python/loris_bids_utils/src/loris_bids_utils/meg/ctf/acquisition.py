@@ -29,9 +29,9 @@ class MegCtfAcquisition:
         self.sidecar_file = BidsMegSidecarJsonFile(sidecar_path)
 
         channels_path = path.parent / re.sub(r'_meg$', '_channels.tsv', path.name)
-        self.channels_file = BidsEegChannelsTsvFile(channels_path) if channels_path.exists() else None
+        self.channels_file = BidsEegChannelsTsvFile.read(channels_path) if channels_path.exists() else None
 
         events_path = path.parent / re.sub(r'_meg$', '_events.tsv', path.name)
-        self.events_file = BidsEventsTsvFile(events_path) if events_path.exists() else None
+        self.events_file = BidsEventsTsvFile.read(events_path) if events_path.exists() else None
 
         self.head_shape_file = head_shape_file
