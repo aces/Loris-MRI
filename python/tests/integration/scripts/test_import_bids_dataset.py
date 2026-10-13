@@ -27,7 +27,6 @@ def test_import_eeg_bids_dataset():
 
     process = run_integration_script([
         'import-bids-dataset',
-        '--create-candidate', '--create-session',
         '--type', 'raw',
         '--directory', '/data/loris/incoming/Face13',
     ])
@@ -157,7 +156,6 @@ def test_import_mri_bids_dataset():
 
     process = run_integration_script([
         'import-bids-dataset',
-        '--create-candidate', '--create-session',
         '--directory', '/data/loris/incoming/DCC090_587630_V2',
     ])
 

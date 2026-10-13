@@ -166,10 +166,6 @@ Under the `Imaging Pipeline` section:
       - the $subjectID{'CohortID'} is undef in the profileTemplate (prod) file;
       - the CohortID from the session table, if the PSCID and visit labels exist;
       - the default_cohort DB config value.
- * `Default visit label for BIDS dataset`: the visit directory in BIDS
-    structure is optional in the case of only one visit for the whole dataset. In
-    this case, we need to specify to LORIS what would be the default visit label
-    the project wants to use to store the electrophysiology datasets (*e.g.* V01).
  * `Project batch management used`: enable or disable batch management
  * `Number of volumes in native DTI acquisitions`: used by the DTIPrep pipeline
  * `Scan type of native T1 acquisition`: name as specified in the `mri_scan_type`
@@ -389,7 +385,6 @@ Under the `Imaging Pipeline` section:
  * `User to notify when executing the pipeline`
  * `Full path to get_dicom_info.pl script`(typically `/opt/$PROJECT/bin/mri/dicom-archive/get_dicom_info.pl`)
  * `Path to Tarchives` (typically `/data/$PROJECT/data/tarchive/`)
- * `Default visit label for BIDS dataset`: (`V01` or any visit label fitting)
  * `DICOM converter tool to use (dcm2mnc or dcm2niix)`: must be used to specify which tool the pipeline
    should run -- `dcm2mnc` to produce MINC files, or `dcm2niix` to produce BIDS-compatible files
 

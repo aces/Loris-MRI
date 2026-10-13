@@ -12,10 +12,9 @@ class BidsImporterArgs:
     """
 
     source_bids_path: Path
+    bids_config_path: Path | None
     type: Literal['raw', 'derivative', None]
     bids_validation: bool
-    create_candidate: bool
-    create_session: bool
     copy: bool
     verbose: bool
 
