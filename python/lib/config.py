@@ -49,14 +49,6 @@ def get_dicom_archive_dir_path_config(env: Env) -> Path:
     return dicom_archive_dir_path
 
 
-def get_default_bids_visit_label_config(env: Env) -> str | None:
-    """
-    Get the default BIDS visit label from the in-database configuration.
-    """
-
-    return _try_get_config_value(env, 'default_bids_vl')
-
-
 def get_ephys_visualization_enabled_config(env: Env) -> bool:
     """
     Get whether the electrophysiology visualization is enabled from the in-database configuration.

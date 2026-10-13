@@ -34,8 +34,9 @@ class BidsTsvFile(Generic[T]):
     rows: list[T]
     row_type: type[T]
 
-    def __init__(self, file_path: Path, rows: list[T]):
+    def __init__(self, file_path: Path, dictionary: BidsJsonFile | None, rows: list[T]):
         self.path = file_path
+        self.dictionary = dictionary
         self.rows = list(rows)
 
     @classmethod
@@ -46,11 +47,11 @@ class BidsTsvFile(Generic[T]):
 
         rows: list[T] = []
 
-        dictionary_path = replace_path_extension(self.path, 'json')
+        dictionary_path = replace_path_extension(file_path, 'json')
         if dictionary_path.exists():
-            self.dictionary = BidsJsonFile(dictionary_path)
+            dictionary_file = BidsJsonFile(dictionary_path)
         else:
-            self.dictionary = None
+            dictionary_file = None
 
         # The 'utf-8-sig' encoding is used to support some datasets where metadata files may contain
         # a byte-order mark (BOM).
@@ -64,7 +65,7 @@ class BidsTsvFile(Generic[T]):
                 row = {key: nullify_empty_string(value) for key, value in row.items()}
                 rows.append(cls.row_type(row))
 
-        return cls(file_path, rows)
+        return cls(file_path, dictionary_file, rows)
 
     def get_field_names(self) -> list[str]:
         """
