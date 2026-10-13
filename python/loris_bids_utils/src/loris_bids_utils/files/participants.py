@@ -1,5 +1,5 @@
 from datetime import date
-from pathlib import Path
+from typing import Self
 
 import dateutil.parser
 from dateutil.parser import ParserError
@@ -35,6 +35,16 @@ class BidsParticipantTsvRow(BidsTsvRow):
         self.birth_date = self._read_birth_date()
         self.sex = self.data.get('sex')
 
+    def with_participant_id(self, participant_id: str) -> Self:
+        """
+        Return a copy of this row with a different participant ID.
+        """
+
+        participant_id = participant_id.removeprefix('sub-')
+        data = dict(self.data)
+        data['participant_id'] = f'sub-{participant_id}'
+        return type(self)(data)
+
     def _read_birth_date(self) -> date | None:
         """
         Read the date of birth field from this row data.
@@ -69,8 +79,7 @@ class BidsParticipantsTsvFile(BidsTsvFile[BidsParticipantTsvRow]):
     Documentation: https://bids-specification.readthedocs.io/en/stable/modality-agnostic-files/data-summary-files.html#participants-file
     """
 
-    def __init__(self, path: Path):
-        super().__init__(BidsParticipantTsvRow, path)
+    row_type = BidsParticipantTsvRow
 
     def get_row(self, participant_id: str) -> BidsParticipantTsvRow | None:
         """

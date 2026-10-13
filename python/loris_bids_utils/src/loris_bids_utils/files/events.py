@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pathlib import Path
 
 from loris_utils.iter import map_non_none
 from loris_utils.parse import try_parse_decimal
@@ -65,8 +64,7 @@ class BidsEventsTsvFile(BidsTsvFile[BidsEventTsvRow]):
     Documentation: https://bids-specification.readthedocs.io/en/stable/modality-agnostic-files/events.html
     """
 
-    def __init__(self, path: Path):
-        super().__init__(BidsEventTsvRow, path)
+    row_type = BidsEventTsvRow
 
 
 # known opt fields
