@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/loris-data.env"
 loris_ref="${LORIS_REF:-main}"
 data_dir="${LORIS_TEST_DATA:-}"
 cache_dir="${LORIS_TEST_CACHE:-${HOME}/.cache/loris/test}"
+include_minc="${INCLUDE_MINC:-false}"
 loris_dir=""
 compose=(docker compose --file "$SCRIPT_DIR/docker-compose.yml")
 
@@ -29,10 +30,12 @@ Options:
   --loris-ref REF   LORIS core branch, tag, or commit to test against (default: main)
   --data-dir PATH   Existing imaging test dataset (otherwise downloaded and cached)
   --cache-dir PATH  Cache directory (default: ~/.cache/loris/test)
+  --include-minc    Include the MINC toolkit (excluded by default)
   -h, --help        Show this help
 
 Environment equivalents:
   LORIS_REF, LORIS_TEST_DATA, LORIS_TEST_CACHE
+  INCLUDE_MINC      Include MINC: "false" (default) or "true"
 EOF
 }
 
@@ -54,6 +57,10 @@ parse_arguments() {
                 cache_dir="$2"
                 shift 2
                 ;;
+            --include-minc)
+                include_minc=true
+                shift
+                ;;
             -h|--help)
                 usage
                 exit 0
@@ -65,6 +72,11 @@ parse_arguments() {
                 ;;
         esac
     done
+
+    case "$include_minc" in
+        true|false) ;;
+        *) echo "ERROR: INCLUDE_MINC must be 'true' or 'false'." >&2; exit 2 ;;
+    esac
 }
 
 check_requirements() {
@@ -131,6 +143,7 @@ prepare_test_dataset() {
 }
 
 configure_compose() {
+    export INCLUDE_MINC="$include_minc"
     export LORIS_CORE_DIR="$loris_dir"
     export LORIS_TEST_DATA="$data_dir"
     export COMPOSE_PROJECT_NAME="loris-mri-integration-${UID}"
@@ -146,7 +159,10 @@ trap cleanup EXIT
 
 build_images() {
     echo "Building integration test images..."
-    "${compose[@]}" build
+    # Compose versions differ in their support for service-backed additional contexts. Building
+    # the artifact images first makes the named contexts used by mri.Dockerfile deterministic.
+    "${compose[@]}" build minc perl python db
+    "${compose[@]}" build mri
 }
 
 run_tests() {

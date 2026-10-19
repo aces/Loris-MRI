@@ -33,9 +33,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Dependencies used to run the unit and integration tests.
+test = [
+    "pytest",
+]
+
+# Dependencies used to run the static tests.
 dev = [
     "pyright",
-    "pytest",
     "ruff",
     "typos",
 ]
