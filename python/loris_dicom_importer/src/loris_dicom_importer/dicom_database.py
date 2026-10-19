@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session as Database
 
 from loris_dicom_importer.import_log import DicomStudyImportLog, write_dicom_study_import_log_to_string
 from loris_dicom_importer.summary_type import DicomStudySummary
-from loris_dicom_importer.summary_write import compare_dicom_files, compare_dicom_series, write_dicom_study_summary
+from loris_dicom_importer.summary_write import compare_dicom_files, compare_dicom_series
 
 
 def insert_dicom_archive(
@@ -66,13 +66,12 @@ def populate_dicom_archive(
     study import log.
     """
 
-    dicom_archive.study_uid                = dicom_summary.info.study_uid
+    dicom_archive.study_uid                = dicom_summary.info.study_instance_uid
     dicom_archive.patient_id               = dicom_summary.info.patient.id
     dicom_archive.patient_name             = dicom_summary.info.patient.name
     dicom_archive.patient_birthdate        = dicom_summary.info.patient.birth_date
     dicom_archive.patient_sex              = dicom_summary.info.patient.sex
-    dicom_archive.neuro_db_center_name     = None
-    dicom_archive.center_name              = dicom_summary.info.institution or ''
+    dicom_archive.institution_name         = dicom_summary.info.institution_name
     dicom_archive.last_update              = None
     dicom_archive.date_acquired            = dicom_summary.info.scan_date
     dicom_archive.date_last_archived       = datetime.now()
@@ -82,18 +81,14 @@ def populate_dicom_archive(
     dicom_archive.md5_sum_dicom_only       = dicom_import_log.tarball_md5_sum
     dicom_archive.md5_sum_archive          = dicom_import_log.archive_md5_sum
     dicom_archive.creating_user            = dicom_import_log.creator_name
-    dicom_archive.sum_type_version         = dicom_import_log.summary_version
-    dicom_archive.tar_type_version         = dicom_import_log.archive_version
     dicom_archive.source_path              = dicom_import_log.source_path
     dicom_archive.path                     = archive_path
-    dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer or ''
-    dicom_archive.scanner_model            = dicom_summary.info.scanner.model or ''
-    dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number or ''
-    dicom_archive.scanner_software_version = dicom_summary.info.scanner.software_version or ''
+    dicom_archive.scanner_manufacturer     = dicom_summary.info.scanner.manufacturer
+    dicom_archive.scanner_model            = dicom_summary.info.scanner.model
+    dicom_archive.scanner_serial_number    = dicom_summary.info.scanner.serial_number
+    dicom_archive.scanner_software_version = dicom_summary.info.scanner.software_version
     dicom_archive.session_id               = None
     dicom_archive.create_info              = write_dicom_study_import_log_to_string(dicom_import_log)
-    dicom_archive.acquisition_metadata     = write_dicom_study_summary(dicom_summary)
-    dicom_archive.date_sent                = None
 
 
 def insert_files_series(db: Database, dicom_archive: DbDicomArchive, dicom_summary: DicomStudySummary):
