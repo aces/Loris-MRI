@@ -1,8 +1,33 @@
 services:
+  minc:
+    image: loris-mri-minc-artifact
+    build:
+      context: ..
+      dockerfile: test/docker/minc.Dockerfile
+      args:
+        INCLUDE_MINC: ${INCLUDE_MINC:-false}
+  perl:
+    image: loris-mri-perl-artifact
+    build:
+      context: ..
+      dockerfile: test/docker/perl.Dockerfile
+  python:
+    image: loris-mri-python-artifact
+    build:
+      context: ..
+      dockerfile: test/docker/python.Dockerfile
   db:
     image: loris-db
-    volumes:
-      - ./test/mysql-config:/etc/mysql/conf.d
+    build:
+      context: ..
+      dockerfile: test/db.Dockerfile
+      additional_contexts:
+        loris_core: ${LORIS_CORE_DIR:?Set LORIS_CORE_DIR to a LORIS core checkout}
+      args:
+        DATABASE_NAME: ${DATABASE_NAME:-TestDatabase}
+        DATABASE_USER: ${DATABASE_USERNAME:-TestUsername}
+        DATABASE_PASS: ${DATABASE_PASSWORD:-TestPassword}
+        INCLUDE_MINC: ${INCLUDE_MINC:-false}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       start_period: 10s
@@ -11,8 +36,19 @@ services:
       retries: 5
   mri:
     image: loris-mri
+    build:
+      context: ..
+      dockerfile: test/mri.Dockerfile
+      additional_contexts:
+        minc: service:minc
+        perl: service:perl
+        python: service:python
+      args:
+        DATABASE_NAME: ${DATABASE_NAME:-TestDatabase}
+        DATABASE_USER: ${DATABASE_USERNAME:-TestUsername}
+        DATABASE_PASS: ${DATABASE_PASSWORD:-TestPassword}
     volumes:
-      - /data-imaging:/data-imaging
+      - ${LORIS_TEST_DATA:?Set LORIS_TEST_DATA to the imaging test dataset}:/data-loris:ro
     depends_on:
       db:
         condition: service_healthy

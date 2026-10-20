@@ -1,15 +1,21 @@
 FROM mariadb:latest
 
-# Copy the SQL schema files and the Raisinbread data from the main LORIS repository.
-COPY test/Loris/SQL/*.sql .
-COPY test/Loris/raisinbread/instruments/instrument_sql/*.sql ./raisinbread/instruments/
-COPY test/Loris/raisinbread/RB_files/*.sql ./raisinbread/
+# Copy the SQL schema files and the Raisinbread data from the main LORIS repository. The
+# `loris_core` build context is supplied by Docker Compose, so it does not need to live inside this
+# repository.
+COPY --from=loris_core SQL/*.sql .
+COPY --from=loris_core raisinbread/instruments/instrument_sql/*.sql ./raisinbread/instruments/
+COPY --from=loris_core raisinbread/RB_files/*.sql ./raisinbread/
+
+# Override the LORIS core Raisinbread schema with the versions maintained by LORIS-MRI.
+COPY test/RB_SQL/*.sql ./raisinbread/
 
 # Usually, MariaDB creates the SQL user and database at runtime. Since we want to embed the
 # database in the image, we instead create them manually at build time.
 ARG DATABASE_NAME
 ARG DATABASE_USER
 ARG DATABASE_PASS
+ARG INCLUDE_MINC=false
 
 # Compile the SQL instructions into a single file that will be sourced by MariaDB.
 RUN ( \
@@ -30,7 +36,12 @@ RUN ( \
 
 # Copy the LORIS-MRI database installation script and add it to the compiled SQL file.
 COPY install/install_database.sql /tmp/install_database.sql
-RUN echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '/opt/minc/1.9.18';" >> source.sql
+RUN case "$INCLUDE_MINC" in \
+        false) minc_dir= ;; \
+        true) minc_dir=/opt/minc/1.9.18 ;; \
+        *) echo "INCLUDE_MINC must be 'true' or 'false'" >&2; exit 2 ;; \
+    esac \
+    && echo "SET @email := 'root@localhost'; SET @project := 'loris'; SET @minc_dir = '$minc_dir';" >> source.sql
 RUN cat /tmp/install_database.sql >> source.sql
 
 # By default, MariaDB runs the SQL files provided by the user at the time of the first startup of
