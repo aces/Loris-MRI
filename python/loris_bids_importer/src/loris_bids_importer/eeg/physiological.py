@@ -1,6 +1,5 @@
 """This class performs database queries for BIDS physiological dataset (EEG, MEG...)"""
 
-from lib.database_lib.physiological_coord_system import PhysiologicalCoordSystem
 from lib.database_lib.point_3d import Point3DDB
 from lib.db.models.physio_file import DbPhysioFile
 from lib.env import Env
@@ -52,7 +51,6 @@ class Physiological:
         self.db      = db
         self.verbose = verbose
 
-        self.physiological_coord_system_db = PhysiologicalCoordSystem(self.db, self.verbose)
         self.point_3d_db = Point3DDB(self.db, self.verbose)
 
     def grep_electrode_from_physiological_file_id(self, physiological_file_id):
@@ -161,116 +159,3 @@ class Physiological:
         # insert blake2b hash of electrode file into physiological_parameter_file
         register_physio_file_parameter(self.env, physiological_file, 'electrode_file_blake2b_hash', blake2)
         return electrode_ids
-
-    def insert_electrode_metadata(self, electrode_metadata, electrode_metadata_file,
-                                  physiological_file: DbPhysioFile, blake2, electrode_ids):
-        """
-        Inserts the electrode metadata information read from the file *coordsystem.json
-        into the physiological_coord_system, physiological_coord_system_point_3d_rel
-        and physiological_coord_system_electrode_rel tables, linking it to the
-        physiological file ID already inserted in physiological_file.
-        :param electrode_metadata       : dictionaries of electrode metadata to insert
-                                          into the database
-         :type electrode_metadata       : dict
-        :param electrode_metadata_file  : PhysiologicalFileID to link the electrode info to
-         :type electrode_metadata_file  : int
-        :param physiological_file       : Physiological file object to link the electrode info to
-        :param blake2                   : blake2b hash of the event file
-         :type blake2                   : str
-        :param electrode_ids            : blake2b hash of the event file
-         :type electrode_ids            : str
-        """
-
-        # define modality (MEG, iEEG, EEG)
-        try:
-            modality = next(
-                k for k in electrode_metadata.keys()
-                if k.endswith('CoordinateSystem')
-            ).rstrip('CoordinateSystem')
-            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name(modality.lower())
-            if modality_id is None:
-                print(f"Modality {modality} unknown in DB")
-                # force default
-                raise IndexError
-        except Exception:
-            modality_id = self.physiological_coord_system_db.grep_coord_system_modality_from_name("Not registered")
-
-        # type (Fiducials, AnatomicalLandmark, HeadCoil, DigitizedHeapPoints)
-        try:
-            coord_system_type = next(
-                k for k in electrode_metadata.keys()
-                if k.endswith('CoordinateSystem') and not k.startswith(modality)
-            ).rstrip('CoordinateSystem')
-            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name(coord_system_type)
-            if type_id is None:
-                print(f"Type {coord_system_type} unknown in DB")
-                # force default
-                raise IndexError
-        except Exception:
-            coord_system_type = None
-            type_id = self.physiological_coord_system_db.grep_coord_system_type_from_name("Not registered")
-
-        # unit
-        try:
-            unit_data = electrode_metadata[f'{modality}CoordinateUnits']
-            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_symbol(unit_data)
-            if unit_id is None:
-                print(f"Unit {unit_data} unknown in DB")
-                # force default
-                raise IndexError
-        except Exception:
-            unit_id = self.physiological_coord_system_db.grep_coord_system_unit_from_name("Not registered")
-
-        # name
-        try:
-            coord_system_name = electrode_metadata[f'{modality}CoordinateSystem']
-            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name(coord_system_name)
-            if name_id is None:
-                print(f"Name {coord_system_name} unknown in DB")
-                # force default
-                raise IndexError
-        except Exception:
-            name_id = self.physiological_coord_system_db.grep_coord_system_name_from_name("Not registered")
-
-        # get or create coord system in db
-        coord_system_id = self.physiological_coord_system_db.grep_or_insert_coord_system(
-            name_id,
-            unit_id,
-            type_id,
-            modality_id,
-            str(electrode_metadata_file)
-        )
-
-        # define coord system referential points (e.g. LPA, RPA) + points
-        is_ok_ref_coords = True
-        try:
-            if coord_system_type is None:
-                raise KeyError
-            ref_coords = electrode_metadata[f'{coord_system_type}Coordinates']
-            ref_points = {
-                ref_key : Point3D(None, *ref_val)
-                for ref_key, ref_val in ref_coords.items()
-            }
-        except Exception:
-            # no ref points
-            is_ok_ref_coords = False
-        # insert ref points if found
-        if is_ok_ref_coords:
-            # insert ref points
-            point_ids = {}
-            for rk, rv in ref_points.items():
-                p = self.point_3d_db.grep_or_insert_point(rv)
-                point_ids[rk] = p.id
-            # insert ref point/coord system relations
-            self.physiological_coord_system_db.insert_coord_system_point_3d_relation(coord_system_id, point_ids)
-
-        # insert the relation between coordinate file electrode and physio file
-        self.physiological_coord_system_db.insert_coord_system_electrodes_relation(
-            physiological_file.id,
-            coord_system_id,
-            electrode_ids
-        )
-
-        if blake2:
-            # insert blake2b hash of task event file into physiological_parameter_file
-            register_physio_file_parameter(self.env, physiological_file, 'coordsystem_file_json_blake2b_hash', blake2)
