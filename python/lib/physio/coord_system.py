@@ -17,7 +17,6 @@ from lib.db.queries.physio_coord_system import (
     try_get_coord_system_type_with_name,
     try_get_coord_system_unit_with_name,
     try_get_coord_system_unit_with_symbol,
-    try_get_point_with_coordinates,
 )
 from lib.env import Env
 
@@ -105,21 +104,6 @@ def get_coord_system_unit(env: Env, symbol: str | None) -> DbPhysioCoordSystemUn
         raise ValueError("Missing 'Not registered' physiological coordinate system unit")
 
     return coord_unit
-
-
-def get_or_create_point(env: Env, x: float, y: float, z: float) -> DbPoint3D:
-    """
-    Get a point with matching coordinates or create it if it does not already exist.
-    """
-
-    point = try_get_point_with_coordinates(env.db, x, y, z)
-    if point is not None:
-        return point
-
-    point = DbPoint3D(x=x, y=y, z=z)
-    env.db.add(point)
-    env.db.flush()
-    return point
 
 
 def get_or_create_point_relation(

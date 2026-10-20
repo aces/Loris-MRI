@@ -73,7 +73,7 @@ def try_get_coord_system(
     )).scalar_one_or_none()
 
 
-def try_get_point_with_coordinates(db: Database, x: float, y: float, z: float) -> DbPoint3D | None:
+def try_get_point_with_coordinates(db: Database, x: float | None, y: float | None, z: float | None) -> DbPoint3D | None:
     """
     Get a three-dimensional point using its coordinates, or return `None` if none was found.
     """

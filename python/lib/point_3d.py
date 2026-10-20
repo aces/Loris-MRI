@@ -1,6 +1,9 @@
 """This class represents a Point with 3D coordinates"""
 
+from typing_extensions import deprecated
 
+
+@deprecated('Use `lib.db.models.point_3d.DbPoint3D` instead.')
 class Point3D:
     def __init__(self, pid: int, x: float, y: float, z: float):
         """
