@@ -40,9 +40,9 @@ services:
       context: ..
       dockerfile: test/mri.Dockerfile
       additional_contexts:
-        minc: docker-image://loris-mri-minc-artifact
-        perl: docker-image://loris-mri-perl-artifact
-        python: docker-image://loris-mri-python-artifact
+        minc: service:minc
+        perl: service:perl
+        python: service:python
       args:
         DATABASE_NAME: ${DATABASE_NAME:-TestDatabase}
         DATABASE_USER: ${DATABASE_USERNAME:-TestUsername}

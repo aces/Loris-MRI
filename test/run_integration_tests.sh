@@ -83,6 +83,17 @@ check_requirements() {
     command -v git >/dev/null || { echo "ERROR: Git is required." >&2; exit 1; }
     command -v docker >/dev/null || { echo "ERROR: Docker is required." >&2; exit 1; }
     docker compose version >/dev/null || { echo "ERROR: Docker Compose v2 is required." >&2; exit 1; }
+
+    local minimum_compose_version="2.38.0"
+    local compose_version
+    compose_version="$(docker compose version --short)"
+    compose_version="${compose_version#v}"
+    if [[ "$(printf '%s\n' "$minimum_compose_version" "$compose_version" | sort -V | head -n 1)" \
+        != "$minimum_compose_version" ]]; then
+        echo "ERROR: Docker Compose $minimum_compose_version or newer is required; found $compose_version." >&2
+        echo "Upgrade Docker Compose to use the service-backed build contexts required by this test." >&2
+        exit 1
+    fi
 }
 
 # LORIS-MRI integration tests only need the core LORIS schema and Raisinbread seed data. Using a
@@ -159,10 +170,7 @@ trap cleanup EXIT
 
 build_images() {
     echo "Building integration test images..."
-    # Compose versions differ in their support for service-backed additional contexts. Building
-    # the artifact images first makes the named contexts used by mri.Dockerfile deterministic.
-    "${compose[@]}" build minc perl python db
-    "${compose[@]}" build mri
+    "${compose[@]}" build
 }
 
 run_tests() {
