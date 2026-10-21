@@ -78,8 +78,8 @@ def populate_dicom_archive(
     dicom_archive.acquisition_count        = len(dicom_summary.dicom_series_files)
     dicom_archive.dicom_file_count         = count(flatten(dicom_summary.dicom_series_files.values()))
     dicom_archive.non_dicom_file_count     = len(dicom_summary.other_files)
-    dicom_archive.md5_sum_dicom_only       = dicom_import_log.tarball_md5_sum
-    dicom_archive.md5_sum_archive          = dicom_import_log.archive_md5_sum
+    dicom_archive.md5_hash_dicom_only      = dicom_import_log.tarball_md5_hash
+    dicom_archive.md5_hash_archive         = dicom_import_log.archive_md5_hash
     dicom_archive.creating_user            = dicom_import_log.creator_name
     dicom_archive.source_path              = dicom_import_log.source_path
     dicom_archive.path                     = archive_path
@@ -130,7 +130,7 @@ def insert_files_series(db: Database, dicom_archive: DbDicomArchive, dicom_summa
                 file_number        = dicom_file.file_number,
                 echo_number        = dicom_file.echo_number,
                 series_description = dicom_file.series_description,
-                md5_sum            = dicom_file.md5_sum,
+                md5_hash           = dicom_file.md5_hash,
                 file_name          = dicom_file.file_name,
                 series_id          = dicom_series.id,
             ))
