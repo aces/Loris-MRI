@@ -28,8 +28,8 @@ def setup(db: Database):
         acquisition_count         = 2,
         dicom_file_count          = 2,
         non_dicom_file_count      = 0,
-        md5_sum_dicom_only        = 'dicom-md5-1',
-        md5_sum_archive           = 'archive-md5-1',
+        md5_hash_dicom_only        = 'dicom-md5-1',
+        md5_hash_archive           = 'archive-md5-1',
         creating_user             = 'admin',
         source_path               = Path('/tests/DCC001_111111_V1'),
         path                      = Path('/archives/DCC001_111111_V1.tar'),
@@ -47,8 +47,8 @@ def setup(db: Database):
         acquisition_count         = 1,
         dicom_file_count          = 1,
         non_dicom_file_count      = 0,
-        md5_sum_dicom_only        = 'dicom-md5-2',
-        md5_sum_archive           = 'archive-md5-2',
+        md5_hash_dicom_only        = 'dicom-md5-2',
+        md5_hash_archive           = 'archive-md5-2',
         creating_user             = 'admin',
         source_path               = Path('/test/DCC002_222222_V2'),
         path                      = Path('/archives/DCC002_222222_V2.tar'),
@@ -100,21 +100,21 @@ def setup(db: Database):
     dicom_archive_file_1_1 = DbDicomArchiveFile(
         archive_id = dicom_archive_1.id,
         series_id  = dicom_archive_series_1_1.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '1.1.dcm',
     )
 
     dicom_archive_file_1_2 = DbDicomArchiveFile(
         archive_id = dicom_archive_1.id,
         series_id  = dicom_archive_series_1_2.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '1.2.dcm',
     )
 
     dicom_archive_file_2_1 = DbDicomArchiveFile(
         archive_id = dicom_archive_2.id,
         series_id  = dicom_archive_series_2_1.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '2.1.dcm',
     )
 

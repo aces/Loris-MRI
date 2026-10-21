@@ -78,7 +78,7 @@ def write_dicom_study_dicom_files(dicom_series_files: dict[DicomStudyDicomSeries
             dicom_file.file_number,
             dicom_file.echo_number,
             dicom_file.series_description,
-            dicom_file.md5_sum,
+            dicom_file.md5_hash,
             dicom_file.file_name,
         ])
 
@@ -94,7 +94,7 @@ def write_dicom_study_other_files(other_files: list[DicomStudyOtherFile]) -> str
     writer.append_row(['md5sum', 'File name'])
     for other_file in other_files:
         writer.append_row([
-            other_file.md5_sum,
+            other_file.md5_hash,
             other_file.file_name,
         ])
 

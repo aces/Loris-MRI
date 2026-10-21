@@ -31,7 +31,7 @@ class DicomValidationPipeline(BasePipeline):
         """
         super().__init__(loris_getopt_obj, script_name)
         self.init_session_info()
-        self._validate_dicom_archive_md5sum()
+        self._validate_dicom_archive_md5_hash()
 
         # ------------------------------------------------------------------------------------------
         # If we get here, the tarchive is validated & the script stops running so update mri_upload
@@ -46,7 +46,7 @@ class DicomValidationPipeline(BasePipeline):
         self.remove_tmp_dir()  # remove temporary directory
         sys.exit(lib.exitcode.SUCCESS)
 
-    def _validate_dicom_archive_md5sum(self):
+    def _validate_dicom_archive_md5_hash(self):
         """
         Validates that the DICOM archive stored on the file system has the same md5sum than the one
         logged in the <tarchive> table.
@@ -55,7 +55,7 @@ class DicomValidationPipeline(BasePipeline):
         log_verbose(self.env, "Verifying DICOM archive md5sum (checksum)")
 
         dicom_archive_path = os.path.join(self.dicom_lib_dir, self.dicom_archive.path)
-        result = _validate_dicom_archive_md5sum(self.env, self.dicom_archive, dicom_archive_path)
+        result = _validate_dicom_archive_md5_hash(self.env, self.dicom_archive, dicom_archive_path)
         if not result:
             # Update the MRI upload.
             self.mri_upload.is_dicom_archive_validated = False
@@ -69,7 +69,7 @@ class DicomValidationPipeline(BasePipeline):
             )
 
 
-def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dicom_archive_path: str) -> bool:
+def _validate_dicom_archive_md5_hash(env: Env, dicom_archive: DbDicomArchive, dicom_archive_path: str) -> bool:
     """
     This function validates that the md5sum of the DICOM archive on the filesystem is the same
     as the md5sum of the registered entry in the tarchive table.
@@ -78,15 +78,15 @@ def _validate_dicom_archive_md5sum(env: Env, dicom_archive: DbDicomArchive, dico
     """
 
     # compute the md5sum of the tarchive file
-    dicom_archive_file_md5_sum = compute_file_md5_hash(dicom_archive_path)
+    dicom_archive_file_md5_hash = compute_file_md5_hash(dicom_archive_path)
 
     # grep the md5sum stored in the database
-    dicom_archive_db_md5_sum = dicom_archive.md5_sum_archive.split()[0]
+    dicom_archive_db_md5_hash = dicom_archive.md5_hash_archive.split()[0]
 
     log_verbose(
         env,
-        f"checksum for target: {dicom_archive_file_md5_sum};  checksum from database: {dicom_archive_db_md5_sum}",
+        f"checksum for target: {dicom_archive_file_md5_hash};  checksum from database: {dicom_archive_db_md5_hash}",
     )
 
     # check that the two md5sum are the same
-    return dicom_archive_file_md5_sum == dicom_archive_db_md5_sum
+    return dicom_archive_file_md5_hash == dicom_archive_db_md5_hash

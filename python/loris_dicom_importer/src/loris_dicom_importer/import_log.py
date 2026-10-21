@@ -22,9 +22,9 @@ class DicomStudyImportLog:
     archive_date: str
     summary_version: int
     archive_version: int
-    tarball_md5_sum: str
-    zipball_md5_sum: str
-    archive_md5_sum: str
+    tarball_md5_hash: str
+    zipball_md5_hash: str
+    archive_md5_hash: str
 
 
 def write_dicom_study_import_log_to_string(import_log: DicomStudyImportLog):
@@ -41,9 +41,9 @@ def write_dicom_study_import_log_to_string(import_log: DicomStudyImportLog):
         ("Archived on",                      import_log.archive_date),
         ("dicomSummary version",             import_log.summary_version),
         ("dicomTar version",                 import_log.archive_version),
-        ("md5sum for DICOM tarball",         import_log.tarball_md5_sum),
-        ("md5sum for DICOM tarball gzipped", import_log.zipball_md5_sum),
-        ("md5sum for complete archive",      import_log.archive_md5_sum),
+        ("md5sum for DICOM tarball",         import_log.tarball_md5_hash),
+        ("md5sum for DICOM tarball gzipped", import_log.zipball_md5_hash),
+        ("md5sum for complete archive",      import_log.archive_md5_hash),
     ]).write()
 
 
@@ -57,7 +57,7 @@ def write_dicom_study_import_log_to_file(import_log: DicomStudyImportLog, file_p
         file.write(string)
 
 
-def make_dicom_study_import_log(source: Path, target: Path, tarball_md5_sum: str, zipball_md5_sum: str):
+def make_dicom_study_import_log(source: Path, target: Path, tarball_md5_hash: str, zipball_md5_hash: str):
     """
     Create a DICOM study import log from the provided arguments about a DICOM study, as well as the
     current execution environment.
@@ -72,7 +72,7 @@ def make_dicom_study_import_log(source: Path, target: Path, tarball_md5_sum: str
         datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S"),
         2,
         2,
-        tarball_md5_sum,
-        zipball_md5_sum,
+        tarball_md5_hash,
+        zipball_md5_hash,
         "Provided in database only",
     )
