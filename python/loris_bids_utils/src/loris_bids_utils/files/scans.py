@@ -76,8 +76,7 @@ class BidsScansTsvFile(BidsTsvFile[BidsScanTsvRow]):
     Documentation: https://bids-specification.readthedocs.io/en/stable/modality-agnostic-files/data-summary-files.html#scans-file
     """
 
-    def __init__(self, path: Path):
-        super().__init__(BidsScanTsvRow, path)
+    row_type = BidsScanTsvRow
 
     def get_row(self, file_path: Path) -> BidsScanTsvRow | None:
         """
