@@ -11,6 +11,7 @@ from lib.env import Env
 from lib.logging import log_error_exit
 from loris_bids_utils.reader import BidsDatasetReader
 from loris_utils.crypto import compute_file_blake2b_hash
+from loris_utils.error import format_exception
 
 from loris_bids_importer.importer import BidsImporter, BidsImporterArgs
 
@@ -45,7 +46,7 @@ def get_copy_dataset_path(env: Env, bids: BidsDatasetReader, data_dir_path: Path
     try:
         dataset_description = bids.dataset_description_file
     except Exception as error:
-        log_error_exit(env, str(error))
+        log_error_exit(env, format_exception(error))
 
     if dataset_description is None:
         log_error_exit(
