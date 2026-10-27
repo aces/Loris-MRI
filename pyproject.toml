@@ -129,6 +129,7 @@ reportMissingTypeStubs = "none"
 extend-exclude = [
     "*.al", "*.pl", "*.pm",
     "/docs/scripts_md",
+    "/python/loris_bids_utils/tests/meg/ctf",
     "/test/loris-data.env",
 ]
 
@@ -144,6 +145,7 @@ ND = "ND"  # Image Type DICOM attribute
 [tool.typos.default.extend-identifiers]
 ba = "ba"  # A CLI option of dcm2niix
 CapTrak = "CapTrak"  # BrainVision CapTrak
+PN900 = "PN900"  # MEG CTF documentation part number prefix
 
 [tool.pytest.ini_options]
 # Integration tests are located in `python/tests/integration`, but they should be ran from the

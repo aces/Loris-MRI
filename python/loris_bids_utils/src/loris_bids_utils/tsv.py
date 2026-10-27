@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Generic, TypeVar
 
 from loris_utils.parse import nullify_empty_string
+from loris_utils.path import replace_path_extension
+
+from loris_bids_utils.json import BidsJsonFile
 
 
 class BidsTsvRow:
@@ -27,11 +30,18 @@ class BidsTsvFile(Generic[T]):
     """
 
     path: Path
+    dictionary: BidsJsonFile | None
     rows: list[T]
 
     def __init__(self, model: type[T], path: Path):
         self.path = path
         self.rows = []
+
+        dictionary_path = replace_path_extension(self.path, 'json')
+        if dictionary_path.exists():
+            self.dictionary = BidsJsonFile(dictionary_path)
+        else:
+            self.dictionary = None
 
         # The 'utf-8-sig' encoding is used to support some datasets where metadata files may contain
         # a byte-order mark (BOM).
