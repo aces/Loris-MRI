@@ -12,7 +12,7 @@ from lib.env import Env
 def insert_physio_channel(
     env: Env,
     physio_file: DbPhysioFile,
-    channel_type: DbPhysioChannelType,
+    channel_type: DbPhysioChannelType | None,
     status_type: DbPhysioStatusType | None,
     file_path: Path,
     name: str,
@@ -34,7 +34,7 @@ def insert_physio_channel(
     channel = DbPhysioChannel(
         physio_file_id     = physio_file.id,
         file_path          = file_path,
-        channel_type_id    = channel_type.id,
+        channel_type_id    = channel_type.id if channel_type is not None else None,
         status_type_id     = status_type.id if status_type is not None else None,
         insert_time        = datetime.now(),
         name               = name,
