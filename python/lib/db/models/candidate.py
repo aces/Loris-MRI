@@ -3,6 +3,7 @@ from datetime import date, datetime
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+import lib.db.models.cohort as db_cohort
 import lib.db.models.mri_protocol_violated_scan as db_mri_protocol_violated_scan
 import lib.db.models.mri_violation_log as db_mri_violation_log
 import lib.db.models.project as db_project
@@ -27,6 +28,7 @@ class DbCandidate(Base):
     sex                     : Mapped[str | None]  = mapped_column('Sex')
     registration_site_id    : Mapped[int]         = mapped_column('RegistrationCenterID', ForeignKey('psc.CenterID'))
     registration_project_id : Mapped[int]         = mapped_column('RegistrationProjectID', ForeignKey('Project.ProjectID'))
+    registration_cohort_id  : Mapped[int | None]  = mapped_column('RegistrationCohortID', ForeignKey('cohort.CohortID'))
     ethnicity               : Mapped[str | None]  = mapped_column('Ethnicity')
     active                  : Mapped[bool]        = mapped_column('Active', YNBool, default=True)
     date_active             : Mapped[date | None] = mapped_column('Date_active')
@@ -42,12 +44,10 @@ class DbCandidate(Base):
     proband_sex             : Mapped[str | None]  = mapped_column('ProbandSex')
     proband_sate_of_birth   : Mapped[date | None] = mapped_column('ProbandDoB')
 
-    sessions             : Mapped[list['db_session.DbSession']] \
-        = relationship('DbSession', back_populates='candidate')
-    registration_site    : Mapped['db_site.DbSite'] \
-        = relationship('DbSite')
-    registration_project : Mapped['db_project.DbProject'] \
-        = relationship('DbProject')
+    sessions             : Mapped[list['db_session.DbSession']] = relationship('DbSession', back_populates='candidate')
+    registration_site    : Mapped['db_site.DbSite']             = relationship('DbSite')
+    registration_project : Mapped['db_project.DbProject']       = relationship('DbProject')
+    registration_cohort  : Mapped['db_cohort.DbCohort | None']  = relationship('DbCohort')
     violated_scans       : Mapped[list['db_mri_protocol_violated_scan.DbMriProtocolViolatedScan']] \
         = relationship('DbMriProtocolViolatedScan', back_populates='candidate')
     violations_log       : Mapped[list['db_mri_violation_log.DbMriViolationLog']] \
