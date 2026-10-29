@@ -13,7 +13,7 @@ def test_insert_bids_electrode_uses_typed_orm_models(env: Env):
     row_data: dict[str, str | None] = {
         'name': 'E1',
         'x': '1.5',
-        'y': 'n/a',
+        'y': None,
         'z': '3',
         'type': 'depth',
         'material': 'platinum',
@@ -35,7 +35,7 @@ def test_insert_bids_electrode_uses_typed_orm_models(env: Env):
     assert row_data == {
         'name': 'E1',
         'x': '1.5',
-        'y': 'n/a',
+        'y': None,
         'z': '3',
         'type': 'depth',
         'material': 'platinum',

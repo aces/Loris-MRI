@@ -42,9 +42,6 @@ class BidsScanTsvRow(BidsTsvRow):
 
         acq_time_string = self.data.get('acq_time')
         if acq_time_string is not None:
-            if acq_time_string == 'n/a':
-                return None
-
             try:
                 acq_time = dateutil.parser.parse(acq_time_string)
             except ValueError as e:

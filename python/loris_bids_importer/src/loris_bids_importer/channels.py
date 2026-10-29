@@ -94,14 +94,15 @@ def insert_bids_channel(
     )
 
 
-def get_bids_physio_channel_type(
-    env: Env,
-    channel: BidsEegChannelTsvRow,
-) -> DbPhysioChannelType:
+def get_bids_physio_channel_type(env: Env, channel: BidsEegChannelTsvRow) -> DbPhysioChannelType | None:
     """
-    Get a physiological channel type from the database using a BIDS channel TSV row, or raise an
-    exception if that channel type is not found in the database.
+    Get a physiological channel type from the database using a BIDS channel TSV row, return `None`
+    if that file contains no channel type, or raise an exception if the channel type is not found in
+    the database.
     """
+
+    if channel.type is None:
+        return None
 
     channel_type = try_get_channel_type_with_name(env.db, channel.type)
     if channel_type is not None:
@@ -110,13 +111,11 @@ def get_bids_physio_channel_type(
     raise Exception(f"Unknown channel type '{channel.type}'.")
 
 
-def get_bids_physio_status_type(
-    env: Env,
-    channel: BidsEegChannelTsvRow,
-) -> DbPhysioStatusType | None:
+def get_bids_physio_status_type(env: Env, channel: BidsEegChannelTsvRow) -> DbPhysioStatusType | None:
     """
-    Get a physiological status type from the database using a BIDS channel TSV row, or raise an
-    exception if that status type is not found in the database.
+    Get a physiological status type from the database using a BIDS channel TSV row, return `None`
+    if that file contains no channel status type, or raise an exception if the status type is not
+    found in the database.
     """
 
     if channel.status is None:
