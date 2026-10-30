@@ -2,11 +2,14 @@ import re
 import shutil
 from pathlib import Path
 
+from lib.db.models.candidate import DbCandidate
 from lib.db.models.session import DbSession
 from lib.env import Env
 from loris_bids_utils.files.participants import BidsParticipantsTsvFile
 from loris_bids_utils.files.scans import BidsScansTsvFile, BidsScanTsvRow
-from loris_bids_utils.path import build_bids_modality_path, build_bids_session_path
+from loris_bids_utils.files.sessions import BidsSessionsTsvFile
+from loris_bids_utils.labels import BidsSessionLabel, BidsSubjectLabel
+from loris_bids_utils.path import build_bids_modality_path, build_bids_session_path, build_bids_subject_path
 
 from loris_bids_importer.dataset import get_or_create_loris_bids_file
 from loris_bids_importer.importer import BidsImporter
@@ -132,23 +135,74 @@ def copy_bids_static_files(env: Env, importer: BidsImporter):
 def copy_bids_participants_file(
     env: Env,
     importer: BidsImporter,
-    participants_file: BidsParticipantsTsvFile,
-    loris_participants_path: Path,
+    source_file: BidsParticipantsTsvFile,
+    candidates: dict[BidsSubjectLabel, DbCandidate],
 ):
     """
-    Copy some `participants.tsv` rows into the LORIS `participants.tsv` file, creating it if
-    necessary.
+    Map and copy the source `participants.tsv` rows, or register the file in no-copy mode.
     """
 
-    if importer.args.copy:
-        participants_path = importer.data_dir_path / loris_participants_path
-        if participants_path.exists():
-            participants_file.merge(BidsParticipantsTsvFile(participants_path))
+    if not importer.args.copy:
+        loris_relative_path = source_file.path.relative_to(importer.data_dir_path)
+        get_or_create_loris_bids_file(env, importer, source_file.path, loris_relative_path)
+        return
 
-        participants_path.parent.mkdir(parents=True, exist_ok=True)
-        participants_file.write(participants_path)
+    loris_relative_path = get_loris_bids_root_file_path(importer, source_file.path)
+    loris_full_path = importer.data_dir_path / loris_relative_path
 
-    get_or_create_loris_bids_file(env, importer, participants_file.path, loris_participants_path)
+    if loris_full_path.exists():
+        loris_file = BidsParticipantsTsvFile.read(loris_full_path)
+    else:
+        loris_file = BidsParticipantsTsvFile(loris_full_path, [])
+
+    for subject_label, candidate in candidates.items():
+        source_row = source_file.get_row(subject_label)
+        if source_row is not None:
+            loris_file.set_row(source_row.with_participant_id(candidate.psc_id))
+
+    loris_full_path.parent.mkdir(parents=True, exist_ok=True)
+    loris_file.write()
+
+    get_or_create_loris_bids_file(env, importer, source_file.path, loris_relative_path)
+
+
+def copy_bids_sessions_file(
+    env: Env,
+    importer: BidsImporter,
+    source_file: BidsSessionsTsvFile,
+    candidate: DbCandidate,
+    sessions: dict[BidsSessionLabel, DbSession],
+):
+    """
+    Map and copy a subject's source `sessions.tsv` rows, or register the file in no-copy mode.
+    """
+
+    if not importer.args.copy:
+        loris_relative_path = source_file.path.relative_to(importer.data_dir_path)
+        get_or_create_loris_bids_file(env, importer, source_file.path, loris_relative_path)
+        return
+
+    loris_relative_path = importer.loris_bids_dataset.path / build_bids_subject_path(
+        candidate.psc_id,
+        f'sub-{candidate.psc_id}_sessions.tsv',
+    )
+
+    loris_full_path = importer.data_dir_path / loris_relative_path
+
+    if loris_full_path.exists():
+        loris_file = BidsSessionsTsvFile.read(loris_full_path)
+    else:
+        loris_file = BidsSessionsTsvFile(loris_full_path, [])
+
+    for session_label, session in sessions.items():
+        source_row = source_file.get_row(session_label)
+        if source_row is not None:
+            loris_file.set_row(source_row.with_session_id(session.visit_label))
+
+    loris_full_path.parent.mkdir(parents=True, exist_ok=True)
+    loris_file.write()
+
+    get_or_create_loris_bids_file(env, importer, source_file.path, loris_relative_path)
 
 
 def add_bids_scan_row(
@@ -168,7 +222,7 @@ def add_bids_scan_row(
         # Create the LORIS scans.tsv file if it does not exist yet.
         scans_path.touch(exist_ok=True)
 
-        loris_scans_file = BidsScansTsvFile(scans_path)
+        loris_scans_file = BidsScansTsvFile.read(scans_path)
         loris_scans_file.set_row(scan_row)
         loris_scans_file.write()
 

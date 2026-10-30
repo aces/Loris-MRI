@@ -12,12 +12,12 @@ from loris_bids_importer.main import import_bids_dataset
 
 
 def pack_args(options_dict: dict[str, Any]) -> BidsImporterArgs:
+    bids_config_path_value = options_dict['bids-config']['value']
     return BidsImporterArgs(
         source_bids_path = Path(options_dict['directory']['value']),
+        bids_config_path = Path(bids_config_path_value) if bids_config_path_value is not None else None,
         type             = options_dict['type']['value'],
         bids_validation  = not options_dict['no-bids-validation']['value'],
-        create_candidate = options_dict['create-candidate']['value'],
-        create_session   = options_dict['create-session']['value'],
         copy             = not options_dict['no-copy']['value'],
         verbose          = options_dict['verbose']['value'],
     )
@@ -32,8 +32,7 @@ def main():
         "\t-p, --profile            : name of the python database config file in dicom-archive/.loris-mri\n"
         "\t-d, --directory          : BIDS directory to parse & insert into LORIS\n"
         "\t                           If directory is within $data_dir/assembly_bids, no copy will be performed\n"
-        "\t-c, --create-candidate   : to create BIDS candidates in LORIS (optional)\n"
-        "\t-s, --create-session     : to create BIDS sessions in LORIS (optional)\n"
+        "\t-m, --bids-config        : Import-specific configuration file to map candidates and sessions\n"
         "\t-b, --no-bids-validation : to disable BIDS validation for BIDS compliance\n"
         "\t-a, --no-copy            : to disable dataset copy in data assembly_bids\n"
         "\t-t, --type               : raw | derivative. Specify the dataset type.\n"
@@ -49,11 +48,8 @@ def main():
         "directory": {
             "value": None, "required": True, "expect_arg": True, "short_opt": "d", "is_path": True
         },
-        "create-candidate": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "c", "is_path": False
-        },
-        "create-session": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "s", "is_path": False
+        "bids-config": {
+            "value": None, "required": False, "expect_arg": True, "short_opt": "m", "is_path": True
         },
         "no-bids-validation": {
             "value": False, "required": False, "expect_arg": False, "short_opt": "b", "is_path": False

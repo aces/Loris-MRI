@@ -3,15 +3,17 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from bids import BIDSLayout, BIDSLayoutIndexer
 
 from loris_bids_utils.files.dataset_description import BidsDatasetDescriptionJsonFile
 from loris_bids_utils.files.participants import BidsParticipantsTsvFile, BidsParticipantTsvRow
 from loris_bids_utils.files.scans import BidsScansTsvFile
+from loris_bids_utils.files.sessions import BidsSessionsTsvFile, BidsSessionTsvRow
 from loris_bids_utils.info import BidsDataTypeInfo, BidsSessionInfo, BidsSubjectInfo
 from loris_bids_utils.json import BidsJsonFile
+from loris_bids_utils.labels import BidsSessionLabel, BidsSubjectLabel, BidsSubjectSessionLabel
 from loris_bids_utils.utils import get_pybids_file_path
 
 # Circular imports
@@ -73,7 +75,7 @@ class BidsDatasetReader:
         if not participants_path.is_file():
             return None
 
-        return BidsParticipantsTsvFile(participants_path)
+        return BidsParticipantsTsvFile.read(participants_path)
 
     @cached_property
     def event_dict_file(self) -> BidsJsonFile | None:
@@ -99,7 +101,7 @@ class BidsDatasetReader:
         return BidsJsonFile(event_dict_file_path)
 
     @cached_property
-    def subject_labels(self) -> list[str]:
+    def subject_labels(self) -> Sequence[BidsSubjectLabel]:
         """
         The subject labels present in this BIDS dataset (without the `sub-` prefix).
         """
@@ -107,7 +109,7 @@ class BidsDatasetReader:
         return self.layout.get_subjects()  # type: ignore
 
     @cached_property
-    def session_labels(self) -> list[str]:
+    def session_labels(self) -> Sequence[BidsSessionLabel]:
         """
         The session labels present in this BIDS dataset (without the `ses-` prefix).
         """
@@ -131,8 +133,8 @@ class BidsDatasetReader:
         return [
             BidsSubjectReader(
                 dataset=self,
-                label=subject  # type: ignore
-            ) for subject in self.layout.get_subjects()  # type: ignore
+                label=subject,
+            ) for subject in self.subject_labels
         ]
 
     @cached_property
@@ -172,7 +174,7 @@ class BidsSubjectReader:
     The root reader of this BIDS dataset.
     """
 
-    label: str
+    label: BidsSubjectLabel
     """
     The subject label of this directory (without the `sub-` prefix).
     """
@@ -189,20 +191,37 @@ class BidsSubjectReader:
         return self.dataset.participants_file.get_row(self.label)
 
     @cached_property
+    def sessions_file(self) -> BidsSessionsTsvFile | None:
+        """
+        The `sessions.tsv` file of this BIDS subject, if it exists.
+        """
+
+        subject_name = f'sub-{self.label}'
+        sessions_path = self.dataset.path / subject_name / f'{subject_name}_sessions.tsv'
+        if not sessions_path.is_file():
+            return None
+
+        return BidsSessionsTsvFile.read(sessions_path)
+
+    @cached_property
     def sessions(self) -> list['BidsSessionReader']:
         """
         Get the session directory readers of this subject.
         """
 
-        session_labels = self.dataset.layout.get_sessions(subject=self.label)  # type: ignore
-        if session_labels == []:
+        session_labels = cast(
+            Sequence[BidsSessionLabel],
+            self.dataset.layout.get_sessions(subject=self.label),  # type: ignore
+        )
+
+        if not session_labels:
             return [BidsSessionReader(subject=self, label=None)]
 
         return [
             BidsSessionReader(
                 subject=self,
-                label=session,  # type: ignore
-            ) for session in session_labels  # type: ignore
+                label=session,
+            ) for session in session_labels
         ]
 
     @cached_property
@@ -241,11 +260,19 @@ class BidsSessionReader:
     The reader of the parent session directory.
     """
 
-    label: str | None
+    label: BidsSessionLabel | None
     """
     The session label of this directory (without the `ses-` prefix), or `None` if this is a
     sessionless BIDS dataset.
     """
+
+    @property
+    def subject_session_label(self) -> BidsSubjectSessionLabel:
+        """
+        Get the subject and session labels that uniquely identify this session.
+        """
+
+        return BidsSubjectSessionLabel(self.subject.label, self.label)
 
     @cached_property
     def scans_file(self) -> BidsScansTsvFile | None:
@@ -259,7 +286,18 @@ class BidsSessionReader:
         if scans_paths == []:
             return None
 
-        return BidsScansTsvFile(Path(scans_paths[0]))
+        return BidsScansTsvFile.read(Path(scans_paths[0]))
+
+    @cached_property
+    def session_row(self) -> BidsSessionTsvRow | None:
+        """
+        The row corresponding to this session in the subject's `sessions.tsv` file, if any.
+        """
+
+        if self.label is None or self.subject.sessions_file is None:
+            return None
+
+        return self.subject.sessions_file.get_row(self.label)
 
     @cached_property
     def mri_data_types(self) -> list['BidsMriDataTypeReader']:
