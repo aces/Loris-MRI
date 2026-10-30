@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session as Database
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.models.dicom_archive_file import DbDicomArchiveFile
 from lib.db.models.dicom_archive_series import DbDicomArchiveSeries
-from lib.db.queries.dicom_archive import delete_dicom_archive_file_series, try_get_dicom_archive_with_study_uid
+from lib.db.queries.dicom_archive import delete_dicom_archive_file_series, try_get_dicom_archive_with_study_instance_uid
 
 
 @dataclass
@@ -21,15 +21,15 @@ class Setup:
 @pytest.fixture
 def setup(db: Database):
     dicom_archive_1 = DbDicomArchive(
-        study_uid                 = '1.2.256.100000.1.2.3.456789',
+        study_instance_uid        = '1.2.256.100000.1.2.3.456789',
         patient_id                = 'DCC001_111111_V1',
         patient_name              = 'DCC001_111111_V1',
         institution_name          = 'Test center',
         acquisition_count         = 2,
         dicom_file_count          = 2,
         non_dicom_file_count      = 0,
-        md5_sum_dicom_only        = 'dicom-md5-1',
-        md5_sum_archive           = 'archive-md5-1',
+        md5_hash_dicom_only       = 'dicom-md5-1',
+        md5_hash_archive          = 'archive-md5-1',
         creating_user             = 'admin',
         source_path               = Path('/tests/DCC001_111111_V1'),
         path                      = Path('/archives/DCC001_111111_V1.tar'),
@@ -40,15 +40,15 @@ def setup(db: Database):
     )
 
     dicom_archive_2 = DbDicomArchive(
-        study_uid                 = '2.16.999.1.2.3.456789',
+        study_instance_uid        = '2.16.999.1.2.3.456789',
         patient_id                = 'DCC002_222222_V2',
         patient_name              = 'DCC002_222222_V2',
         institution_name          = 'Test center',
         acquisition_count         = 1,
         dicom_file_count          = 1,
         non_dicom_file_count      = 0,
-        md5_sum_dicom_only        = 'dicom-md5-2',
-        md5_sum_archive           = 'archive-md5-2',
+        md5_hash_dicom_only       = 'dicom-md5-2',
+        md5_hash_archive          = 'archive-md5-2',
         creating_user             = 'admin',
         source_path               = Path('/test/DCC002_222222_V2'),
         path                      = Path('/archives/DCC002_222222_V2.tar'),
@@ -100,21 +100,21 @@ def setup(db: Database):
     dicom_archive_file_1_1 = DbDicomArchiveFile(
         archive_id = dicom_archive_1.id,
         series_id  = dicom_archive_series_1_1.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '1.1.dcm',
     )
 
     dicom_archive_file_1_2 = DbDicomArchiveFile(
         archive_id = dicom_archive_1.id,
         series_id  = dicom_archive_series_1_2.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '1.2.dcm',
     )
 
     dicom_archive_file_2_1 = DbDicomArchiveFile(
         archive_id = dicom_archive_2.id,
         series_id  = dicom_archive_series_2_1.id,
-        md5_sum    = '01234567890abcdef0123456789abcde',
+        md5_hash    = '01234567890abcdef0123456789abcde',
         file_name  = '2.1.dcm',
     )
 
@@ -126,8 +126,8 @@ def setup(db: Database):
     return Setup(db, dicom_archive_1, dicom_archive_series_1_1)
 
 
-def test_try_get_dicom_archive_with_study_uid_some(setup: Setup):
-    dicom_archive = try_get_dicom_archive_with_study_uid(
+def test_try_get_dicom_archive_with_study_instance_uid_some(setup: Setup):
+    dicom_archive = try_get_dicom_archive_with_study_instance_uid(
         setup.db,
         '1.2.256.100000.1.2.3.456789',
     )
@@ -135,8 +135,8 @@ def test_try_get_dicom_archive_with_study_uid_some(setup: Setup):
     assert dicom_archive is setup.dicom_archive
 
 
-def test_try_get_dicom_archive_with_study_uid_none(setup: Setup):
-    dicom_archive = try_get_dicom_archive_with_study_uid(
+def test_try_get_dicom_archive_with_study_instance_uid_none(setup: Setup):
+    dicom_archive = try_get_dicom_archive_with_study_instance_uid(
         setup.db,
         '1.2.256.999999.9.8.7654321',
     )

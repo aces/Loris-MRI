@@ -19,7 +19,7 @@ class DbDicomArchiveFile(Base):
     series_description : Mapped[str | None] = mapped_column('SeriesDescription')
     file_number        : Mapped[int | None] = mapped_column('FileNumber')
     echo_number        : Mapped[int | None] = mapped_column('EchoNumber')
-    md5_sum            : Mapped[str]        = mapped_column('Md5Sum')
+    md5_hash           : Mapped[str]        = mapped_column('Md5Sum')
     file_name          : Mapped[str]        = mapped_column('FileName')
 
     archive : Mapped['db_dicom_archive.DbDicomArchive'] \
