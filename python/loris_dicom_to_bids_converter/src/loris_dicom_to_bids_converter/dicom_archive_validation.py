@@ -88,13 +88,6 @@ def validate_dicom_archive_md5_hash(env: Env, dicom_archive: DbDicomArchive, mri
 
     dicom_archive_path = get_dicom_archive_dir_path_config(env) / dicom_archive.path
 
-    file_md5_hash = compute_file_md5_hash(dicom_archive_path)
-    database_md5_hash = dicom_archive.md5_hash_archive.split()[0]
-
-    log_verbose(
-        env,
-        f"hash for target: {file_md5_hash}; hash from database: {database_md5_hash}",
-    )
     log_verbose(env, "Verifying DICOM archive MD5 hash")
 
     file_md5_hash = compute_file_md5_hash(dicom_archive_path)
@@ -104,17 +97,6 @@ def validate_dicom_archive_md5_hash(env: Env, dicom_archive: DbDicomArchive, mri
         env,
         f"hash for target: {file_md5_hash}; hash from database: {database_md5_hash}",
     )
-
-    if file_md5_hash != database_md5_hash:
-        mri_upload.is_dicom_archive_validated = False
-        mri_upload.is_candidate_info_validated = False
-        env.db.commit()
-
-        log_error_exit(
-            env,
-            "ERROR: DICOM archive seems corrupted or modified. Upload will exit now.",
-            lib.exitcode.CORRUPTED_FILE,
-        )
 
     if file_md5_hash != database_md5_hash:
         mri_upload.is_dicom_archive_validated = False
