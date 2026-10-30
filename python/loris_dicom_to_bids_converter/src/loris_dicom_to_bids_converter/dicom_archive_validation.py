@@ -41,20 +41,27 @@ def validate_dicom_archive(env: Env, dicom_archive_path: Path, upload_id: int):
             lib.exitcode.SELECT_FAILURE,
         )
 
-    mri_upload.inserting = True
-    env.db.commit()
-    env.add_cleanup(lambda: end_upload(env, mri_upload))
-    env.init_notifier(mri_upload.id)
+    try:
+        mri_upload.inserting = True
+        env.db.commit()
 
-    validate_dicom_archive_session_info(env, dicom_archive, mri_upload)
+        env.init_notifier(mri_upload.id)
 
-    validate_dicom_archive_md5_hash(env, dicom_archive, mri_upload)
+        validate_dicom_archive_session_info(env, dicom_archive, mri_upload)
 
-    log_verbose(env, f"DICOM archive {dicom_archive_path} is valid!")
+        validate_dicom_archive_md5_hash(env, dicom_archive, mri_upload)
 
-    mri_upload.is_dicom_archive_validated = True
-    mri_upload.inserting = False
-    env.db.commit()
+        log_verbose(env, f"DICOM archive {dicom_archive_path} is valid!")
+
+        mri_upload.is_dicom_archive_validated = True
+        env.db.commit()
+    except BaseException:
+        # Rollback the current transaction, if any is in progress.
+        env.db.rollback()
+        raise
+    finally:
+        mri_upload.inserting = False
+        env.db.commit()
 
 
 def validate_dicom_archive_session_info(env: Env, dicom_archive: DbDicomArchive, mri_upload: DbMriUpload):
@@ -108,12 +115,3 @@ def validate_dicom_archive_md5_hash(env: Env, dicom_archive: DbDicomArchive, mri
             "ERROR: DICOM archive seems corrupted or modified. Upload will exit now.",
             lib.exitcode.CORRUPTED_FILE,
         )
-
-
-def end_upload(env: Env, mri_upload: DbMriUpload):
-    """
-    Clear an MRI upload's running flag during error cleanup.
-    """
-
-    mri_upload.inserting = False
-    env.db.commit()
