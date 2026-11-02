@@ -35,6 +35,16 @@ class DbBidsFile(Base):
     The path of this file relative to its LORIS BIDS dataset.
     """
 
+    suffix: Mapped[str | None] = mapped_column('Suffix')
+    """
+    The BIDS suffix of this file, if any.
+    """
+
+    extension: Mapped[str | None] = mapped_column('Extension')
+    """
+    The file extension, including multiple extensions, without its leading dot, if any.
+    """
+
     source_path: Mapped[Path | None] = mapped_column('SourcePath', StringPath)
     """
     The source path of this file relative to the BIDS dataset from which it was imported.
