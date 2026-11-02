@@ -42,14 +42,14 @@ def try_get_dicom_archive_with_archive_path(db: Database, archive_path: Path) ->
     ).scalar_one_or_none()
 
 
-def try_get_dicom_archive_with_study_uid(db: Database, study_uid: str) -> DbDicomArchive | None:
+def try_get_dicom_archive_with_study_instance_uid(db: Database, study_instance_uid: str) -> DbDicomArchive | None:
     """
-    Get a DICOM archive from the database using its study UID, or return `None` if no DICOM archive
-    is found.
+    Get a DICOM archive from the database using its study instance UID, or return `None` if no DICOM
+    archive is found.
     """
 
     return db.execute(select(DbDicomArchive)
-        .where(DbDicomArchive.study_uid == study_uid)
+        .where(DbDicomArchive.study_instance_uid == study_instance_uid)
     ).scalar_one_or_none()
 
 

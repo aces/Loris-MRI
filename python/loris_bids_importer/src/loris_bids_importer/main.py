@@ -9,6 +9,7 @@ from lib.logging import log, log_error, log_error_exit, log_warning
 from loris_bids_utils.meg.reader import BidsMegDataTypeReader
 from loris_bids_utils.mri.reader import BidsMriDataTypeReader
 from loris_bids_utils.reader import BidsDatasetReader, BidsDataTypeReader, BidsSessionReader
+from loris_utils.error import format_exception
 
 from loris_bids_importer.copy_files import (
     copy_bids_participants_file,
@@ -180,7 +181,7 @@ def import_bids_eeg_data_type(
             env,
             (
                 f"Error while importing EEG session. Error message:\n"
-                f"{exception}\n"
+                f"{format_exception(exception)}\n"
                 "Skipping."
             )
         )

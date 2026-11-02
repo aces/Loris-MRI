@@ -47,7 +47,7 @@ class DicomStudyDicomFile:
     """
 
     file_name:          str
-    md5_sum:            str
+    md5_hash:            str
     series_number:      int | None
     series_uid:         str | None
     series_description: str | None
@@ -64,7 +64,7 @@ class DicomStudyOtherFile:
     """
 
     file_name: str
-    md5_sum:   str
+    md5_hash:   str
 
 
 # This dataclass does not correspond to a "real" DICOM series, as a DICOM series may actually have

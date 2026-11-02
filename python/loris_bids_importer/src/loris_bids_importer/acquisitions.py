@@ -8,6 +8,7 @@ from lib.db.models.session import DbSession
 from lib.env import Env
 from lib.logging import log, log_error
 from loris_bids_utils.info import BidsAcquisitionInfo
+from loris_utils.error import format_exception
 
 from loris_bids_importer.copy_files import add_bids_scan_row, get_loris_scans_path
 from loris_bids_importer.importer import BidsImporter
@@ -88,7 +89,7 @@ def import_bids_acquisitions(
                 env,
                 (
                     f"Error while importing acquisition '{bids_info.name}'. Error message:\n"
-                    f"{exception}\n"
+                    f"{format_exception(exception)}\n"
                     "Skipping."
                 )
             )

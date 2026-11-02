@@ -11,7 +11,7 @@ from typing import Any, cast
 import lib.exitcode
 from lib.config import get_dicom_archive_dir_path_config
 from lib.db.models.dicom_archive import DbDicomArchive
-from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_uid
+from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_instance_uid
 from lib.get_session_info import SessionConfigError
 from lib.logging import log, log_error_exit, log_warning
 from lib.lorisgetopt import LorisGetOpt
@@ -150,7 +150,7 @@ def main() -> None:
 
     log(env, "Checking if the DICOM study is already inserted in LORIS...")
 
-    dicom_archive = try_get_dicom_archive_with_study_uid(env.db, dicom_summary.info.study_instance_uid)
+    dicom_archive = try_get_dicom_archive_with_study_instance_uid(env.db, dicom_summary.info.study_instance_uid)
 
     if dicom_archive is not None:
         log(env, "Found the DICOM study in LORIS.")
@@ -239,7 +239,7 @@ def main() -> None:
 
         log(env, "Calculating the tar archive MD5 sum...")
 
-        tar_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(tar_path)
+        tar_md5_hash = loris_dicom_importer.text.compute_md5_hash_with_name(tar_path)
 
         log(env, "Zipping the tar archive... (may take a long time)")
 
@@ -251,11 +251,11 @@ def main() -> None:
 
         log(env, "Calculating the zipped tar archive MD5 sum...")
 
-        zip_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(zip_path)
+        zip_md5_hash = loris_dicom_importer.text.compute_md5_hash_with_name(zip_path)
 
         log(env, "Creating DICOM study import log...")
 
-        dicom_import_log = make_dicom_study_import_log(args.source, dicom_archive_path, tar_md5_sum, zip_md5_sum)
+        dicom_import_log = make_dicom_study_import_log(args.source, dicom_archive_path, tar_md5_hash, zip_md5_hash)
 
         if args.verbose:
             dicom_import_log_string = write_dicom_study_import_log_to_string(dicom_import_log)
@@ -278,7 +278,7 @@ def main() -> None:
 
     log(env, "Calculating final DICOM study archive MD5 sum...")
 
-    dicom_import_log.archive_md5_sum = loris_dicom_importer.text.compute_md5_hash_with_name(
+    dicom_import_log.archive_md5_hash = loris_dicom_importer.text.compute_md5_hash_with_name(
         dicom_import_log.target_path
     )
 

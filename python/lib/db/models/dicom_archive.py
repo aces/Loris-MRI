@@ -20,7 +20,7 @@ class DbDicomArchive(Base):
     __tablename__ = 'tarchive'
 
     id                       : Mapped[int]             = mapped_column('TarchiveID', primary_key=True)
-    study_uid                : Mapped[str]             = mapped_column('StudyInstanceUID')
+    study_instance_uid       : Mapped[str]             = mapped_column('StudyInstanceUID')
     patient_id               : Mapped[str]             = mapped_column('PatientID', default='')
     patient_name             : Mapped[str]             = mapped_column('PatientName', default='')
     patient_birthdate        : Mapped[date | None]     = mapped_column('PatientDoB')
@@ -33,8 +33,8 @@ class DbDicomArchive(Base):
     acquisition_count        : Mapped[int]             = mapped_column('AcquisitionCount', default=0)
     dicom_file_count         : Mapped[int]             = mapped_column('DicomFileCount', default=0)
     non_dicom_file_count     : Mapped[int]             = mapped_column('NonDicomFileCount', default=0)
-    md5_sum_dicom_only       : Mapped[str]             = mapped_column('md5sumDicomOnly')
-    md5_sum_archive          : Mapped[str]             = mapped_column('md5sumArchive')
+    md5_hash_dicom_only      : Mapped[str]             = mapped_column('md5sumDicomOnly')
+    md5_hash_archive         : Mapped[str]             = mapped_column('md5sumArchive')
     creating_user            : Mapped[str]             = mapped_column('CreatingUser')
     scanner_manufacturer     : Mapped[str | None]      = mapped_column('ScannerManufacturer')
     scanner_model            : Mapped[str | None]      = mapped_column('ScannerModel')
