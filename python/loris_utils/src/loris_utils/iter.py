@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable, Iterator, Sized
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sized
 from typing import TypeVar
 
 T = TypeVar('T')
@@ -89,9 +89,27 @@ def map_non_none(value: T | None, function: Callable[[T], U]) -> U | None:
 
 def filter_non_none(iterable: Iterable[T | None]) -> Iterator[T]:
     """
-    Filter the `None` elements out of an iterator.
+    Filter an iterator by removing its `None` elements.
     """
 
     for element in iterable:
         if element is not None:
             yield element
+
+
+K = TypeVar('K')
+V = TypeVar('V')
+
+
+def get_first(mapping: Mapping[K, V], keys: Iterable[K]) -> V | None:
+    """
+    Get the first non-`None` value of a mapping using a list of keys, or return `None` if no
+    value is found.
+    """
+
+    for key in keys:
+        value = mapping.get(key)
+        if value is not None:
+            return value
+
+    return None
