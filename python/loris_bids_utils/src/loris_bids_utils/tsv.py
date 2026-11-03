@@ -2,8 +2,6 @@ import csv
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from loris_utils.parse import nullify_empty_string
-
 
 class BidsTsvRow:
     """
@@ -42,8 +40,12 @@ class BidsTsvFile(Generic[T]):
                 if row == {}:
                     continue
 
-                row = {key: nullify_empty_string(value) for key, value in row.items()}
-                self.rows.append(model(row))
+                row_data = {
+                    key: normalize_bids_tsv_value(value)
+                    for key, value in row.items()
+                }
+
+                self.rows.append(model(row_data))
 
     def get_field_names(self) -> list[str]:
         """
@@ -74,3 +76,14 @@ class BidsTsvFile(Generic[T]):
 
             for row in self.rows:
                 writer.writerow(row.data)
+
+
+def normalize_bids_tsv_value(value: str | None) -> str | None:
+    """
+    Normalize a BIDS TSV value, converting it to `None` if it is empty or `n/a` (case-insensitive).
+    """
+
+    if value is None or value == '' or value.lower() == 'n/a':
+        return None
+
+    return value

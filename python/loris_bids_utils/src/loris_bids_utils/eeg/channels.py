@@ -1,4 +1,3 @@
-import re
 from decimal import Decimal
 from pathlib import Path
 
@@ -18,8 +17,8 @@ class BidsEegChannelTsvRow(BidsTsvRow):
     """
 
     name: str
-    type: str
-    unit: str
+    type: str | None
+    unit: str | None
     description: str | None
     sampling_frequency: Decimal | None
     status: str | None
@@ -39,17 +38,15 @@ class BidsEegChannelTsvRow(BidsTsvRow):
             case name:
                 self.name = name
 
-        match data.get('type'):
-            case None:
-                raise Exception(f"Missing channel type for channel '{self.name}' in BIDS channel file.")
-            case type:
-                self.type = type
+        if 'type' in data:
+            self.type = data['type']
+        else:
+            raise Exception(f"Missing channel type column for channel '{self.name}' in BIDS channel file.")
 
-        match data.get('units'):
-            case None:
-                raise Exception(f"Missing channel unit for channel '{self.name}' in BIDS channel file.")
-            case unit:
-                self.unit = unit
+        if 'units' in data:
+            self.unit = data['units']
+        else:
+            raise Exception(f"Missing channel unit column for channel '{self.name}' in BIDS channel file.")
 
         self.description = data.get('description')
 
@@ -81,12 +78,7 @@ class BidsEegChannelTsvRow(BidsTsvRow):
             case manual:
                 self.manual = try_parse_decimal(manual)
 
-        if 'notch' not in data or data['notch'] is None or re.match(r"n.?a", data['notch'], re.IGNORECASE):
-            # replace n/a, N/A, na, NA by None which will translate to NULL
-            # in the physiological_channel table
-            self.notch = None
-        else:
-            self.notch = try_parse_decimal(data['notch'])
+        self.notch = map_non_none(data.get('notch'), try_parse_decimal)
 
         self.reference = data.get('reference')
 

@@ -17,7 +17,7 @@ class DbPhysioChannel(Base):
 
     id                 : Mapped[int]            = mapped_column('PhysiologicalChannelID', primary_key=True)
     physio_file_id     : Mapped[int]            = mapped_column('PhysiologicalFileID', ForeignKey('physiological_file.PhysiologicalFileID'))
-    channel_type_id    : Mapped[int]            = mapped_column('PhysiologicalChannelTypeID', ForeignKey('physiological_channel_type.PhysiologicalChannelTypeID'))
+    channel_type_id    : Mapped[int | None]     = mapped_column('PhysiologicalChannelTypeID', ForeignKey('physiological_channel_type.PhysiologicalChannelTypeID'))
     status_type_id     : Mapped[int | None]     = mapped_column('PhysiologicalStatusTypeID', ForeignKey('physiological_status_type.PhysiologicalStatusTypeID'))
     insert_time        : Mapped[datetime]       = mapped_column('InsertTime', default=datetime.now)
     name               : Mapped[str]            = mapped_column('Name')
@@ -32,6 +32,6 @@ class DbPhysioChannel(Base):
     unit               : Mapped[str | None]     = mapped_column('Unit')
     file_path          : Mapped[Path | None]    = mapped_column('FilePath', StringPath)
 
-    physio_file  : Mapped['db_physio_file.DbPhysioFile']                = relationship('DbPhysioFile', back_populates='channels')
-    channel_type : Mapped['db_physio_channel_type.DbPhysioChannelType'] = relationship('DbPhysioChannelType')
-    status_type  : Mapped['db_physio_status_type.DbPhysioStatusType']   = relationship('DbPhysioStatusType')
+    physio_file  : Mapped['db_physio_file.DbPhysioFile']                       = relationship('DbPhysioFile', back_populates='channels')
+    channel_type : Mapped['db_physio_channel_type.DbPhysioChannelType | None'] = relationship('DbPhysioChannelType')
+    status_type  : Mapped['db_physio_status_type.DbPhysioStatusType']          = relationship('DbPhysioStatusType')

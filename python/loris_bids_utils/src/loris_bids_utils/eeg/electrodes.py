@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from loris_utils.iter import map_non_none
 from loris_utils.parse import try_parse_float, try_parse_int
 
 from loris_bids_utils.tsv import BidsTsvFile, BidsTsvRow
@@ -30,14 +31,13 @@ class BidsEegElectrodeTsvRow(BidsTsvRow):
             raise Exception("Missing electrode name in BIDS electrode file.")
 
         self.name = name
-        self.x = _try_parse_bids_float(data.get('x'))
-        self.y = _try_parse_bids_float(data.get('y'))
-        self.z = _try_parse_bids_float(data.get('z'))
-        self.type = _nullify_bids_missing_value(data.get('type'))
-        self.material = _nullify_bids_missing_value(data.get('material'))
+        self.x = map_non_none(data.get('x'), try_parse_float)
+        self.y = map_non_none(data.get('y'), try_parse_float)
+        self.z = map_non_none(data.get('z'), try_parse_float)
+        self.type = data.get('type')
+        self.material = data.get('material')
 
-        impedance = _nullify_bids_missing_value(data.get('impedance'))
-        self.impedance = try_parse_int(impedance) if impedance is not None else None
+        self.impedance = map_non_none(data.get('impedance'), try_parse_int)
 
 
 class BidsEegElectrodesTsvFile(BidsTsvFile[BidsEegElectrodeTsvRow]):
@@ -47,14 +47,3 @@ class BidsEegElectrodesTsvFile(BidsTsvFile[BidsEegElectrodeTsvRow]):
 
     def __init__(self, path: Path):
         super().__init__(BidsEegElectrodeTsvRow, path)
-
-
-def _try_parse_bids_float(value: str | None) -> float | None:
-    value = _nullify_bids_missing_value(value)
-    return try_parse_float(value) if value is not None else None
-
-
-def _nullify_bids_missing_value(value: str | None) -> str | None:
-    if value is None or value.strip().lower() == 'n/a':
-        return None
-    return value
