@@ -1,4 +1,4 @@
-name: Static tests
+name: Tests
 
 on:
   pull_request:
@@ -83,3 +83,28 @@ jobs:
 
     - name: Run Pytest
       run: pytest
+
+  docker:
+    name: Docker
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_NAME: TestDatabase
+      DATABASE_USERNAME: TestUsername
+      DATABASE_PASSWORD: TestPassword
+    steps:
+    - name: Check out LORIS-MRI
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # Expose the GitHub cache service variables to Docker Compose, using the action is recommended
+    # by the Docker documentation:
+    # https://docs.docker.com/build/cache/backends/gha#authentication
+    - name: Set up GitHub Actions cache access
+      uses: crazy-max/ghaction-github-runtime@v4
+
+    - name: Run integration tests
+      env:
+        LORIS_TEST_COMPOSE_OVERRIDE: ./test/docker-compose.ci.yml
+      run: ./test/run_integration_tests.sh --loris-ref "${{ github.base_ref || github.ref_name }}"
