@@ -11,7 +11,7 @@ def test_parse_electrodes_file(tmp_path: Path):
         'E2\tn/a\tN/A\tNaN\tn/a\t\tn/a\n'
     )
 
-    electrodes = BidsEegElectrodesTsvFile(path).rows
+    electrodes = BidsEegElectrodesTsvFile.read(path).rows
 
     assert (electrodes[0].x, electrodes[0].y, electrodes[0].z) == (1.5, 2.0, 3.0)
     assert electrodes[0].type == 'depth'

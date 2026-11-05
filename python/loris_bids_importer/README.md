@@ -22,17 +22,96 @@ The directory passed as an argument should be a BIDS compliant dataset (see the 
 
 ## Parameters
 
-### Subject and session validation
+### Subject and session resolution
 
-To be imported into LORIS, a BIDS dataset must adhere to the following rules:
-- The subject labels of the BIDS dataset should map to LORIS candidate CandIDs or PSCIDs.
-- The session labels of the BIDS dataset should map to LORIS visit labels.
+By default, every BIDS subject label must correspond to a LORIS CandID or PSCID, and every BIDS session label must correspond to a LORIS visit label. The candidates and sessions of the BIDS dataset must already exist in LORIS when running the import.
 
-If some (or all) candidates or sessions do not exist yet in LORIS, they can be created automatically from the BIDS dataset information using the following options:
-- `--create-candidate`: Create new LORIS candidates, in which case the BIDS subject labels must correspond to new or existing LORIS PSCIDs (CandIDs will be automatically generated).
-- `--create-session`: Create new LORIS sessions, in which case the BIDS session labels must correspond to existing LORIS visit labels.
+The `--bids-config` CLI argument can be used to provide a custom configuration file that allows to:
+- Import a sessionless BIDS dataset.
+- Use an arbitrary mapping between BIDS and LORIS subjects/candidates and sessions.
+- Create missing LORIS candidates and sessions using the BIDS metadata.
+- Filter subjects and sessions out of the import.
 
-Note that these options may require additional information such as the candidate and session projects, sites, and cohorts from the `participants.tsv`, `sessions.tsv`, or `scans.tsv` BIDS files.
+```sh
+import-bids-dataset --directory /path/to/bids/dataset --bids-config /path/to/bids_import_config.py
+```
+
+The BIDS import configuration file looks like the following:
+
+```python
+from lib.env import Env
+from loris_bids_importer.config import (
+    BidsCandidateConfig,
+    BidsSessionConfig,
+    CreateBidsCandidateConfig,
+    CreateBidsSessionConfig,
+)
+from loris_bids_utils.files.participants import BidsParticipantTsvRow
+from loris_bids_utils.files.sessions import BidsSessionTsvRow
+from loris_bids_utils.labels import BidsSessionLabel, BidsSubjectLabel
+
+
+def get_bids_candidate_config(
+    env: Env,
+    subject_label: BidsSubjectLabel,
+    participant_row: BidsParticipantTsvRow | None,
+) -> BidsCandidateConfig | None:
+    if participant_row is None:
+        raise ValueError(f"Missing participants.tsv row for {subject_label}")
+
+    if participant_row.data.get('import') == 'no':
+        return None
+
+    return BidsCandidateConfig(
+        psc_id=subject_label,
+        create=CreateBidsCandidateConfig(
+            registration_project=participant_row.data['project'],
+            registration_site=participant_row.data['site'],
+            sex=participant_row.sex,
+        ),
+    )
+
+
+def get_bids_session_config(
+    env: Env,
+    candidate_config: BidsCandidateConfig,
+    subject_label: BidsSubjectLabel,
+    session_label: BidsSessionLabel | None,
+    participant_row: BidsParticipantTsvRow | None,
+    session_row: BidsSessionTsvRow | None,
+) -> BidsSessionConfig | None:
+    if session_label is None:
+        raise ValueError(f"Missing session label row for {subject_label}")
+
+    if session_row is None:
+        raise ValueError(f"Missing sessions.tsv row for {subject_label}")
+
+    if session_row.data.get('import') == 'no':
+        return None
+
+    visit_labels: dict[BidsSessionLabel, str] = {
+        BidsSessionLabel('baseline'): 'V1',
+        BidsSessionLabel('followup'): 'V2',
+    }
+
+    return BidsSessionConfig(
+        visit_label=visit_labels[session_label],
+        create=CreateBidsSessionConfig(
+            project=session_row.data['project'],
+            site=session_row.data['site'],
+            cohort=session_row.data['cohort'],
+        ),
+    )
+```
+
+The BIDS import configuration file details are the following:
+- The file must define the `get_bids_candidate_config` and `get_bids_session_config` with the above signature.
+- The `project` and `site` strings may be names or aliases.
+- The `create` argument is optional and should be provided only to create missing LORIS candidates and sessions.
+- The configuration functions may raise an exception if the provided BIDS information is incomplete or incorrect, which stops the LORIS import process and ensures no change is committed in the database or file system.
+- The configuration functions may return `None` to filter a BIDS subject or session out of the import.
+
+More documentation is available in the `BidsCandidateConfig` and `BidsSessionConfig` documentation.
 
 ### File copy
 
@@ -58,7 +137,7 @@ To be visualized in the LORIS electrophysiology browser, EEG/iEEG/MEG files must
 
 The LORIS BIDS importer can import the following BIDS files:
 - Static dataset files: `dataset_description.json`, `README`.
-- Dataset structure files: `participants.tsv`, `scans.tsv`.
+- Dataset structure files: `participants.tsv`, `sessions.tsv`, `scans.tsv`.
 - MRI acquisition files: NIfTI (`.nii`, `.nii.gz`) and their JSON sidecars.
 - EEG/iEEG/MEG acquisition files: EDF (`.edf`), EEGLAB (`.set`), CTF (`.ds` directories), and their JSON sidecars.
 - EEG/iEEG/MEG metadata files: `coordsystem.json`, `electrodes.tsv`, `channels.tsv`, `events.json`, `events.tsv`.
