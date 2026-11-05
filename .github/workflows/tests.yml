@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
       uses: ./.github/actions/setup-python
@@ -31,7 +31,7 @@ jobs:
 
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
       uses: ./.github/actions/setup-python
@@ -44,7 +44,7 @@ jobs:
 
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
       uses: ./.github/actions/setup-python
@@ -60,7 +60,7 @@ jobs:
 
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
       uses: ./.github/actions/setup-python
@@ -76,7 +76,7 @@ jobs:
 
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Python
       uses: ./.github/actions/setup-python
@@ -93,10 +93,10 @@ jobs:
       DATABASE_PASSWORD: TestPassword
     steps:
     - name: Check out LORIS-MRI
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
     # Expose the GitHub cache service variables to Docker Compose, using the action is recommended
     # by the Docker documentation:
