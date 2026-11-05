@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import Row, select
 from sqlalchemy.orm import Session as Database
 
 from lib.db.models.parameter_type import DbParameterType
@@ -11,7 +11,7 @@ from lib.db.queries.parameter_type import try_get_parameter_type_with_name_sourc
 def get_physio_file_parameters(
     db: Database,
     physio_file_id: int,
-) -> Sequence[tuple[DbParameterType, DbPhysioFileParameter]]:
+) -> Sequence[Row[DbParameterType, DbPhysioFileParameter]]:
     """
     Get the parameters of a physiological file using its ID.
     """
@@ -19,7 +19,7 @@ def get_physio_file_parameters(
     return db.execute(select(DbParameterType, DbPhysioFileParameter)
         .join(DbPhysioFileParameter.type)
         .where(DbPhysioFileParameter.file_id == physio_file_id)
-    ).tuples().all()
+    ).all()
 
 
 def try_get_physio_parameter_type_with_name(
