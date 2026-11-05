@@ -28,7 +28,7 @@ jobs:
         typos --format=json | test/typos_to_github.sh
 
   ruff:
-    name: Ruff
+    name: Lints
     if: *run_checks
     runs-on: ubuntu-latest
 
@@ -42,7 +42,7 @@ jobs:
       run: ruff check --output-format=github
 
   pyright-strict:
-    name: Pyright strict
+    name: Type checks (strict)
     if: *run_checks
     runs-on: ubuntu-latest
 
@@ -58,8 +58,8 @@ jobs:
         set -o pipefail
         pyright --outputjson | test/pyright_to_github.sh
 
-  pyrigh-global:
-    name: Pyright global
+  pyright-global:
+    name: Type checks (global)
     if: *run_checks
     runs-on: ubuntu-latest
 
@@ -75,7 +75,7 @@ jobs:
         set -o pipefail
         pyright --project test --outputjson | test/pyright_to_github.sh
 
-  pytest:
+  pytest-unit:
     name: Unit tests
     if: *run_checks
     runs-on: ubuntu-latest
@@ -90,8 +90,8 @@ jobs:
     - name: Run Pytest
       run: pytest
 
-  docker:
-    name: Docker
+  pytest-integration:
+    name: Integration tests
     if: *run_checks
     runs-on: ubuntu-latest
     env:
