@@ -1,8 +1,9 @@
 name: Set up Python
-input:
+description: Install the locked LORIS Python workspace and development tools
 inputs:
   python-version:
-    required: true
+    description: Python version to use
+    default: '3.11'
 
 runs:
   using: composite
@@ -11,13 +12,15 @@ runs:
   - name: Set up the Python environment
     uses: actions/setup-python@v5
     with:
-      python-version: '3.11'
-      cache: 'pip'
+      python-version: ${{ inputs.python-version }}
+
+  - name: Set up uv
+    uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+    with:
+      enable-cache: true
 
   - name: Install Python project
     shell: bash
     run: |
-      pip install --no-cache-dir --editable ".[dev,test]" && \
-      for pkg in python/loris_*; do \
-          pip install --no-cache-dir --no-deps --editable "$pkg"; \
-      done
+      uv sync --locked --extra dev --extra test
+      echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
