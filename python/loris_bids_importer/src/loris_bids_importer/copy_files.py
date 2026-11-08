@@ -126,7 +126,7 @@ def copy_bids_static_files(env: Env, importer: BidsImporter):
         if not (importer.data_dir_path / loris_file_path).is_file():
             copy_loris_bids_file(importer, source_file_path, loris_file_path)
 
-        get_or_create_loris_bids_file(env, importer, source_file_path, loris_file_path, parse_suffix=False)
+        get_or_create_loris_bids_file(env, importer, source_file_path, loris_file_path, parse_bids_name=False)
 
 
 def copy_bids_participants_file(
