@@ -16,7 +16,7 @@ def get_path_extension(path: Path) -> str | None:
     Get the extension (including multiple extensions) of a path without the leading dot.
     """
 
-    # Remove the leading dot if there is none.
+    # Remove the leading dot if there is one.
     stripped_name = path.name.lstrip('.')
 
     parts = stripped_name.split('.', maxsplit=1)
