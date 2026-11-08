@@ -63,7 +63,7 @@ and extract it to `/opt/$projectname/bin/mri`
 ```bash
 sudo apt install python3.11 python3.11-dev python3.11-venv
 sudo apt install python3-pip
-sudo apt install libmysqlclient-dev
+sudo apt install libmysqlclient-dev pkg-config
 ```
 
 #### 3. Install MINC toolkit from http://bic-mni.github.io/
