@@ -53,7 +53,7 @@ def main():
     verbose: bool = args.verbose
 
     config = load_config(profile)
-    env = make_env('validate-dicom-archive', {}, config, verbose)
+    env = make_env('validate-dicom-archive', args, config, verbose)
 
     validate_dicom_archive(env, dicom_archive_path, upload_id)
 

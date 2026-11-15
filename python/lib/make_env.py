@@ -1,5 +1,6 @@
 import sys
 import tempfile
+from argparse import Namespace
 from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
@@ -16,7 +17,7 @@ from lib.logging import log_verbose, write_to_log_file
 
 def make_env(
     script_name: str,
-    script_options: dict[str, Any],
+    script_options: Namespace,
     config_info: Any,
     verbose: bool,
     log_file: bool = True,
@@ -79,7 +80,7 @@ def make_env(
     return env
 
 
-def get_log_file_header(log_file_path: Path, script_options: dict[str, Any]):
+def get_log_file_header(log_file_path: Path, script_options: Namespace):
     run_info = log_file_path.name[:-13]
     title = run_info.replace('_', ' ').upper()
     message = (
@@ -91,9 +92,8 @@ def get_log_file_header(log_file_path: Path, script_options: dict[str, Any]):
         "Script run with the following options set\n"
     )
 
-    for key in script_options:
-        if script_options[key]['value']:
-            message += f"  --{key}: {script_options[key]['value']}\n"
+    for key, value in vars(script_options).items():
+        message += f"  --{key}: {value}\n"
 
     message += "\n"
     return message

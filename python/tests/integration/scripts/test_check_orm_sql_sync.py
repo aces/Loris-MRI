@@ -7,9 +7,7 @@ def test_successful_run():
     Test running the ORM/SQL schema sync check script.
     """
 
-    process = run_integration_script([
-        'python/scripts/check_orm_sql_sync.py',
-    ])
+    process = run_integration_script(['check-orm-sql-sync'])
 
     assert process.returncode == SUCCESS
     assert process.stdout == "ORM/SQL schema sync check passed.\n"

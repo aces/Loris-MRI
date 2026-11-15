@@ -153,7 +153,7 @@ def main():
 
         # Assume eeg and raw data for now
         eeg_path = os.path.join(path, 'eeg')
-        command = 'import-bids-dataset -p ' + profile + ' -d ' + eeg_path + ' --no-bids-validation --no-copy --type raw'
+        command = 'import-bids-dataset -p ' + profile + ' ' + eeg_path + ' --no-bids-validation --no-copy --type raw'
 
         try:
             result = subprocess.run(command, shell = True, capture_output=True)

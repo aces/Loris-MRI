@@ -11,23 +11,24 @@
 
 ### Running the script
 
-Ensure a DICOM study can be imported into LORIS using the `--insert` CLI option:
+Ensure a DICOM study can be imported into LORIS:
 ```sh
-import-dicom-study --insert --session --source /path/to/dicom/study
+import-dicom-study /path/to/dicom/study
 ```
 
 ### Imported DICOM study
 
 - Ensure the DICOM study is visible in the LORIS DICOM archive module, with a list of all its DICOM files and working download link.
-- Ensure the DICOM study is attached to a LORIS session based on its patient identifiers (from the `--session` CLI option).
+- Ensure the DICOM study is attached to a LORIS session based on its patient identifiers.
 - Ensure the DICOM study is present in the LORIS database in the `tarchive_*` tables.
 - Ensure the DICOM study archive is present in the LORIS `tarchive` directory.
 - Ensure the DICOM study archive contains a `.log` and `.meta`file, and that both their contents look correct.
 
 ### Other commands
 
-- Ensure that a DICOM study that is already imported in LORIS can be updated by using the `--update` and `--overwrite` CLI options instead of `--insert`.
+- Ensure that a DICOM study that is already imported in LORIS can be updated by using the `--update` and `--overwrite` CLI options.
 - Ensure the `summarize-dicom-study` script produces a correct looking DICOM study summary.
+- Ensure that inserting with `--no-session` leaves the study without a session.
 
 ### Errors cases
 

@@ -1,94 +1,60 @@
 #!/usr/bin/env python
 
+import argparse
 from pathlib import Path
-from typing import Any
 
-import lib.exitcode
-from lib.logging import log_error_exit
-from lib.lorisgetopt import LorisGetOpt
+from lib.config_file import load_config
+from lib.make_env import make_env
 
 from loris_bids_importer.importer import BidsImporterArgs
 from loris_bids_importer.main import import_bids_dataset
 
 
-def pack_args(options_dict: dict[str, Any]) -> BidsImporterArgs:
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Parse a BIDS dataset and insert it into LORIS.",
+        allow_abbrev=False,
+    )
+    parser.add_argument('-p', '--profile',
+        help="Name of the LORIS Python configuration file (default: config.py).")
+    parser.add_argument('directory', type=Path,
+        help="BIDS directory to import. If already within $data_dir/assembly_bids, no copy is performed.")
+    parser.add_argument('-c', '--create-candidate', action='store_true',
+        help="Create BIDS candidates in LORIS.")
+    parser.add_argument('-s', '--create-session', action='store_true',
+        help="Create BIDS sessions in LORIS.")
+    parser.add_argument('-b', '--no-bids-validation', action='store_true',
+        help="Disable validation for BIDS compliance.")
+    parser.add_argument('-a', '--no-copy', action='store_true',
+        help="Disable dataset copy into assembly_bids.")
+    parser.add_argument('-t', '--type', choices=('raw', 'derivative'),
+        help=("Dataset type. If omitted, look for both raw and derivative files. "
+              "Required if no dataset_description.json is found."))
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print verbose progress information.")
+
+    args = parser.parse_args()
+    if not args.directory.is_dir():
+        parser.error("Argument 'directory' must be an existing directory path.")
+    return args
+
+
+def pack_args(args: argparse.Namespace) -> BidsImporterArgs:
     return BidsImporterArgs(
-        source_bids_path = Path(options_dict['directory']['value']),
-        type             = options_dict['type']['value'],
-        bids_validation  = not options_dict['no-bids-validation']['value'],
-        create_candidate = options_dict['create-candidate']['value'],
-        create_session   = options_dict['create-session']['value'],
-        copy             = not options_dict['no-copy']['value'],
-        verbose          = options_dict['verbose']['value'],
+        source_bids_path = args.directory,
+        type             = args.type,
+        bids_validation  = not args.no_bids_validation,
+        create_candidate = args.create_candidate,
+        create_session   = args.create_session,
+        copy             = not args.no_copy,
+        verbose          = args.verbose,
     )
 
 
-def main():
-    usage = (
-        "\n"
-        "usage  : import-bids-dataset -d <bids_directory> \n"
-        "\n"
-        "options: \n"
-        "\t-p, --profile            : name of the python database config file in dicom-archive/.loris-mri\n"
-        "\t-d, --directory          : BIDS directory to parse & insert into LORIS\n"
-        "\t                           If directory is within $data_dir/assembly_bids, no copy will be performed\n"
-        "\t-c, --create-candidate   : to create BIDS candidates in LORIS (optional)\n"
-        "\t-s, --create-session     : to create BIDS sessions in LORIS (optional)\n"
-        "\t-b, --no-bids-validation : to disable BIDS validation for BIDS compliance\n"
-        "\t-a, --no-copy            : to disable dataset copy in data assembly_bids\n"
-        "\t-t, --type               : raw | derivative. Specify the dataset type.\n"
-        "\t                           If not set, the pipeline will look for both raw and derivative files.\n"
-        "\t                           Required if no dataset_description.json is found.\n"
-        "\t-v, --verbose            : be verbose\n"
-    )
-
-    options_dict = {
-        "profile": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
-        },
-        "directory": {
-            "value": None, "required": True, "expect_arg": True, "short_opt": "d", "is_path": True
-        },
-        "create-candidate": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "c", "is_path": False
-        },
-        "create-session": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "s", "is_path": False
-        },
-        "no-bids-validation": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "b", "is_path": False
-        },
-        "no-copy": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "a", "is_path": False
-        },
-        "type": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "t", "is_path": False
-        },
-        "verbose": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "v", "is_path": False
-        },
-        "help": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "h", "is_path": False
-        },
-    }
-
-    # Get the CLI arguments and initiate the environment.
-
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import-bids-dataset')
-
-    env = loris_getopt_obj.env
-
-    # Check the CLI arguments.
-
-    type = loris_getopt_obj.options_dict['type']['value']
-    if type not in (None, 'raw', 'derivative'):
-        log_error_exit(
-            env,
-            f"--type must be one of 'raw', 'derivative'\n{usage}",
-            lib.exitcode.MISSING_ARG,
-        )
-
-    args = pack_args(loris_getopt_obj.options_dict)
+def main() -> None:
+    parsed_args = parse_args()
+    config = load_config(parsed_args.profile)
+    env = make_env('import-bids-dataset', parsed_args, config, parsed_args.verbose)
+    args = pack_args(parsed_args)
 
     import_bids_dataset(env, args)
 
