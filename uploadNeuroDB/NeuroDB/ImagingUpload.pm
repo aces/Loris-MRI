@@ -417,7 +417,7 @@ sub runDicomTar {
         my $python_config = $configOB->getPythonConfigFile();
 
         $command = sprintf(
-            "import-dicom-study --profile %s --insert --source %s",
+            "import-dicom-study --profile %s %s",
             quotemeta($python_config),
             quotemeta($this->{'uploaded_temp_folder'}),
         );

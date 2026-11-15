@@ -31,7 +31,7 @@ def test_import_eeg_bids_dataset():
         'import-bids-dataset',
         '--create-candidate', '--create-session',
         '--type', 'raw',
-        '--directory', '/data/loris/incoming/Face13',
+        '/data/loris/incoming/Face13',
     ])
 
     # Check the return code.
@@ -160,7 +160,7 @@ def test_import_mri_bids_dataset():
     process = run_integration_script([
         'import-bids-dataset',
         '--create-candidate', '--create-session',
-        '--directory', '/data/loris/incoming/DCC090_587630_V2',
+        '/data/loris/incoming/DCC090_587630_V2',
     ])
 
     # Check the return code.
@@ -226,7 +226,7 @@ def test_import_meg_ctf_bids_dataset():
     process = run_integration_script([
         'import-bids-dataset',
         '--type', 'raw',
-        '--directory', '/data/loris/incoming/ds000246',
+        '/data/loris/incoming/ds000246',
     ])
 
     assert process.returncode == 0

@@ -16,7 +16,7 @@ def test_invalid_profile_arg():
     """
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--profile', 'invalid_profile.py',
         '--smallest-id', '1',
         '--largest-id', '1',
@@ -34,7 +34,7 @@ def test_smallest_id_bigger_than_largest_id():
     """
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', '6',
         '--largest-id', '2'
     ])
@@ -51,7 +51,7 @@ def test_on_invalid_file_id():
     """
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', '999',
         '--largest-id', '999'
     ])
@@ -68,7 +68,7 @@ def test_on_file_id_that_already_has_a_pic():
     """
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', '2',
         '--largest-id', '2'
     ])
@@ -96,7 +96,7 @@ def test_force_option():
         os.remove(pic_to_remove)
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', '2',
         '--largest-id', '2',
         '--force'
@@ -134,7 +134,7 @@ def test_running_on_a_text_file():
 
     # run NIfTI pic script on the inserted file
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', str(file.id),
         '--largest-id', str(file.id)
     ])
@@ -177,7 +177,7 @@ def test_successful_run():
     current_time = datetime.now().replace(microsecond=0)
 
     process = run_integration_script([
-        'mass_nifti_pic.py',
+        'create-nifti-pic',
         '--smallest-id', '2',
         '--largest-id', '2'
     ])

@@ -1,20 +1,23 @@
 #!/usr/bin/env python
 
+import argparse
 import gzip
 import os
 import shutil
 import tarfile
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import lib.exitcode
 from lib.config import get_dicom_archive_dir_path_config
+from lib.config_file import load_config
 from lib.db.models.dicom_archive import DbDicomArchive
 from lib.db.queries.dicom_archive import try_get_dicom_archive_with_study_instance_uid
 from lib.get_session_info import SessionConfigError
 from lib.logging import log, log_error_exit, log_warning
-from lib.lorisgetopt import LorisGetOpt
+from lib.make_env import make_env
 from loris_utils.fs import iter_all_dir_files
 
 import loris_dicom_importer.text
@@ -29,112 +32,57 @@ from loris_dicom_importer.summary_util import get_dicom_study_summary_session_in
 from loris_dicom_importer.summary_write import write_dicom_study_summary_to_file
 
 
-class Args:
-    profile:   str
-    source:    Path
-    insert:    bool
-    update:    bool
-    session:   bool
+@dataclass
+class DicomImporterArgs:
+    source: Path
+    update: bool
+    session: bool
     overwrite: bool
-    verbose:   bool
+    verbose: bool
 
-    def __init__(self, options_dict: dict[str, Any]):
-        self.profile   = options_dict['profile']['value']
-        self.source    = Path(options_dict['source']['value'])
-        self.overwrite = options_dict['overwrite']['value']
-        self.insert    = options_dict['insert']['value']
-        self.update    = options_dict['update']['value']
-        self.session   = options_dict['session']['value']
-        self.verbose   = options_dict['verbose']['value']
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Read a directory containing the DICOM files of a study, create a structured and "
+            "compressed archive, and insert or update the study in the LORIS database."
+        ),
+        allow_abbrev=False,
+    )
+    parser.add_argument('-p', '--profile',
+        help="Name of the LORIS Python configuration file (default: config.py).")
+    parser.add_argument('source', type=Path,
+        help="Path of the source directory containing the DICOM files of the study.")
+    parser.add_argument('--overwrite', action='store_true',
+        help="Overwrite the DICOM archive file if it already exists.")
+    parser.add_argument('--update', action='store_true',
+        help="Update an existing DICOM archive instead of inserting it, generally used with --overwrite.")
+    parser.add_argument('--no-session', action='store_true',
+        help="Skip association with an existing session (enabled by default using the Python configuration).")
+    parser.add_argument('-v', '--verbose', action='store_true', help="Print verbose progress information.")
+
+    args = parser.parse_args()
+    if not args.source.is_dir() or not os.access(args.source, os.R_OK):
+        parser.error("Argument 'source' must be a readable directory path.")
+
+    return args
+
+
+def pack_args(args: argparse.Namespace) -> DicomImporterArgs:
+    return DicomImporterArgs(
+        source    = args.source,
+        update    = args.update,
+        session   = not args.no_session,
+        overwrite = args.overwrite,
+        verbose   = args.verbose,
+    )
 
 
 def main() -> None:
-    usage = (
-        "\n"
-        "********************************************************************\n"
-        " DICOM STUDY IMPORT SCRIPT\n"
-        "********************************************************************\n"
-        "This script reads a directory containing the DICOM files of a study, processes the\n"
-        "directory into a structured and compressed archive, and inserts or uploads the study\n"
-        "into the LORIS database.\n"
-        "\n"
-        "Usage: import-dicom-study -p <profile> -s <source_dir> ...\n"
-        "\n"
-        "Options: \n"
-        "\t-p, --profile   : Name of the LORIS Python configuration file (default:\n"
-        "\t                  'config.py')\n"
-        "\t-s, --source    : Path of the source directory containing the DICOM files of the"
-        "\t                  study.\n"
-        "\t    --overwrite : Overwrite the DICOM archive file if it already exists.\n"
-        "\t    --insert    : Insert the created DICOM archive in the database (requires the archive\n"
-        "\t                  to not be already inserted).\n"
-        "\t    --update    : Update the DICOM archive in the database (requires the archive to be\n"
-        "\t                  already be inserted), generally used with '--overwrite'.\n"
-        "\t    --session   : Associate the DICOM study with an existing session using the LORIS-MRI\n"
-        "\t                  Python configuration.\n"
-        "\t-v, --verbose   : If set, be verbose\n"
-        "\n"
-        "Required options: \n"
-        "\t--source\n"
-    )
-
-    # NOTE: Some options do not have short options but LorisGetOpt does not support that, so we
-    # repeat the long names.
-    options_dict = {
-        "profile": {
-            "value": None, "required": False, "expect_arg": True, "short_opt": "p", "is_path": False
-        },
-        "source": {
-            "value": None, "required": True,  "expect_arg": True, "short_opt": "s", "is_path": True,
-        },
-        "overwrite": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "overwrite", "is_path": False,
-        },
-        "insert": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "insert", "is_path": False,
-        },
-        "update": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "update", "is_path": False,
-        },
-        "session": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "session", "is_path": False,
-        },
-        "verbose": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "v", "is_path": False
-        },
-        "help": {
-            "value": False, "required": False, "expect_arg": False, "short_opt": "h", "is_path": False
-        },
-    }
-
-    # Get the CLI arguments and connect to the database.
-
-    loris_getopt_obj = LorisGetOpt(usage, options_dict, 'import_dicom_study')
-    env = loris_getopt_obj.env
-    args = Args(loris_getopt_obj.options_dict)
-
-    # Check arguments.
-
-    if not args.source.is_dir() or not os.access(args.source, os.R_OK):
-        log_error_exit(
-            env,
-            "Argument '--source' must be a readable directory path.",
-            lib.exitcode.INVALID_ARG,
-        )
-
-    if args.insert and args.update:
-        log_error_exit(
-            env,
-            "Arguments '--insert' and '--update' cannot be used both at the same time.",
-            lib.exitcode.INVALID_ARG,
-        )
-
-    if args.session and not (args.insert or args.update):
-        log_error_exit(
-            env,
-            "Argument '--insert' or '--update' must be used when '--session' is used.",
-            lib.exitcode.INVALID_ARG,
-        )
+    parsed_args = parse_args()
+    config = load_config(parsed_args.profile)
+    env = make_env('import-dicom-study', parsed_args, config, parsed_args.verbose)
+    args = pack_args(parsed_args)
 
     # Load configuration values.
 
@@ -155,12 +103,12 @@ def main() -> None:
     if dicom_archive is not None:
         log(env, "Found the DICOM study in LORIS.")
 
-        if args.insert:
+        if not args.update:
             log_error_exit(
                 env,
                 (
                     "Cannot insert the DICOM study since it is already inserted in LORIS. Use"
-                    " arguments '--update' and '--overwrite' to update the currently insrted DICOM"
+                    " arguments '--update' and '--overwrite' to update the currently inserted DICOM"
                     " study.\n"
                     f"Inserted DICOM study import log:\n{dicom_archive.create_info}"
                 ),
@@ -174,8 +122,8 @@ def main() -> None:
             log_error_exit(
                 env,
                 (
-                    "Cannot update the DICOM study since it is not already inserted in LORIS. Use"
-                    " argument '--insert' to insert the DICOM study in LORIS."
+                    "Cannot update the DICOM study since it is not already inserted in LORIS. Omit"
+                    " argument '--update' to insert the DICOM study in LORIS."
                 ),
                 lib.exitcode.UPDATE_FAILURE,
             )
@@ -282,7 +230,7 @@ def main() -> None:
         dicom_import_log.target_path
     )
 
-    if args.insert:
+    if not args.update:
         log(env, "Inserting the DICOM study in the LORIS database...")
 
         dicom_archive = insert_dicom_archive(env.db, dicom_summary, dicom_import_log, dicom_archive_rel_path)

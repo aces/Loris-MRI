@@ -57,7 +57,7 @@ def main():
     args = parser.parse_args()
 
     config_file = load_config(args.profile)
-    env = make_env('mass_nifti_pic', {}, config_file, args.verbose)
+    env = make_env('create-nifti-pic', args, config_file, args.verbose)
 
     if not (args.smallest_id <= args.largest_id):
         log_error_exit(

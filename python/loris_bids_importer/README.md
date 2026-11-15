@@ -15,7 +15,7 @@ This package is installed by default with LORIS Python.
 The LORIS BIDS importer can be run using the following command:
 
 ```sh
-import-bids-dataset -d /path/to/bids/dataset
+import-bids-dataset /path/to/bids/dataset
 ```
 
 The directory passed as an argument should be a BIDS compliant dataset (see the [BIDS specification](https://bids-specification.readthedocs.io/en/stable/)).

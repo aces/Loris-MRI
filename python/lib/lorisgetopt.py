@@ -2,6 +2,7 @@
 import getopt
 import os
 import sys
+from argparse import Namespace
 
 import lib.exitcode
 from lib.aws_s3 import AwsS3
@@ -86,7 +87,7 @@ class LorisGetOpt:
         # Create the environment object using the provided arguments.
         self.env = make_env(
             self.script_name,
-            self.options_dict,
+            Namespace(**{key: option['value'] for key, option in self.options_dict.items()}),
             self.config_info,
             self.options_dict['verbose']['value'],
         )
