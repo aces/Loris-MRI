@@ -5,6 +5,7 @@ from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.bids_dataset as db_bids_dataset
+import lib.db.models.bids_file_entity as db_bids_file_entity
 from lib.db.base import Base
 from lib.db.decorators.int_bool import IntBool
 from lib.db.decorators.string_path import StringPath
@@ -35,6 +36,16 @@ class DbBidsFile(Base):
     The path of this file relative to its LORIS BIDS dataset.
     """
 
+    suffix: Mapped[str | None] = mapped_column('Suffix')
+    """
+    The BIDS suffix of this file, if any.
+    """
+
+    extension: Mapped[str | None] = mapped_column('Extension')
+    """
+    The file extension, including multiple extensions, without its leading dot, if any.
+    """
+
     source_path: Mapped[Path | None] = mapped_column('SourcePath', StringPath)
     """
     The source path of this file relative to the BIDS dataset from which it was imported.
@@ -58,4 +69,9 @@ class DbBidsFile(Base):
     dataset: Mapped['db_bids_dataset.DbBidsDataset'] = relationship('DbBidsDataset')
     """
     The BIDS dataset to which this file belongs.
+    """
+
+    entities: Mapped[list['db_bids_file_entity.DbBidsFileEntity']] = relationship('DbBidsFileEntity', back_populates='file')
+    """
+    The BIDS entities of this file name.
     """

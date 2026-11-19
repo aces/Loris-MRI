@@ -51,3 +51,9 @@ The LORIS-MRI integration tests require a more complex testing environment with 
 To run the LORIS-MRI integration tests, use the command `test/run_integration_tests.sh` in the root LORIS-MRI directory.
 
 Note that the first run of the LORIS-MRI integration test run might take some time, as the test data must be downloaded and the Docker images must be created. However, much of this setup should be cached in the Docker cache as well as the LORIS-MRI test cache directory (by default `~/.cache/loris/test`), so further test runs should be much faster. To avoid downloading data and building images locally, it is also possible to run the LORIS-MRI integration tests remotely by simply creating a pull request, which will trigger the LORIS-MRI CI workflow.
+
+By default, CI runs integration tests against the LORIS core branch with the same name as the PR's target branch. If a PR depends on an unmerged LORIS core PR, put the following on the first line of its description:
+
+```text
+LORIS PR: https://github.com/aces/Loris/pull/123456
+```

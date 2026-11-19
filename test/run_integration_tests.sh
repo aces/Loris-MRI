@@ -27,7 +27,7 @@ Usage: test/run_integration_tests.sh [OPTIONS]
 Build and run the LORIS-MRI integration tests in Docker.
 
 Options:
-  --loris-ref REF   LORIS core branch, tag, or commit to test against (default: main)
+  --loris-ref REF   LORIS core branch, tag, commit, or PR ref to test against (default: main)
   --data-dir PATH   Existing imaging test dataset (otherwise downloaded and cached)
   --cache-dir PATH  Cache directory (default: ~/.cache/loris/test)
   --include-minc    Include the MINC toolkit (excluded by default)

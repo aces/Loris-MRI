@@ -49,6 +49,15 @@ def parse_bids_entities(name: str) -> dict[str, str]:
     return entities
 
 
+def parse_bids_suffix(name: str) -> str:
+    """
+    Parse the BIDS suffix from a BIDS file name.
+    """
+
+    stem = remove_name_extension(name)
+    return stem.rsplit('_', 1)[-1]
+
+
 def build_bids_file_name(entities: dict[str, str], suffix: str, extension: str) -> str:
     """
     Build a BIDS file name from its entities, suffix, and extension.
