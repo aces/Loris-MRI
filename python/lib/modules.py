@@ -2,7 +2,7 @@ from lib.db.queries.module import try_get_module_with_name
 from lib.env import Env
 
 
-def is_module_active(env: Env, module_name: str) -> bool:
+def module_is_active(env: Env, module_name: str) -> bool:
     """
     Check whether a LORIS module is registered and active.
     """

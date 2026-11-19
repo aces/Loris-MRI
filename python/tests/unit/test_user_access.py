@@ -13,10 +13,10 @@ from lib.db.models.user import DbUser
 from lib.db.models.user_login_history import DbUserLoginHistory
 from lib.env import Env
 from lib.user import (
-    can_user_access_project,
-    can_user_access_site,
     check_user_account_active,
     check_user_account_locked,
+    user_can_access_project,
+    user_can_access_site,
 )
 
 NOW = datetime(2026, 10, 10, 12)
@@ -205,7 +205,7 @@ def test_user_project_and_site_access(env: Env):
     other_site = DbSite(id=2, name='Other site', alias='O', mri_alias='O')
     user = make_user({'projects': [project], 'sites': [site]})
 
-    assert can_user_access_project(env, user, project)
-    assert not can_user_access_project(env, user, other_project)
-    assert can_user_access_site(env, user, site)
-    assert not can_user_access_site(env, user, other_site)
+    assert user_can_access_project(env, user, project)
+    assert not user_can_access_project(env, user, other_project)
+    assert user_can_access_site(env, user, site)
+    assert not user_can_access_site(env, user, other_site)

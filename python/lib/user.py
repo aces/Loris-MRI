@@ -61,7 +61,7 @@ def check_user_account_locked(env: Env, username: str, ip_address: str) -> bool:
     return False
 
 
-def can_user_access_project(_: Env, user: DbUser, project: DbProject) -> bool:
+def user_can_access_project(_: Env, user: DbUser, project: DbProject) -> bool:
     """
     Check whether a user has access to a project.
     """
@@ -69,7 +69,7 @@ def can_user_access_project(_: Env, user: DbUser, project: DbProject) -> bool:
     return project in user.projects
 
 
-def can_user_access_site(_: Env, user: DbUser, site: DbSite) -> bool:
+def user_can_access_site(_: Env, user: DbUser, site: DbSite) -> bool:
     """
     Check whether a user has access to a site.
     """

@@ -11,8 +11,8 @@ from lib.physio.permissions import (
     EPHYS_BROWSER_MODULE,
     VIEW_ALL_SITES_PERMISSION,
     VIEW_OWN_SITES_PERMISSION,
-    can_user_access_ephys_browser,
-    can_user_access_ephys_browser_session,
+    user_can_access_ephys_browser,
+    user_can_access_ephys_browser_session,
 )
 
 
@@ -65,7 +65,7 @@ def test_ephys_browser_session_access(
 
     env.db.add_all([module, view_all, view_own, user])
 
-    assert can_user_access_ephys_browser_session(env, user, session) is expected
+    assert user_can_access_ephys_browser_session(env, user, session) is expected
 
 
 def test_ephys_browser_access_requires_a_view_permission(env: Env):
@@ -77,4 +77,4 @@ def test_ephys_browser_access_requires_a_view_permission(env: Env):
 
     user = DbUser(username='test_user', email='test@example.com')
 
-    assert not can_user_access_ephys_browser(env, user)
+    assert not user_can_access_ephys_browser(env, user)
