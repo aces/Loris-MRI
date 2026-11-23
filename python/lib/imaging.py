@@ -114,6 +114,7 @@ class Imaging:
         """
         return self.files_db_obj.find_file_with_hash(hash_string)
 
+    @deprecated('Use `lib.db.queries.file.try_get_file_with_unique_combination` instead.')
     def grep_file_info_from_series_uid_and_echo_time(self, series_uid, echo_time, phase_enc_dir, echo_number):
         """
         Greps the file ID from the files table. If it cannot be found, the method will return None.
@@ -193,6 +194,7 @@ class Imaging:
         else:
             self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
+    @deprecated('Use `lib.imaging_lib.mri_candidate_error.register_mri_candidate_error` instead.')
     def insert_mri_candidate_errors(self, patient_name, tarchive_id, scan_param, file_rel_path, reason):
         """
         Insert a row into MriCandidateErrors table.
@@ -232,6 +234,7 @@ class Imaging:
         }
         self.mri_cand_errors_db_obj.insert_mri_candidate_errors(info_to_insert_dict)
 
+    @deprecated('Use `lib.imaging_lib.mri_protocol_violated_scan.register_mri_protocol_violated_scan` instead.')
     def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
                                       mri_protocol_group_id):
         """
@@ -300,6 +303,7 @@ class Imaging:
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
+    @deprecated('Use `lib.imaging_lib.mri_violation_log.register_mri_violation_log` instead.')
     def insert_mri_violations_log(self, info_to_insert_dict):
         """
         Inserts into mri_violations_log table the entry determined by the information stored in
@@ -621,6 +625,7 @@ class Imaging:
                 'mri_protocol_group_id': mri_protocol_group_id
             }
 
+    @deprecated('Use `lib.db.queries.bids_mri_scan_type.try_get_bids_mri_scan_type_with_scan_type_id` instead.')
     def get_bids_categories_mapping_for_scan_type_id(self, scan_type_id):
         """
         Function that get the BIDS information for a given scan type ID from the database and
