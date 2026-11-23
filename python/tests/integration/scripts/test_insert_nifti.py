@@ -290,7 +290,7 @@ def test_nifti_mri_protocol_violated_scans_features():
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
     phase_encoding_direction = 'i'
-    echo_time = '0.005'
+    echo_time = 0.005
     echo_number = None
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.json'
@@ -315,7 +315,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     violated_scans = get_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
@@ -351,7 +351,7 @@ def test_nifti_mri_protocol_violated_scans_features():
     violated_scans = get_protocol_violated_scans_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
@@ -423,7 +423,7 @@ def test_nifti_mri_violations_log_exclude_features():
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101117085370136129517.0.0.0'
     phase_encoding_direction = 'j-'
-    echo_time = '0.103'
+    echo_time = 0.103
     echo_number = None
     expected_violation = [{
         'Severity': 'exclude',
@@ -461,7 +461,7 @@ def test_nifti_mri_violations_log_exclude_features():
     violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
@@ -509,7 +509,7 @@ def test_nifti_mri_violations_log_exclude_features():
     violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
@@ -582,7 +582,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116492064679881426.0.0.0'
     phase_encoding_direction = 'j-'
-    echo_time = '0.102'
+    echo_time = 0.102
     echo_number = None
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.json'
@@ -617,7 +617,7 @@ def test_dwi_insertion_with_mri_violations_log_warning():
     violations = get_violations_log_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
