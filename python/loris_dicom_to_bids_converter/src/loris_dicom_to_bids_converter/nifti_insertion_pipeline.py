@@ -646,7 +646,7 @@ class NiftiInsertionPipeline(BasePipeline):
                 patient_name=patient_name,
                 series_uid=scan_param.get('SeriesInstanceUID'),
                 echo_time=scan_param.get('EchoTime'),
-                echo_number=repr(scan_param.get('EchoNumber')),
+                echo_number=map_non_none(scan_param.get('EchoNumber'), repr),
                 phase_encoding_direction=scan_param.get('PhaseEncodingDirection'),
                 protocol_check_group_id=violation.get('MriProtocolChecksGroupID', self.mri_protocol_group_id),
                 check_id=violation.get('CheckID'),

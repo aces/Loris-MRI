@@ -125,7 +125,7 @@ def register_mri_scan_validation_error(
     patient_name: str | None,
     series_uid: str | None,
     echo_time: float | None,
-    echo_number: str,
+    echo_number: str | None,
     phase_encoding_direction: str | None,
     protocol_check_group_id: int | None,
     check_id: int | None,

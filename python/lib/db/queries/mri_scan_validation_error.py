@@ -31,7 +31,7 @@ def try_get_matching_mri_scan_validation_error(
     dicom_archive_id: int | None,
     series_uid: str | None,
     echo_time: float | None,
-    echo_number: str,
+    echo_number: str | None,
     phase_encoding_direction: str | None,
     scan_type_id: int,
     severity: str,
