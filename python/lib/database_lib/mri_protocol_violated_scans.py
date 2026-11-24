@@ -1,5 +1,7 @@
 """This class performs database queries for the mri_protocol_violated_scans table"""
 
+from typing_extensions import deprecated
+
 
 class MriProtocolViolatedScans:
     """
@@ -33,6 +35,7 @@ class MriProtocolViolatedScans:
         self.db = db
         self.verbose = verbose
 
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_classification_error` instead.')
     def insert_protocol_violated_scans(self, field_value_dict):
         """
         Inserts a row into the mri_protocol_violated_scans table with information present in the

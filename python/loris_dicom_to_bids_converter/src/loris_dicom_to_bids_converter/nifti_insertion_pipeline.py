@@ -15,9 +15,11 @@ from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging_lib.file import register_mri_file
 from lib.imaging_lib.file_parameter import register_mri_file_parameters
-from lib.imaging_lib.mri_candidate_error import register_mri_candidate_error
-from lib.imaging_lib.mri_protocol_violated_scan import register_mri_protocol_violated_scan
-from lib.imaging_lib.mri_violation_log import register_mri_violation_log
+from lib.imaging_lib.mri_scan_errors import (
+    register_mri_scan_classification_error,
+    register_mri_scan_identification_error,
+    register_mri_scan_validation_error,
+)
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.logging import log_error_exit, log_verbose
@@ -247,7 +249,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
             log_verbose(self.env, f"Found scanner ID: {self.mri_scanner.id}")
         except SessionConfigError as error:
-            register_mri_candidate_error(
+            register_mri_scan_identification_error(
                 self.env,
                 self.dicom_archive.patient_name,
                 self.dicom_archive,
@@ -301,7 +303,7 @@ class NiftiInsertionPipeline(BasePipeline):
         nifti_pname = self.json_file_dict["PatientName"]
         if self.dicom_archive.patient_name != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
-            register_mri_candidate_error(
+            register_mri_scan_identification_error(
                 self.env,
                 nifti_pname,
                 self.dicom_archive,
@@ -604,7 +606,7 @@ class NiftiInsertionPipeline(BasePipeline):
         else:
             protocol_group = None
 
-        register_mri_protocol_violated_scan(
+        register_mri_scan_classification_error(
             self.env,
             Path(self.trashbin_nifti_rel_path),
             self.session.candidate,
@@ -635,7 +637,7 @@ class NiftiInsertionPipeline(BasePipeline):
 
         for violation in violations_list:
             value = violation['Value']
-            register_mri_violation_log(
+            register_mri_scan_validation_error(
                 self.env,
                 session=self.session,
                 dicom_archive=self.dicom_archive,

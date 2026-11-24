@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.mri_protocol_check as db_mri_protocol_check
-import lib.db.models.mri_violation_log as db_mri_violation_log
+import lib.db.models.mri_scan_validation_error as db_mri_scan_validation_error
 from lib.db.base import Base
 
 
@@ -13,5 +13,5 @@ class DbMriProtocolCheckGroup(Base):
 
     protocol_check: Mapped['db_mri_protocol_check.DbMriProtocolCheck'] \
         = relationship('DbMriProtocolCheck', back_populates='protocol_check_group')
-    violations_log: Mapped['db_mri_violation_log.DbMriViolationLog'] \
-        = relationship('DbMriViolationLog', back_populates='protocol_check_group')
+    scan_validation_errors: Mapped['db_mri_scan_validation_error.DbMriScanValidationError'] \
+        = relationship('DbMriScanValidationError', back_populates='protocol_check_group')

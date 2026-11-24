@@ -194,7 +194,7 @@ class Imaging:
         else:
             self.param_file_db_obj.insert_parameter_file(param_file_insert_info_dict)
 
-    @deprecated('Use `lib.imaging_lib.mri_candidate_error.register_mri_candidate_error` instead.')
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_identification_error` instead.')
     def insert_mri_candidate_errors(self, patient_name, tarchive_id, scan_param, file_rel_path, reason):
         """
         Insert a row into MriCandidateErrors table.
@@ -234,7 +234,7 @@ class Imaging:
         }
         self.mri_cand_errors_db_obj.insert_mri_candidate_errors(info_to_insert_dict)
 
-    @deprecated('Use `lib.imaging_lib.mri_protocol_violated_scan.register_mri_protocol_violated_scan` instead.')
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_classification_error` instead.')
     def insert_protocol_violated_scan(self, patient_name, cand_id, psc_id, tarchive_id, scan_param, file_rel_path,
                                       mri_protocol_group_id):
         """
@@ -303,7 +303,7 @@ class Imaging:
         }
         self.mri_prot_viol_scan_db_obj.insert_protocol_violated_scans(info_to_insert_dict)
 
-    @deprecated('Use `lib.imaging_lib.mri_violation_log.register_mri_violation_log` instead.')
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_validation_error` instead.')
     def insert_mri_violations_log(self, info_to_insert_dict):
         """
         Inserts into mri_violations_log table the entry determined by the information stored in

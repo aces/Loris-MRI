@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -24,5 +22,5 @@ class DbDicomArchiveFile(Base):
 
     archive : Mapped['db_dicom_archive.DbDicomArchive'] \
         = relationship('DbDicomArchive', back_populates='files')
-    series  : Mapped[Optional['db_dicom_archive_series.DbDicomArchiveSeries']] \
+    series  : Mapped['db_dicom_archive_series.DbDicomArchiveSeries | None'] \
         = relationship('DbDicomArchiveSeries', back_populates='files')

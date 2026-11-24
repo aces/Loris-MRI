@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,7 +32,7 @@ class DbMriUpload(Base):
     is_dicom_archive_validated  : Mapped[bool]            = mapped_column('IsTarchiveValidated', IntBool, default=False)
     is_phantom                  : Mapped[bool]            = mapped_column('IsPhantom', YNBool, default=False)
 
-    dicom_archive : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
+    dicom_archive : Mapped['db_dicom_archive.DbDicomArchive | None'] \
         = relationship('DbDicomArchive', back_populates='mri_uploads')
-    session       : Mapped[Optional['db_session.DbSession']] \
+    session       : Mapped['db_session.DbSession | None'] \
         = relationship('DbSession')

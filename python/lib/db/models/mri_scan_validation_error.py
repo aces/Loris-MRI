@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,7 +12,7 @@ from lib.db.base import Base
 from lib.db.decorators.string_path import StringPath
 
 
-class DbMriViolationLog(Base):
+class DbMriScanValidationError(Base):
     __tablename__ = 'mri_violations_log'
 
     id                      : Mapped[int]              = mapped_column('LogID', primary_key=True)
@@ -39,11 +38,11 @@ class DbMriViolationLog(Base):
     protocol_check_group_id : Mapped[int | None]       \
         = mapped_column('MriProtocolChecksGroupID', ForeignKey('mri_protocol_checks_group.MriProtocolChecksGroupID'))
 
-    archive              : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DbDicomArchive', back_populates='violations_log')
-    candidate            : Mapped[Optional['db_candidate.DbCandidate']] \
-        = relationship('DbCandidate', back_populates='violations_log')
-    scan_type            : Mapped[Optional['db_mri_scan_type.DbMriScanType']] \
-        = relationship('DbMriScanType', back_populates='violations_log')
-    protocol_check_group : Mapped[Optional['db_mri_protocol_check_group.DbMriProtocolCheckGroup']] \
-        = relationship('DbMriProtocolCheckGroup', back_populates='violations_log')
+    dicom_archive        : Mapped['db_dicom_archive.DbDicomArchive | None'] \
+        = relationship('DbDicomArchive', back_populates='mri_scan_validation_errors')
+    candidate            : Mapped['db_candidate.DbCandidate | None'] \
+        = relationship('DbCandidate', back_populates='mri_scan_validation_errors')
+    scan_type            : Mapped['db_mri_scan_type.DbMriScanType | None'] \
+        = relationship('DbMriScanType', back_populates='scan_validation_errors')
+    protocol_check_group : Mapped['db_mri_protocol_check_group.DbMriProtocolCheckGroup | None'] \
+        = relationship('DbMriProtocolCheckGroup', back_populates='scan_validation_errors')

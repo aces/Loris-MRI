@@ -1,5 +1,7 @@
 """This class performs database queries for the MRICandidateErrors table"""
 
+from typing_extensions import deprecated
+
 
 class MriCandidateErrors:
     """
@@ -32,6 +34,7 @@ class MriCandidateErrors:
         self.db = db
         self.verbose = verbose
 
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_identification_error` instead.')
     def insert_mri_candidate_errors(self, field_value_dict):
         """
         Inserts a row into the MRICandidateErrors table with information present in the

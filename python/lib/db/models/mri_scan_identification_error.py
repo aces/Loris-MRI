@@ -9,7 +9,7 @@ from lib.db.base import Base
 from lib.db.decorators.string_path import StringPath
 
 
-class DbMriCandidateError(Base):
+class DbMriScanIdentificationError(Base):
     __tablename__ = 'MRICandidateErrors'
 
     id                       : Mapped[int]          = mapped_column('ID', primary_key=True)
@@ -23,4 +23,4 @@ class DbMriCandidateError(Base):
     phase_encoding_direction : Mapped[str | None]   = mapped_column('PhaseEncodingDirection')
     echo_number              : Mapped[str | None]   = mapped_column('EchoNumber')
 
-    archive: Mapped['db_dicom_archive.DbDicomArchive | None'] = relationship('DbDicomArchive')
+    dicom_archive: Mapped['db_dicom_archive.DbDicomArchive | None'] = relationship('DbDicomArchive')

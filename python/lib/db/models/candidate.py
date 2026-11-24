@@ -4,8 +4,8 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 import lib.db.models.cohort as db_cohort
-import lib.db.models.mri_protocol_violated_scan as db_mri_protocol_violated_scan
-import lib.db.models.mri_violation_log as db_mri_violation_log
+import lib.db.models.mri_scan_classification_error as db_mri_scan_classification_error
+import lib.db.models.mri_scan_validation_error as db_mri_scan_validation_error
 import lib.db.models.project as db_project
 import lib.db.models.session as db_session
 import lib.db.models.site as db_site
@@ -48,7 +48,7 @@ class DbCandidate(Base):
     registration_site    : Mapped['db_site.DbSite']             = relationship('DbSite')
     registration_project : Mapped['db_project.DbProject']       = relationship('DbProject')
     registration_cohort  : Mapped['db_cohort.DbCohort | None']  = relationship('DbCohort')
-    violated_scans       : Mapped[list['db_mri_protocol_violated_scan.DbMriProtocolViolatedScan']] \
-        = relationship('DbMriProtocolViolatedScan', back_populates='candidate')
-    violations_log       : Mapped[list['db_mri_violation_log.DbMriViolationLog']] \
-        = relationship('DbMriViolationLog', back_populates='candidate')
+    mri_scan_classification_errors: Mapped[list['db_mri_scan_classification_error.DbMriScanClassificationError']] \
+        = relationship('DbMriScanClassificationError', back_populates='candidate')
+    mri_scan_validation_errors: Mapped[list['db_mri_scan_validation_error.DbMriScanValidationError']] \
+        = relationship('DbMriScanValidationError', back_populates='candidate')
