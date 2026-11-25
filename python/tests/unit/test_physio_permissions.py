@@ -16,6 +16,7 @@ from lib.physio.permissions import (
 )
 
 
+@pytest.mark.parametrize('session_active', [True, False])
 @pytest.mark.parametrize(
     ('permission', 'same_project', 'same_site', 'module_active', 'expected'),
     [
@@ -34,6 +35,7 @@ def test_ephys_browser_session_access(
     same_project: bool,
     same_site: bool,
     module_active: bool,
+    session_active: bool,
     expected: bool,
 ):
     module = DbModule(name=EPHYS_BROWSER_MODULE, active=module_active)
@@ -61,11 +63,11 @@ def test_ephys_browser_session_access(
         permissions=[] if permission is None else [permissions[permission]],
     )
 
-    session = DbSession(candidate_id=1, visit_label='V1', project=project, site=site)
+    session = DbSession(candidate_id=1, visit_label='V1', project=project, site=site, active=session_active)
 
     env.db.add_all([module, view_all, view_own, user])
 
-    assert user_can_access_ephys_browser_session(env, user, session) is expected
+    assert user_can_access_ephys_browser_session(env, user, session) is (expected and session_active)
 
 
 def test_ephys_browser_access_requires_a_view_permission(env: Env):

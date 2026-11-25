@@ -26,6 +26,9 @@ def user_can_access_ephys_browser_session(env: Env, user: DbUser, session: DbSes
     Check whether a user can view an electrophysiology browser session.
     """
 
+    if not session.active:
+        return False
+
     if not user_can_access_ephys_browser(env, user) or not user_can_access_project(env, user, session.project):
         return False
 
