@@ -136,10 +136,16 @@ for package in ./python/loris_*; do pip install --no-deps -e $package; done
 Once `uv` is installed, LORIS Python and all its packages can be installed in editable mode using the following command:
 
 ```sh
-uv pip install -e /path/to/loris/python
+uv sync
 ```
 
-Note that the `uv pip ...` command just means that `uv` emulates a `pip`-like interface, `uv` does not use `pip` under the hood.
+Unlike `pip`, `uv sync` installs dependencies from the derived [`uv.lock`](https://docs.astral.sh/uv/concepts/projects/layout/#the-lockfile) file rather than the `pyproject.toml` file directly. This lockfile approach allows LORIS Python to differentiate desired dependency versions from currently supported dependency versions, and allows all LORIS Python `uv` user to use the exact same dependency versions.
+
+To update the `uv.lock` file based on the `pyproject.toml` specification and the latest compatible dependency versions, use the following command:
+
+```sh
+uv lock
+```
 
 ## Versioning and release
 
