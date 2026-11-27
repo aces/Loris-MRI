@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
 
     config_file = load_config(args.profile)
-    env = make_env('check_orm_sql_sync', {}, config_file, args.verbose)
+    env = make_env('check-orm-sql-sync', args, config_file, args.verbose)
 
     differences = check_orm_sql_sync(env)
     if differences:

@@ -8,11 +8,7 @@ from tests.util.run_integration_script import run_integration_script
 def test_import_dicom_study():
     db = get_integration_database_session()
 
-    process = run_integration_script([
-        'import-dicom-study',
-        '--source', '/data/loris/incoming/ROM168_400168_V2',
-        '--insert', '--session',
-    ])
+    process = run_integration_script(['import-dicom-study', '/data/loris/incoming/ROM168_400168_V2'])
 
     # Check the return code and standard error output.
     assert process.returncode == 0

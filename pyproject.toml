@@ -32,6 +32,11 @@ dependencies = [
     "loris-utils                   @ {root:uri}/python/loris_utils",
 ]
 
+[project.scripts]
+check-orm-sql-sync = "scripts.check_orm_sql_sync:main"
+create-ephys-chunks = "scripts.create_ephys_chunks:main"
+create-nifti-pic    = "scripts.create_nifti_pic:main"
+
 [project.optional-dependencies]
 # Dependencies used to run the unit and integration tests.
 test = [
@@ -54,6 +59,7 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = [
     "python/lib",
+    "python/scripts",
     "python/tests",
 ]
 
