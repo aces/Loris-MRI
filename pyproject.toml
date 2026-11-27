@@ -22,7 +22,7 @@ dependencies = [
     "python-dateutil",
     "requests",
     "scipy",
-    "sqlalchemy>=2.0.0",
+    "sqlalchemy>=2.1.9",
     "typing-extensions",
     "loris-bids-importer           @ {root:uri}/python/loris_bids_importer",
     "loris-bids-utils              @ {root:uri}/python/loris_bids_utils",
