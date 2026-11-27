@@ -5,13 +5,16 @@ from pathlib import Path
 from lib.config import get_data_dir_path_config
 from lib.db.models.bids_dataset import DbBidsDataset
 from lib.db.models.bids_file import DbBidsFile
+from lib.db.models.bids_file_entity import DbBidsFileEntity
 from lib.db.queries.bids_dataset import try_get_bids_dataset_with_path
 from lib.db.queries.bids_file import try_get_bids_file_with_dataset_id_path
 from lib.env import Env
 from lib.logging import log_error_exit
+from loris_bids_utils.path import parse_bids_entities, parse_bids_suffix
 from loris_bids_utils.reader import BidsDatasetReader
-from loris_utils.crypto import compute_directory_blake2b_hash, compute_file_blake2b_hash
+from loris_utils.crypto import compute_path_blake2b_hash
 from loris_utils.error import format_exception
+from loris_utils.path import get_path_extension
 
 from loris_bids_importer.importer import BidsImporter, BidsImporterArgs
 
@@ -107,6 +110,8 @@ def get_or_create_loris_bids_file(
     importer: BidsImporter,
     source_file_path: Path,
     loris_file_path: Path,
+    *,
+    parse_bids_name: bool = True,
 ) -> DbBidsFile:
     """
     Create or update the LORIS database record for a BIDS file.
@@ -125,22 +130,31 @@ def get_or_create_loris_bids_file(
 
     file_path = importer.data_dir_path / loris_file_path
 
-    # Some directories such as MEG CTF directories might be registered a single file in the LORIS
-    # database.
-    if file_path.is_dir():
-        blake2b_hash = compute_directory_blake2b_hash(file_path)
+    blake2b_hash = compute_path_blake2b_hash(file_path)
+
+    if parse_bids_name:
+        entities = parse_bids_entities(bids_file_path.name)
+        suffix = parse_bids_suffix(bids_file_path.name)
     else:
-        blake2b_hash = compute_file_blake2b_hash(file_path)
+        entities = {}
+        suffix = None
+
+    extension = get_path_extension(bids_file_path)
 
     bids_file = try_get_bids_file_with_dataset_id_path(env.db, importer.loris_bids_dataset.id, bids_file_path)
 
     if bids_file is None:
         bids_file = DbBidsFile(
-            dataset_id    = importer.loris_bids_dataset.id,
-            path          = bids_file_path,
-            source_path   = source_bids_file_path,
-            blake2b_hash  = blake2b_hash,
-            derivative    = derivative,
+            dataset_id   = importer.loris_bids_dataset.id,
+            path         = bids_file_path,
+            suffix       = suffix,
+            extension    = extension,
+            source_path  = source_bids_file_path,
+            blake2b_hash = blake2b_hash,
+            derivative   = derivative,
+            entities     = [
+                DbBidsFileEntity(key=key, value=value) for key, value in entities.items()
+            ],
         )
 
         env.db.add(bids_file)

@@ -3,6 +3,16 @@ from hashlib import blake2b
 from pathlib import Path
 
 
+def compute_path_blake2b_hash(path: Path) -> str:
+    """
+    Compute the BLAKE2b hash of a file or directory.
+    """
+
+    hash = blake2b()
+    update_path_blake2b_hash(path, hash)
+    return hash.hexdigest()
+
+
 def compute_file_blake2b_hash(file_path: Path) -> str:
     """
     Compute the BLAKE2b hash of a file.
@@ -21,6 +31,17 @@ def compute_directory_blake2b_hash(dir_path: Path) -> str:
     hash = blake2b()
     update_directory_blake2b_hash(dir_path, hash)
     return hash.hexdigest()
+
+
+def update_path_blake2b_hash(path: Path, hash: blake2b):
+    """
+    Update a BLAKE2b hash with the contents of a file or directory.
+    """
+
+    if path.is_dir():
+        update_directory_blake2b_hash(path, hash)
+    else:
+        update_file_blake2b_hash(path, hash)
 
 
 def update_file_blake2b_hash(file_path: Path, hash: blake2b):
@@ -45,11 +66,7 @@ def update_directory_blake2b_hash(dir_path: Path, hash: blake2b):
         # The file name is included in the hash to ensure the directory structure is reflected in
         # the hash.
         hash.update(path.name.encode())
-        # Symlinks are currently not included in the hash.
-        if path.is_file():
-            update_file_blake2b_hash(path, hash)
-        elif path.is_dir():
-            update_directory_blake2b_hash(path, hash)
+        update_path_blake2b_hash(path, hash)
 
 
 def compute_file_md5_hash(file_path: Path | str) -> str:
