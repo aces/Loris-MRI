@@ -1,5 +1,7 @@
 """This class performs database queries for the mri_violations_log table"""
 
+from typing_extensions import deprecated
+
 
 class MriViolationsLog:
     """
@@ -32,6 +34,7 @@ class MriViolationsLog:
         self.db = db
         self.verbose = verbose
 
+    @deprecated('Use `lib.imaging_lib.mri_scan_errors.register_mri_scan_validation_error` instead.')
     def insert_violations_log(self, field_value_dict):
         """
         Inserts a row into the `mri_violations_log` table with information present in the

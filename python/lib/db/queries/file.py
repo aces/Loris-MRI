@@ -11,13 +11,13 @@ from lib.db.models.parameter_type import DbParameterType
 def try_get_file_with_unique_combination(
     db: Database,
     series_uid: str,
-    echo_time: str | None,
+    echo_time: float | None,
     echo_number: str | None,
     phase_encoding_direction: str | None
 ) -> DbFile | None:
     """
-    Get a file from the database using its SeriesInstanceUID, or return `None` if
-    no file was found.
+    Get a file from the database using its series UID, echo time, echo number and phase encoding
+    direction, or return `None` if no file is found.
     """
 
     return db.execute(select(DbFile)

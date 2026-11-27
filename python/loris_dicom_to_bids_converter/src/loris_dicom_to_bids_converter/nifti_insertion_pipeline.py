@@ -7,12 +7,19 @@ import sys
 from pathlib import Path
 
 import lib.exitcode
+from lib.db.queries.bids_mri_scan_type import try_get_bids_mri_scan_type_with_scan_type_id
 from lib.db.queries.dicom_archive import try_get_dicom_archive_series_with_series_uid_echo_time
-from lib.db.queries.file import try_get_file_with_hash
+from lib.db.queries.file import try_get_file_with_hash, try_get_file_with_unique_combination
+from lib.db.queries.mri_protocol_group import try_get_mri_protocol_group_with_id
 from lib.db.queries.mri_scan_type import try_get_mri_scan_type_with_id, try_get_mri_scan_type_with_name
 from lib.get_session_info import SessionConfigError, get_dicom_archive_session_info
 from lib.imaging_lib.file import register_mri_file
 from lib.imaging_lib.file_parameter import register_mri_file_parameters
+from lib.imaging_lib.mri_scan_errors import (
+    register_mri_scan_classification_error,
+    register_mri_scan_identification_error,
+    register_mri_scan_validation_error,
+)
 from lib.imaging_lib.nifti import add_nifti_spatial_file_parameters
 from lib.imaging_lib.nifti_pic import create_nifti_preview_picture
 from lib.logging import log_error_exit, log_verbose
@@ -21,6 +28,7 @@ from loris_bids_importer.mri.sidecar import add_bids_mri_sidecar_file_parameters
 from loris_bids_utils.mri.sidecar import BidsMriSidecarJsonFile
 from loris_bids_utils.path import build_bids_file_name, build_bids_modality_path
 from loris_utils.crypto import compute_file_blake2b_hash, compute_file_md5_hash
+from loris_utils.iter import map_non_none
 from loris_utils.path import get_path_extension
 
 from loris_dicom_to_bids_converter.base_pipeline import BasePipeline
@@ -140,8 +148,8 @@ class NiftiInsertionPipeline(BasePipeline):
         # ------------------------------------------------------------------------------------------
         # Determine BIDS scan type info based on scan_type_id
         # ------------------------------------------------------------------------------------------
-        self.bids_categories_dict = self.imaging_obj.get_bids_categories_mapping_for_scan_type_id(self.scan_type.id)
-        if not self.bids_categories_dict:
+        self.bids_scan_type = try_get_bids_mri_scan_type_with_scan_type_id(self.env.db, self.scan_type.id)
+        if self.bids_scan_type is None:
             self._move_to_trashbin()
             self._register_protocol_violated_scan()
             if self.nifti_s3_url:  # push violations to S3 if provided file was on S3
@@ -241,13 +249,17 @@ class NiftiInsertionPipeline(BasePipeline):
 
             log_verbose(self.env, f"Found scanner ID: {self.mri_scanner.id}")
         except SessionConfigError as error:
-            self.imaging_obj.insert_mri_candidate_errors(
+            register_mri_scan_identification_error(
+                self.env,
                 self.dicom_archive.patient_name,
-                self.dicom_archive.id,
-                self.json_file_dict,
-                str(self.nifti_path),
+                self.dicom_archive,
+                self.nifti_path,
+                self.json_file_dict.get('SeriesUID'),
+                self.json_file_dict.get('EchoTime'),
                 str(error),
             )
+
+            self.env.db.commit()
 
             if self.nifti_s3_url:  # push candidate errors to S3 if provided file was on S3
                 self._run_push_to_s3_pipeline()
@@ -291,13 +303,17 @@ class NiftiInsertionPipeline(BasePipeline):
         nifti_pname = self.json_file_dict["PatientName"]
         if self.dicom_archive.patient_name != nifti_pname:
             err_msg = "PatientName in DICOM and NIfTI files differ."
-            self.imaging_obj.insert_mri_candidate_errors(
+            register_mri_scan_identification_error(
+                self.env,
                 nifti_pname,
-                self.dicom_archive.id,
-                self.json_file_dict,
-                str(self.nifti_path),
-                err_msg
+                self.dicom_archive,
+                self.nifti_path,
+                self.json_file_dict.get('SeriesUID'),
+                self.json_file_dict.get('EchoTime'),
+                err_msg,
             )
+
+            self.env.db.commit()
 
             log_error_exit(self.env, err_msg, lib.exitcode.FILENAME_MISMATCH)
 
@@ -320,13 +336,14 @@ class NiftiInsertionPipeline(BasePipeline):
             echo_nb = self.json_file_dict["EchoNumber"] if "EchoNumber" in json_keys else None
             phase_enc_dir = self.json_file_dict["PhaseEncodingDirection"] \
                 if "PhaseEncodingDirection" in json_keys else None
-            match = self.imaging_obj.grep_file_info_from_series_uid_and_echo_time(
-                series_uid, echo_time, phase_enc_dir, echo_nb
+            match = try_get_file_with_unique_combination(
+                self.env.db, series_uid, echo_time, map_non_none(echo_nb, str), phase_enc_dir,
             )
+
             if match:
                 error_msg = f"There is already a file registered in the files table with SeriesUID {series_uid}," \
                             f" EchoTime {echo_time}, EchoNumber {echo_nb} and PhaseEncodingDirection {phase_enc_dir}." \
-                            f" The already registered file is {match['File']}"
+                            f" The already registered file is {match.path}"
 
             # If force option has been used, check that there is no matching SeriesUID/EchoTime
             # entry in tarchive_series
@@ -397,7 +414,11 @@ class NiftiInsertionPipeline(BasePipeline):
         """
 
         # add TaskName to the JSON file if the file's BIDS scan type subcategory contains task-*
-        bids_subcategories = self.bids_categories_dict['BIDSScanTypeSubCategory']
+        if self.bids_scan_type.subcategory is not None:
+            bids_subcategories = self.bids_scan_type.subcategory.name
+        else:
+            bids_subcategories = None
+
         if self.sidecar_json is not None and bids_subcategories and 'task-' in bids_subcategories:
             # FIXME: This code writes data in the input files, this should be avoided.
             self.sidecar_json.data['TaskName'] = re.search(r'task-([a-zA-Z0-9]*)', bids_subcategories).group(1)
@@ -440,16 +461,16 @@ class NiftiInsertionPipeline(BasePipeline):
             'ses': self.session.visit_label,
             'run': 1
         }
-        if self.bids_categories_dict['BIDSEchoNumber']:
-            file_bids_entities_dict['echo'] = self.bids_categories_dict['BIDSEchoNumber']
-        if self.bids_categories_dict['BIDSScanTypeSubCategory']:
-            subcategories_list = self.bids_categories_dict['BIDSScanTypeSubCategory'].split('_')
+        if self.bids_scan_type.echo_number:
+            file_bids_entities_dict['echo'] = self.bids_scan_type.echo_number
+        if self.bids_scan_type.subcategory is not None:
+            subcategories_list = self.bids_scan_type.subcategory.name.split('_')
             for subcategory in subcategories_list:
                 key, value = subcategory.split('-')
                 file_bids_entities_dict[key] = value
 
         # determine where the file should go
-        bids_subfolder = self.bids_categories_dict['BIDSCategoryName']
+        bids_subfolder = self.bids_scan_type.category.name
 
         # determine NIfTI file name
         already_inserted_filenames = [file.path.name for file in self.session.files]
@@ -480,7 +501,7 @@ class NiftiInsertionPipeline(BasePipeline):
          :rtype: str
         """
 
-        suffix = self.bids_categories_dict['BIDSScanType']
+        suffix = self.bids_scan_type.bids_scan_type.name
         entities = dict(file_bids_entities_dict)
         if suffix == 'magnitude' and 'echo' in entities:
             suffix = f"magnitude{entities.pop('echo')}"
@@ -580,27 +601,22 @@ class NiftiInsertionPipeline(BasePipeline):
         elif self.dicom_archive is not None:
             patient_name = self.dicom_archive.patient_name
 
-        self.imaging_obj.insert_protocol_violated_scan(
+        if self.mri_protocol_group_id:
+            protocol_group = try_get_mri_protocol_group_with_id(self.env.db, self.mri_protocol_group_id)
+        else:
+            protocol_group = None
+
+        register_mri_scan_classification_error(
+            self.env,
+            Path(self.trashbin_nifti_rel_path),
+            self.session.candidate,
+            self.dicom_archive,
+            protocol_group,
             patient_name,
-            self.session.candidate.cand_id,
-            self.session.candidate.psc_id,
-            self.dicom_archive.id,
             self.json_file_dict,
-            self.trashbin_nifti_rel_path,
-            self.mri_protocol_group_id
         )
 
-    def _register_mri_candidate_errors(self):
-
-        patient_name = None
-        if "PatientName" in self.json_file_dict.keys():
-            patient_name = self.json_file_dict["PatientName"]
-        elif self.dicom_archive is not None:
-            patient_name = self.dicom_archive.patient_name
-
-        self.imaging_obj.insert_mri_candidate_errors(
-            patient_name
-        )
+        self.env.db.commit()
 
     def _register_violations_log(self, violations_list, file_rel_path):
         """
@@ -613,25 +629,35 @@ class NiftiInsertionPipeline(BasePipeline):
                               violation's severity)
          :type file_rel_path: str
         """
+
         scan_param = self.json_file_dict
-        phase_enc_dir = scan_param['PhaseEncodingDirection'] if 'PhaseEncodingDirection' in scan_param.keys() else None
-        base_info_dict = {
-            'TimeRun': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'SeriesUID': scan_param['SeriesInstanceUID'] if 'SeriesInstanceUID' in scan_param.keys() else None,
-            'TarchiveID': self.dicom_archive.id,
-            'MincFile': file_rel_path,
-            'PatientName': self.json_file_dict['PatientName'],
-            'CandidateID': self.session.candidate.id,
-            'Visit_label': self.session.visit_label,
-            'MriScanTypeID': self.scan_type.id,
-            'EchoTime': scan_param['EchoTime'] if 'EchoTime' in scan_param.keys() else None,
-            'EchoNumber': scan_param['EchoNumber'] if 'EchoNumber' in scan_param.keys() else None,
-            'PhaseEncodingDirection': phase_enc_dir,
-            'MriProtocolChecksGroupID': self.mri_protocol_group_id
-        }
-        for violation_dict in violations_list:
-            info_to_insert_dict = base_info_dict | violation_dict
-            self.imaging_obj.insert_mri_violations_log(info_to_insert_dict)
+        patient_name = scan_param.get('PatientName')
+        if patient_name is None and self.dicom_archive is not None:
+            patient_name = self.dicom_archive.patient_name
+
+        for violation in violations_list:
+            value = violation['Value']
+            register_mri_scan_validation_error(
+                self.env,
+                session=self.session,
+                dicom_archive=self.dicom_archive,
+                scan_type=self.scan_type,
+                file_path=Path(file_rel_path),
+                patient_name=patient_name,
+                series_uid=scan_param.get('SeriesInstanceUID'),
+                echo_time=scan_param.get('EchoTime'),
+                echo_number=map_non_none(scan_param.get('EchoNumber'), repr),
+                phase_encoding_direction=scan_param.get('PhaseEncodingDirection'),
+                protocol_check_group_id=violation.get('MriProtocolChecksGroupID', self.mri_protocol_group_id),
+                check_id=violation.get('CheckID'),
+                severity=violation['Severity'],
+                header=violation['Header'],
+                value=str(value) if value is not None else None,
+                valid_range=violation['ValidRange'],
+                valid_regex=violation['ValidRegex'],
+            )
+
+        self.env.db.commit()
 
     def _register_into_files_and_parameter_file(self, nifti_rel_path):
         """

@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -12,7 +11,7 @@ from lib.db.base import Base
 from lib.db.decorators.string_path import StringPath
 
 
-class DbMriProtocolViolatedScan(Base):
+class DbMriScanClassificationError(Base):
     __tablename__ = 'mri_protocol_violated_scans'
 
     id                       : Mapped[int]             = mapped_column('ID', primary_key=True)
@@ -41,9 +40,9 @@ class DbMriProtocolViolatedScan(Base):
     protocol_group_id        : Mapped[int | None]      \
         = mapped_column('MriProtocolGroupID', ForeignKey('mri_protocol_group.MriProtocolGroupID'))
 
-    candidate     : Mapped[Optional['db_candidate.DbCandidate']] \
-        = relationship('DbCandidate', back_populates='violated_scans')
-    archive       : Mapped[Optional['db_dicom_archive.DbDicomArchive']] \
-        = relationship('DbDicomArchive', back_populates='violated_scans')
-    protocol_group: Mapped['db_mri_protocol_group.DbMriProtocolGroup']\
-        = relationship('DbMriProtocolGroup', back_populates='violated_scans')
+    candidate      : Mapped['db_candidate.DbCandidate | None'] \
+        = relationship('DbCandidate', back_populates='mri_scan_classification_errors')
+    dicom_archive  : Mapped['db_dicom_archive.DbDicomArchive | None'] \
+        = relationship('DbDicomArchive', back_populates='mri_scan_classification_errors')
+    protocol_group : Mapped['db_mri_protocol_group.DbMriProtocolGroup'] \
+        = relationship('DbMriProtocolGroup', back_populates='scan_classification_errors')

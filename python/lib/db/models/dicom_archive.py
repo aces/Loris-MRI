@@ -1,6 +1,5 @@
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,9 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import lib.db.models.dicom_archive_file as db_dicom_archive_file
 import lib.db.models.dicom_archive_series as db_dicom_archive_series
 import lib.db.models.file as db_file
-import lib.db.models.mri_protocol_violated_scan as db_mri_protocol_violated_scan
+import lib.db.models.mri_scan_classification_error as db_mri_scan_classification_error
+import lib.db.models.mri_scan_validation_error as db_mri_scan_validation_error
 import lib.db.models.mri_upload as db_mri_upload
-import lib.db.models.mri_violation_log as db_mri_violation_log
 import lib.db.models.session as db_session
 from lib.db.base import Base
 from lib.db.decorators.string_path import StringPath
@@ -59,12 +58,12 @@ class DbDicomArchive(Base):
         = relationship('DbDicomArchiveFile', back_populates='archive')
     mri_uploads : Mapped[list['db_mri_upload.DbMriUpload']] \
         = relationship('DbMriUpload', back_populates='dicom_archive')
-    session     : Mapped[Optional['db_session.DbSession']] \
+    session     : Mapped['db_session.DbSession | None'] \
         = relationship('DbSession')
-    violated_scans: Mapped[list['db_mri_protocol_violated_scan.DbMriProtocolViolatedScan']] \
-        = relationship('DbMriProtocolViolatedScan', back_populates='archive')
-    violations_log       : Mapped[list['db_mri_violation_log.DbMriViolationLog']] \
-        = relationship('DbMriViolationLog', back_populates='archive')
+    mri_scan_classification_errors: Mapped[list['db_mri_scan_classification_error.DbMriScanClassificationError']] \
+        = relationship('DbMriScanClassificationError', back_populates='dicom_archive')
+    mri_scan_validation_errors: Mapped[list['db_mri_scan_validation_error.DbMriScanValidationError']] \
+        = relationship('DbMriScanValidationError', back_populates='dicom_archive')
 
     mri_files: Mapped[list['db_file.DbFile']] = relationship('DbFile', back_populates='dicom_archive')
     """

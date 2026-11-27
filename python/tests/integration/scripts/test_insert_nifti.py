@@ -5,9 +5,9 @@ from pathlib import Path
 
 from lib.db.queries.file import try_get_file_with_unique_combination
 from lib.db.queries.file_parameter import try_get_parameter_value_with_file_id_parameter_name
-from lib.db.queries.mri_protocol_violated_scan import get_protocol_violated_scans_with_unique_series_combination
+from lib.db.queries.mri_scan_classification_error import get_scan_classification_errors_with_unique_series_combination
+from lib.db.queries.mri_scan_validation_error import get_scan_validation_errors_with_unique_series_combination
 from lib.db.queries.mri_upload import get_mri_upload_with_patient_name
-from lib.db.queries.mri_violation_log import get_violations_log_with_unique_series_combination
 from lib.exitcode import (
     FILE_NOT_UNIQUE,
     FILENAME_MISMATCH,
@@ -274,13 +274,13 @@ def test_nifti_already_inserted():
     assert process.stdout == ""
 
 
-def test_nifti_mri_protocol_violated_scans_features():
+def test_nifti_mri_scan_classification_error_features():
     """
-    Test the following NIfTI protocol violated scan features:
-    - provide a scan with no matching protocol and check that it gets inserted in the violated scan
-      table
-    - re-run the script on the same scan and check that no duplicated entries has been saved in the
-      violated scan table
+    Test the following NIfTI scan classification error features:
+    - provide a scan with no matching protocol and check that it gets recorded as a scan
+      classification error
+    - re-run the script on the same scan and check that no duplicate scan classification errors
+      have been saved
     - re-run the script on the same scan with specification of the scan type as an argument to the
       script and check that it got inserted into the files table (in addition, test not creating the
     pic for the scan and make sure
@@ -290,7 +290,7 @@ def test_nifti_mri_protocol_violated_scans_features():
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116361477745078942.0.0.0'
     phase_encoding_direction = 'i'
-    echo_time = '0.005'
+    echo_time = 0.005
     echo_number = None
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_unknown_scan_type.json'
@@ -312,26 +312,26 @@ def test_nifti_mri_protocol_violated_scans_features():
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violated_scans = get_protocol_violated_scans_with_unique_series_combination(
+    scan_classification_errors = get_scan_classification_errors_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
     # Check that the NIfTI file was not inserted in files table
     assert mri_upload.session and len(mri_upload.session.files) == 1
-    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table
-    assert violated_scans is not None and len(violated_scans) == 1
-    violated_scan_entry = violated_scans[0]
+    # Check that a scan classification error was recorded for the NIfTI file
+    assert scan_classification_errors is not None and len(scan_classification_errors) == 1
+    scan_classification_error = scan_classification_errors[0]
 
     # Check that the NIfTI file can be found on the disk
-    assert violated_scan_entry.file_path is not None
-    assert os.path.exists(os.path.join('/data/loris/', violated_scan_entry.file_path))
+    assert scan_classification_error.file_path is not None
+    assert os.path.exists(os.path.join('/data/loris/', scan_classification_error.file_path))
 
-    # Rerun the script to test that it did not duplicate the entry in MRI protocol violated scans
-    # Note: need to copy the violated file into incoming to rerun the script
-    new_nifti_path = os.path.join('/data/loris/', violated_scan_entry.file_path)
+    # Rerun the script to test that it did not duplicate the scan classification error
+    # Note: need to copy the unclassified scan into incoming to rerun the script
+    new_nifti_path = os.path.join('/data/loris/', scan_classification_error.file_path)
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
@@ -347,18 +347,18 @@ def test_nifti_mri_protocol_violated_scans_features():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
-    # Check that there is still only 1 entry matching in violated scans
-    violated_scans = get_protocol_violated_scans_with_unique_series_combination(
+    # Check that there is still only 1 matching scan classification error
+    scan_classification_errors = get_scan_classification_errors_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
-    assert len(violated_scans) == 1
+    assert len(scan_classification_errors) == 1
 
     # Rerun the script and specify the scan type as an argument
-    # Note: need to recopy the violated file into incoming to rerun the script
+    # Note: need to recopy the unclassified scan into incoming to rerun the script
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
     process = run_integration_script([
@@ -408,13 +408,13 @@ def test_nifti_mri_protocol_violated_scans_features():
     })
 
 
-def test_nifti_mri_violations_log_exclude_features():
+def test_nifti_mri_scan_validation_error_exclude_features():
     """
-    Test the following NIfTI violations exclusion features:
-    - provide a scan with exclusionary violation checks and check that it gets inserted in the
-      violations log table
-    - re-run the script on the same scan and check that no duplicated entries has been saved in the
-      violations log table
+    Test the following NIfTI scan validation error exclusion features:
+    - provide a scan that fails exclusionary checks and check that a scan validation error
+      is recorded
+    - re-run the script on the same scan and check that no duplicate scan validation errors
+      have been saved
     - re-run the script on the same scan with option to bypass the extra checks and check that the
       file got inserted in the files table (in addition, test not creating the pic for the scan and
       make sure it is not generated)
@@ -423,9 +423,9 @@ def test_nifti_mri_violations_log_exclude_features():
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101117085370136129517.0.0.0'
     phase_encoding_direction = 'j-'
-    echo_time = '0.103'
+    echo_time = 0.103
     echo_number = None
-    expected_violation = [{
+    expected_validation_errors = [{
         'Severity': 'exclude',
         'Header': 'repetition_time',
         'Value': 11.2,
@@ -451,34 +451,33 @@ def test_nifti_mri_violations_log_exclude_features():
 
     # Check return code, STDOUT and STDERR
     expected_stderr = f"ERROR: {nifti_path} violates exclusionary checks listed in mri_protocol_checks." \
-                      f" List of violations are: {expected_violation}"
+                      f" List of violations are: {expected_validation_errors}"
     assert process.returncode == UNKNOWN_PROTOCOL
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
     # Check that the expected data has been inserted in the database in the proper table
     mri_upload = get_mri_upload_with_patient_name(db, 'ROM184_400184_V3')
-    violations = get_violations_log_with_unique_series_combination(
+    scan_validation_errors = get_scan_validation_errors_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
-    # Check that the NIfTI file was not inserted in files table (original file + violated scan
+    # Check that the NIfTI file was not inserted in files table (original file + unclassified scan
     # force-inserted above)
     assert mri_upload.session and len(mri_upload.session.files) == 2
-    # Check that the NIfTI file got inserted in the mri_protocol_violated_scans table and the
-    # attached file can be found on the disk
-    assert len(violations) == 1
-    violation_entry = violations[0]
-    assert violation_entry.file_path is not None
-    assert violation_entry.severity == 'exclude'
+    # Check that a scan validation error was recorded and its file exists on disk
+    assert len(scan_validation_errors) == 1
+    scan_validation_error = scan_validation_errors[0]
+    assert scan_validation_error.file_path is not None
+    assert scan_validation_error.severity == 'exclude'
 
     # Check that the NIfTI file can be found in the filesystem
-    assert os.path.exists(os.path.join('/data/loris/', violation_entry.file_path))
+    assert os.path.exists(os.path.join('/data/loris/', scan_validation_error.file_path))
     # Check that the rest of the expected files have been created
-    new_nifti_path = os.path.join('/data/loris/', violation_entry.file_path)
+    new_nifti_path = os.path.join('/data/loris/', scan_validation_error.file_path)
     new_json_path = new_nifti_path.replace('.nii.gz', '.json')
     new_bval_path = new_nifti_path.replace('.nii.gz', '.bval')
     new_bvec_path = new_nifti_path.replace('.nii.gz', '.bvec')
@@ -486,8 +485,8 @@ def test_nifti_mri_violations_log_exclude_features():
     assert os.path.exists(new_bval_path)
     assert os.path.exists(new_bvec_path)
 
-    # Rerun the script to test that it did not duplicate the entry in MRI violations log
-    # Note: need to copy the violation file into incoming to rerun the script
+    # Rerun the script to test that it did not duplicate the scan validation error
+    # Note: need to copy the scan that failed validation into incoming to rerun the script
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
     shutil.copyfile(new_bval_path, bval_path)
@@ -506,17 +505,17 @@ def test_nifti_mri_violations_log_exclude_features():
     assert expected_stderr in process.stderr
     assert process.stdout == ""
 
-    violations = get_violations_log_with_unique_series_combination(
+    scan_validation_errors = get_scan_validation_errors_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
-    assert len(violations) == 1
+    assert len(scan_validation_errors) == 1
 
     # Rerun the script with bypassing the extra checks
-    # Note: need to recopy the violation file into incoming to rerun the script
+    # Note: need to recopy the scan that failed validation into incoming to rerun the script
     shutil.copyfile(new_nifti_path, nifti_path)
     shutil.copyfile(new_json_path, json_path)
     shutil.copyfile(new_bval_path, bval_path)
@@ -574,15 +573,15 @@ def test_nifti_mri_violations_log_exclude_features():
     })
 
 
-def test_dwi_insertion_with_mri_violations_log_warning():
+def test_dwi_insertion_with_mri_scan_validation_error_warning():
     """
-    Test insertion of DWI file into files table with a warning protocol violation.
+    Test insertion of a DWI file with a scan validation error of warning severity.
     """
     db = get_integration_database_session()
 
     series_uid = '1.3.12.2.1107.5.2.32.35412.2012101116492064679881426.0.0.0'
     phase_encoding_direction = 'j-'
-    echo_time = '0.102'
+    echo_time = 0.102
     echo_number = None
     nifti_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.nii.gz'
     json_path = '/data/loris/incoming/niftis/ROM184_400184_V3_violation_log_warning.json'
@@ -614,24 +613,24 @@ def test_dwi_insertion_with_mri_violations_log_warning():
         echo_number,
         phase_encoding_direction
     )
-    violations = get_violations_log_with_unique_series_combination(
+    scan_validation_errors = get_scan_validation_errors_with_unique_series_combination(
         db,
         series_uid,
-        echo_time,
+        str(echo_time),
         echo_number,
         phase_encoding_direction
     )
 
     # Check that the NIfTI file was inserted in `files` and `mri_violations_log` tables
     assert file is not None
-    assert len(violations) == 1
-    violation_entry = violations[0]
-    assert violation_entry.file_path is not None
-    assert violation_entry.severity == 'warning'
+    assert len(scan_validation_errors) == 1
+    scan_validation_error = scan_validation_errors[0]
+    assert scan_validation_error.file_path is not None
+    assert scan_validation_error.severity == 'warning'
 
     # Check that all files related to that image have been properly linked in the database
     file_base_rel_path = 'assembly_bids/sub-400184/ses-V3/dwi/sub-400184_ses-V3_acq-25dir_run-1_dwi'
-    assert violation_entry.file_path \
+    assert scan_validation_error.file_path \
            == file.path \
            == Path(f'{file_base_rel_path}.nii.gz')
     file_json_data = try_get_parameter_value_with_file_id_parameter_name(db, file.id, 'bids_json_file')
