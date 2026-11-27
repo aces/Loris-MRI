@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from loris_bids_utils.files.participants import BidsParticipantTsvRow
 from loris_bids_utils.files.scans import BidsScansTsvFile, BidsScanTsvRow
+from loris_bids_utils.labels import BidsSessionLabel, BidsSubjectLabel
 
 
 @dataclass
@@ -10,7 +11,7 @@ class BidsSubjectInfo:
     Information about a BIDS subject directory.
     """
 
-    subject: str
+    subject: BidsSubjectLabel
     """
     The BIDS subject label.
     """
@@ -27,7 +28,7 @@ class BidsSessionInfo(BidsSubjectInfo):
     Information about a BIDS session directory.
     """
 
-    session: str | None
+    session: BidsSessionLabel | None
     """
     The BIDS session label.
     """

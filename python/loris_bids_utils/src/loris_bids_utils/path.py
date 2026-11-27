@@ -64,10 +64,7 @@ def build_bids_file_name(entities: dict[str, str], suffix: str, extension: str) 
     return f'{prefix}_{suffix}.{extension}'
 
 
-def build_bids_subject_path(
-    subject: str,
-    file_name: str,
-) -> Path:
+def build_bids_subject_path(subject: str, file_name: str) -> Path:
     """
     Build a BIDS path for a file at the subject level.
     """
@@ -75,11 +72,7 @@ def build_bids_subject_path(
     return Path(f'sub-{subject}', file_name)
 
 
-def build_bids_session_path(
-    subject: str,
-    session: str | None,
-    file_name: str,
-) -> Path:
+def build_bids_session_path(subject: str, session: str | None, file_name: str) -> Path:
     """
     Build a BIDS path for a file at the session level.
     """
@@ -91,12 +84,7 @@ def build_bids_session_path(
     ]))
 
 
-def build_bids_modality_path(
-    subject: str,
-    session: str | None,
-    data_type: str,
-    file_name: str,
-) -> Path:
+def build_bids_modality_path(subject: str, session: str | None, data_type: str, file_name: str) -> Path:
     """
     Build a BIDS path for a file at the modality level.
     """

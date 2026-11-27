@@ -1,6 +1,5 @@
 import re
 from decimal import Decimal
-from pathlib import Path
 
 from loris_utils.iter import map_non_none
 from loris_utils.parse import try_parse_decimal
@@ -100,8 +99,7 @@ class BidsEegChannelsTsvFile(BidsTsvFile[BidsEegChannelTsvRow]):
     - https://bids-specification.readthedocs.io/en/stable/modality-specific-files/intracranial-electroencephalography.html#channels-description-_channelstsv
     """
 
-    def __init__(self, path: Path):
-        super().__init__(BidsEegChannelTsvRow, path)
+    row_type = BidsEegChannelTsvRow
 
 
 OPTIONAL_CHANNEL_FIELDS = [
